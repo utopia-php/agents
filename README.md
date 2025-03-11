@@ -102,12 +102,17 @@ use Utopia\Agents\Roles\Assistant;
 use Utopia\Agents\Messages\Text;
 
 // Create a conversation with system instructions
+// Initialize roles
+$system = new System('system-1');
+$user = new User('user-1'); 
+$assistant = new Assistant('assistant-1');
+
 $conversation = new Conversation($agent);
 $conversation
-    ->addMessage(new System('system-1'), new Text('You are a helpful AI assistant.'))
-    ->addMessage(new User('user-1'), new Text('Hello!'))
-    ->addMessage(new Assistant('assistant-1'), new Text('Hi! How can I help you today?'))
-    ->addMessage(new User('user-1'), new Text('What is the capital of France?'));
+    ->addMessage($system, new Text('You are a helpful AI assistant.'))
+    ->addMessage($user, new Text('Hello!'))
+    ->addMessage($assistant, new Text('Hi! How can I help you today?'))
+    ->addMessage($user, new Text('What is the capital of France?'));
 
 // Send and get response
 $response = $conversation->send();
