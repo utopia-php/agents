@@ -33,6 +33,10 @@ class Image extends Message
      */
     public function getMimeType(): ?string
     {
+        if (empty($this->content)) {
+            return null;
+        }
+        
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         return $finfo->buffer($this->content);
     }

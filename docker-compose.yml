@@ -1,6 +1,6 @@
 services:
   tests:
-    container_name: tests
+    container_name: agents-tests
     image: agents-dev
     build:
       context: .
