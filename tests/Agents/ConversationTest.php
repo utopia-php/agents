@@ -23,7 +23,7 @@ class ConversationTest extends TestCase
     protected function setUp(): void
     {
         $this->adapter = new Anthropic(
-            'test-api-key',
+            getenv('LLM_KEY_ANTHROPIC'),
             Anthropic::MODEL_CLAUDE_3_SONNET,
             1024,
             1.0
@@ -83,23 +83,21 @@ class ConversationTest extends TestCase
         $this->assertEquals('How are you?', $messages[2]['content']);
     }
 
-    // public function testSend(): void
-    // {
-    //     $this->markTestSkipped('Skipping test that requires real API call');
+    public function testSend(): void
+    {
+        $messages = $this->conversation
+            ->message(new User('user-1', 'Test User'), new Text('Hello'))
+            ->send();
 
-    //     // If you want to test with real API, uncomment below and add your API key
+        $this->assertNotEmpty($messages);
+        $this->assertInstanceOf(Text::class, $messages[0]);
 
-    //     $messages = $this->conversation->send();
+        // Verify the response was added to conversation
+        $conversationMessages = $this->conversation->getMessages();
+        $this->assertNotEmpty($conversationMessages);
+        $this->assertEquals(Role::ROLE_ASSISTANT, $conversationMessages[0]['role']);
 
-    //     $this->assertNotEmpty($messages);
-    //     $this->assertInstanceOf(Text::class, $messages[0]);
-
-    //     // Verify the response was added to conversation
-    //     $conversationMessages = $this->conversation->getMessages();
-    //     $this->assertNotEmpty($conversationMessages);
-    //     $this->assertEquals(Role::ROLE_ASSISTANT, $conversationMessages[0]['role']);
-
-    // }
+    }
 
     public function testTokenCounting(): void
     {
