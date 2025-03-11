@@ -9,8 +9,8 @@ class Assistant extends Role
     /**
      * Create a new assistant
      *
-     * @param string $id
-     * @param string $name
+     * @param  string  $id
+     * @param  string  $name
      */
     public function __construct(string $id, string $name = '')
     {
@@ -26,4 +26,4 @@ class Assistant extends Role
     {
         return Role::ROLE_ASSISTANT;
     }
-} 
+}

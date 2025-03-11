@@ -6,7 +6,6 @@ use Utopia\Agents\Adapter;
 use Utopia\Agents\Conversation;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
-use Utopia\Agents\Messages\Image;
 use Utopia\Agents\Roles\Assistant;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
@@ -56,11 +55,11 @@ class Anthropic extends Adapter
     /**
      * Create a new Anthropic adapter
      *
-     * @param string $apiKey
-     * @param string $model
-     * @param int $maxTokens
-     * @param float $temperature
-     * 
+     * @param  string  $apiKey
+     * @param  string  $model
+     * @param  int  $maxTokens
+     * @param  float  $temperature
+     *
      * @throws \Exception
      */
     public function __construct(
@@ -78,13 +77,17 @@ class Anthropic extends Adapter
     /**
      * Send a message to the Anthropic API
      *
-     * @param Conversation $conversation
-     * @param callable|null $listener Optional callback function that receives a Message object for each chunk
+     * @param  Conversation  $conversation
      * @return array<Message>
+     *
      * @throws \Exception
      */
     public function send(Conversation $conversation): array
     {
+        if ($this->getAgent() === null) {
+            throw new \Exception('Agent not set');
+        }
+
         $client = new \Utopia\Fetch\Client();
         $client
             ->addHeader('x-api-key', $this->apiKey)
@@ -95,7 +98,7 @@ class Anthropic extends Adapter
         foreach ($conversation->getMessages() as $message) {
             $messages[] = [
                 'role' => $message['role'],
-                'content' => $message['content']
+                'content' => $message['content'],
             ];
         }
 
@@ -109,7 +112,7 @@ class Anthropic extends Adapter
                 'messages' => $messages,
                 'max_tokens' => $this->maxTokens,
                 'temperature' => $this->temperature,
-                'stream' => true
+                'stream' => true,
             ],
             [],
             function ($chunk) use ($conversation, &$collectedMessages) {
@@ -121,7 +124,7 @@ class Anthropic extends Adapter
         );
 
         if ($response->getStatusCode() >= 400) {
-            throw new \Exception('Anthropic API error (' . $response->getStatusCode() . '): ' . $response->getBody());
+            throw new \Exception('Anthropic API error ('.$response->getStatusCode().'): '.$response->getBody());
         }
 
         return $collectedMessages;
@@ -130,10 +133,11 @@ class Anthropic extends Adapter
     /**
      * Process a stream chunk from the Anthropic API
      *
-     * @param \Utopia\Fetch\Chunk $chunk
-     * @param Conversation $conversation
-     * @param callable|null $listener
+     * @param  \Utopia\Fetch\Chunk  $chunk
+     * @param  Conversation  $conversation
+     * @param  callable|null  $listener
      * @return array<Message>
+     *
      * @throws \Exception
      */
     protected function process(Chunk $chunk, Conversation $conversation, ?callable $listener): array
@@ -147,20 +151,30 @@ class Anthropic extends Adapter
                 continue;
             }
 
-            if (!str_starts_with($line, 'data: ')) {
+            if (! str_starts_with($line, 'data: ')) {
                 continue;
             }
 
             $json = json_decode(substr($line, 6), true);
-            if (!$json) {
+            if (! is_array($json)) {
                 continue;
             }
 
-            switch ($json['type']) {
+            $type = $json['type'] ?? null;
+            if ($type === null) {
+                continue;
+            }
+
+            switch ($type) {
                 case 'message_start':
                     if (isset($json['message']['usage'])) {
-                        $conversation->countInputTokens($json['message']['usage']['input_tokens'] ?? 0);
-                        $conversation->countOutputTokens($json['message']['usage']['output_tokens'] ?? 0);
+                        $usage = $json['message']['usage'];
+                        if (isset($usage['input_tokens']) && is_int($usage['input_tokens'])) {
+                            $conversation->countInputTokens($usage['input_tokens']);
+                        }
+                        if (isset($usage['output_tokens']) && is_int($usage['output_tokens'])) {
+                            $conversation->countOutputTokens($usage['output_tokens']);
+                        }
                     }
                     break;
 
@@ -169,15 +183,16 @@ class Anthropic extends Adapter
                     break;
 
                 case 'content_block_delta':
-                    if (!isset($json['delta']['type'])) {
+                    if (! isset($json['delta']['type'])) {
                         break;
                     }
 
-                    $message = match ($json['delta']['type']) {
-                        'text_delta' => new Text($json['delta']['text']),
-                        //'image' => new Image($json['delta']['source']), // TODO check if this is correct
-                        default => null
-                    };
+                    $deltaType = $json['delta']['type'];
+                    $message = null;
+
+                    if ($deltaType === 'text_delta' && isset($json['delta']['text']) && is_string($json['delta']['text'])) {
+                        $message = new Text($json['delta']['text']);
+                    }
 
                     if ($message !== null) {
                         $conversation->message(new Assistant('anthropic'), $message);
@@ -194,8 +209,13 @@ class Anthropic extends Adapter
 
                 case 'message_delta':
                     if (isset($json['message']['usage'])) {
-                        $conversation->countInputTokens($json['message']['usage']['input_tokens'] ?? 0);
-                        $conversation->countOutputTokens($json['message']['usage']['output_tokens'] ?? 0);
+                        $usage = $json['message']['usage'];
+                        if (isset($usage['input_tokens']) && is_int($usage['input_tokens'])) {
+                            $conversation->countInputTokens($usage['input_tokens']);
+                        }
+                        if (isset($usage['output_tokens']) && is_int($usage['output_tokens'])) {
+                            $conversation->countOutputTokens($usage['output_tokens']);
+                        }
                     }
                     break;
 
@@ -204,7 +224,8 @@ class Anthropic extends Adapter
                     break;
 
                 case 'error':
-                    throw new \Exception('Anthropic API error: ' . ($json['error']['message'] ?? 'Unknown error'));
+                    $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
+                    throw new \Exception('Anthropic API error: '.$errorMessage);
             }
         }
 
@@ -239,41 +260,45 @@ class Anthropic extends Adapter
     /**
      * Set model to use
      *
-     * @param string $model
+     * @param  string  $model
      * @return self
+     *
      * @throws \Exception
      */
     public function setModel(string $model): self
     {
-        if (!in_array($model, $this->getModels())) {
-            throw new \Exception('Unsupported model: ' . $model);
+        if (! in_array($model, $this->getModels())) {
+            throw new \Exception('Unsupported model: '.$model);
         }
 
         $this->model = $model;
+
         return $this;
     }
 
     /**
      * Set max tokens
      *
-     * @param int $maxTokens
+     * @param  int  $maxTokens
      * @return self
      */
     public function setMaxTokens(int $maxTokens): self
     {
         $this->maxTokens = $maxTokens;
+
         return $this;
     }
 
     /**
      * Set temperature
      *
-     * @param float $temperature
+     * @param  float  $temperature
      * @return self
      */
     public function setTemperature(float $temperature): self
     {
         $this->temperature = $temperature;
+
         return $this;
     }
-} 
+}

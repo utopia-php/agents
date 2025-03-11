@@ -8,6 +8,7 @@ abstract class Role
      * Role constants
      */
     public const ROLE_ASSISTANT = 'assistant';
+
     public const ROLE_USER = 'user';
 
     /**
@@ -23,8 +24,8 @@ abstract class Role
     /**
      * Create a new role
      *
-     * @param string $id
-     * @param string $name
+     * @param  string  $id
+     * @param  string  $name
      */
     public function __construct(string $id, string $name = '')
     {
@@ -55,12 +56,13 @@ abstract class Role
     /**
      * Set the role's name
      *
-     * @param string $name
+     * @param  string  $name
      * @return self
      */
     public function setName(string $name): self
     {
         $this->name = $name;
+
         return $this;
     }
 
@@ -70,4 +72,4 @@ abstract class Role
      * @return string
      */
     abstract public function getIdentifier(): string;
-} 
+}

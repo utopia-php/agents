@@ -8,31 +8,31 @@ use Utopia\Agents\Roles\User;
 
 class UserTest extends TestCase
 {
-    public function testConstructor()
+    public function testConstructor(): void
     {
         $id = 'test-id';
         $name = 'Test User';
-        
+
         $user = new User($id, $name);
-        
+
         $this->assertEquals($id, $user->getId());
         $this->assertEquals($name, $user->getName());
     }
 
-    public function testConstructorWithoutName()
+    public function testConstructorWithoutName(): void
     {
         $id = 'test-id';
-        
+
         $user = new User($id);
-        
+
         $this->assertEquals($id, $user->getId());
         $this->assertEquals('', $user->getName());
     }
 
-    public function testGetIdentifier()
+    public function testGetIdentifier(): void
     {
         $user = new User('test-id');
-        
+
         $this->assertEquals(Role::ROLE_USER, $user->getIdentifier());
     }
-} 
+}

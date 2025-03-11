@@ -9,7 +9,7 @@ class Text extends Message
     /**
      * Create a new text message
      *
-     * @param string $content
+     * @param  string  $content
      */
     public function __construct(string $content)
     {
@@ -25,4 +25,4 @@ class Text extends Message
     {
         return $this->content;
     }
-} 
+}

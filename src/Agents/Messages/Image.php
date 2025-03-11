@@ -9,7 +9,7 @@ class Image extends Message
     /**
      * Create a new image message
      *
-     * @param string $content Binary content of the image
+     * @param  string  $content Binary content of the image
      */
     public function __construct(string $content)
     {
@@ -36,8 +36,11 @@ class Image extends Message
         if (empty($this->content)) {
             return null;
         }
-        
+
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        return $finfo->buffer($this->content);
+
+        $mimeType = $finfo->buffer($this->content);
+
+        return $mimeType === false ? null : $mimeType;
     }
-} 
+}

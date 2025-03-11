@@ -2,8 +2,6 @@
 
 namespace Utopia\Agents;
 
-use Utopia\Agents\Adapter;
-
 class Agent
 {
     /**
@@ -24,8 +22,8 @@ class Agent
     /**
      * Create a new agent
      *
-     * @param Adapter $adapter The AI model adapter to use
-     * 
+     * @param  Adapter  $adapter The AI model adapter to use
+     *
      * @throws \Exception
      */
     public function __construct(Adapter $adapter)
@@ -40,38 +38,41 @@ class Agent
     /**
      * Set the agent's description
      *
-     * @param string $description
+     * @param  string  $description
      * @return self
      */
     public function setDescription(string $description): self
     {
         $this->description = $description;
+
         return $this;
     }
 
     /**
      * Set the agent's capabilities
      *
-     * @param array<string> $capabilities
+     * @param  array<string>  $capabilities
      * @return self
      */
     public function setCapabilities(array $capabilities): self
     {
         $this->capabilities = $capabilities;
+
         return $this;
     }
 
     /**
      * Add a capability to the agent
      *
-     * @param string $capability
+     * @param  string  $capability
      * @return self
      */
     public function addCapability(string $capability): self
     {
-        if (!in_array($capability, $this->capabilities)) {
+        if (! in_array($capability, $this->capabilities)) {
             $this->capabilities[] = $capability;
         }
+
         return $this;
     }
 
@@ -104,4 +105,4 @@ class Agent
     {
         return $this->adapter;
     }
-} 
+}

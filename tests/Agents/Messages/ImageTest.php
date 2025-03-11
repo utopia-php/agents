@@ -9,7 +9,9 @@ use Utopia\Agents\Messages\Image;
 class ImageTest extends TestCase
 {
     private string $pngImageData;
+
     private string $jpegImageData;
+
     private string $gifImageData;
 
     protected function setUp(): void
@@ -24,59 +26,59 @@ class ImageTest extends TestCase
         $this->gifImageData = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
     }
 
-    public function testConstructor()
+    public function testConstructor(): void
     {
         $message = new Image($this->pngImageData);
-        
+
         $this->assertInstanceOf(Message::class, $message);
         $this->assertInstanceOf(Image::class, $message);
     }
 
-    public function testGetContent()
+    public function testGetContent(): void
     {
         $message = new Image($this->pngImageData);
-        
+
         $this->assertEquals($this->pngImageData, $message->getContent());
         $this->assertIsString($message->getContent());
     }
 
-    public function testGetMimeTypePNG()
+    public function testGetMimeTypePNG(): void
     {
         $message = new Image($this->pngImageData);
-        
+
         $this->assertEquals('image/png', $message->getMimeType());
     }
 
-    public function testGetMimeTypeJPEG()
+    public function testGetMimeTypeJPEG(): void
     {
         $message = new Image($this->jpegImageData);
-        
+
         $this->assertEquals('image/jpeg', $message->getMimeType());
     }
 
-    public function testGetMimeTypeGIF()
+    public function testGetMimeTypeGIF(): void
     {
         $message = new Image($this->gifImageData);
-        
+
         $this->assertEquals('image/gif', $message->getMimeType());
     }
 
-    public function testEmptyContent()
+    public function testEmptyContent(): void
     {
         $message = new Image('');
-        
+
         $this->assertEquals('', $message->getContent());
         $this->assertNull($message->getMimeType());
     }
 
-    public function testInvalidImageData()
+    public function testInvalidImageData(): void
     {
         $message = new Image('not an image');
-        
+
         $this->assertEquals('not an image', $message->getContent());
         $this->assertNotNull($message->getMimeType());
         $this->assertNotEquals('image/png', $message->getMimeType());
         $this->assertNotEquals('image/jpeg', $message->getMimeType());
         $this->assertNotEquals('image/gif', $message->getMimeType());
     }
-} 
+}

@@ -5,16 +5,16 @@ namespace Utopia\Agents;
 abstract class Message
 {
     /**
-     * @var array<string, mixed>|string
+     * @var string
      */
-    protected array|string $content;
+    protected string $content;
 
     /**
      * Create a new message
      *
-     * @param array<string, mixed>|string $content
+     * @param  string  $content
      */
-    public function __construct(array|string $content)
+    public function __construct(string $content)
     {
         $this->content = $content;
     }
@@ -22,10 +22,10 @@ abstract class Message
     /**
      * Get the message content
      *
-     * @return array<string, mixed>|string
+     * @return string
      */
-    public function getContent(): array|string
+    public function getContent(): string
     {
         return $this->content;
     }
-} 
+}

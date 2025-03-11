@@ -3,14 +3,14 @@
 namespace Tests\Utopia\Agents;
 
 use PHPUnit\Framework\TestCase;
-use PHPUnit\Framework\MockObject\MockObject;
-use Utopia\Agents\Agent;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Adapters\OpenAI;
+use Utopia\Agents\Agent;
 
 class AgentTest extends TestCase
 {
     private Agent $agent;
+
     private Adapter $mockAdapter;
 
     protected function setUp(): void
@@ -20,34 +20,34 @@ class AgentTest extends TestCase
         $this->agent = new Agent($this->mockAdapter);
     }
 
-    public function testConstructor()
+    public function testConstructor(): void
     {
         $this->assertSame($this->mockAdapter, $this->agent->getAdapter());
         $this->assertEquals('', $this->agent->getDescription());
         $this->assertEquals([], $this->agent->getCapabilities());
     }
 
-    public function testSetDescription()
+    public function testSetDescription(): void
     {
         $description = 'Test agent description';
-        
+
         $result = $this->agent->setDescription($description);
-        
+
         $this->assertSame($this->agent, $result);
         $this->assertEquals($description, $this->agent->getDescription());
     }
 
-    public function testSetCapabilities()
+    public function testSetCapabilities(): void
     {
         $capabilities = ['capability1', 'capability2'];
-        
+
         $result = $this->agent->setCapabilities($capabilities);
-        
+
         $this->assertSame($this->agent, $result);
         $this->assertEquals($capabilities, $this->agent->getCapabilities());
     }
 
-    public function testAddCapability()
+    public function testAddCapability(): void
     {
         // Test adding a single capability
         $result = $this->agent->addCapability('capability1');
@@ -63,7 +63,7 @@ class AgentTest extends TestCase
         $this->assertEquals(['capability1', 'capability2'], $this->agent->getCapabilities());
     }
 
-    public function testFluentInterface()
+    public function testFluentInterface(): void
     {
         $description = 'Test Description';
         $capabilities = ['cap1', 'cap2'];
@@ -77,4 +77,4 @@ class AgentTest extends TestCase
         $this->assertEquals($description, $this->agent->getDescription());
         $this->assertEquals(['cap1', 'cap2', 'cap3'], $this->agent->getCapabilities());
     }
-} 
+}

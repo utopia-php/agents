@@ -48,11 +48,11 @@ class OpenAI extends Adapter
     /**
      * Create a new OpenAI adapter
      *
-     * @param string $apiKey
-     * @param string $model
-     * @param int $maxTokens
-     * @param float $temperature
-     * 
+     * @param  string  $apiKey
+     * @param  string  $model
+     * @param  int  $maxTokens
+     * @param  float  $temperature
+     *
      * @throws \Exception
      */
     public function __construct(
@@ -70,8 +70,9 @@ class OpenAI extends Adapter
     /**
      * Send a message to the OpenAI API
      *
-     * @param Conversation $conversation
-     * @return Message
+     * @param  Conversation  $conversation
+     * @return array<Message> Response from the AI model
+     *
      * @throws \Exception
      */
     public function send(Conversation $conversation): array
@@ -114,41 +115,45 @@ class OpenAI extends Adapter
     /**
      * Set model to use
      *
-     * @param string $model
+     * @param  string  $model
      * @return self
+     *
      * @throws \Exception
      */
     public function setModel(string $model): self
     {
-        if (!in_array($model, $this->getModels())) {
-            throw new \Exception('Unsupported model: ' . $model);
+        if (! in_array($model, $this->getModels())) {
+            throw new \Exception('Unsupported model: '.$model);
         }
 
         $this->model = $model;
+
         return $this;
     }
 
     /**
      * Set max tokens
      *
-     * @param int $maxTokens
+     * @param  int  $maxTokens
      * @return self
      */
     public function setMaxTokens(int $maxTokens): self
     {
         $this->maxTokens = $maxTokens;
+
         return $this;
     }
 
     /**
      * Set temperature
      *
-     * @param float $temperature
+     * @param  float  $temperature
      * @return self
      */
     public function setTemperature(float $temperature): self
     {
         $this->temperature = $temperature;
+
         return $this;
     }
-} 
+}
