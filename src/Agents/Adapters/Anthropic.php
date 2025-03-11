@@ -4,6 +4,10 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Conversation;
+use Utopia\Agents\Message;
+use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Messages\Image;
+use Utopia\Agents\Roles\Assistant;
 
 class Anthropic extends Adapter
 {
@@ -73,18 +77,84 @@ class Anthropic extends Adapter
      * Send a message to the Anthropic API
      *
      * @param Conversation $conversation
-     * @return array<string, mixed>
+     * @return array<Message>
      * @throws \Exception
      */
     public function send(Conversation $conversation): array
     {
-        // TODO: Implement Anthropic API call
-        // Example implementation structure:
-        // $response = [make API call with $conversation->getMessages()];
-        // $conversation->setInputTokens($response['usage']['input_tokens']);
-        // $conversation->setOutputTokens($response['usage']['output_tokens']);
-        // return $response;
-        throw new \Exception('Not implemented');
+        $client = new \Utopia\Fetch\Client();
+        $client
+            ->addHeader('x-api-key', $this->apiKey)
+            ->addHeader('anthropic-version', '2023-06-01')
+            ->addHeader('content-type', 'application/json');
+
+        $messages = [];
+        foreach ($conversation->getMessages() as $message) {
+            $messages[] = [
+                'role' => $message['role'],
+                'content' => $message['content']
+            ];
+        }
+
+        $response = $client->fetch(
+            'https://api.anthropic.com/v1/messages',
+            \Utopia\Fetch\Client::METHOD_POST,
+            [
+                'model' => $this->model,
+                'messages' => $messages,
+                'max_tokens' => $this->maxTokens,
+                'temperature' => $this->temperature
+            ]
+        );
+
+        if ($response->getStatusCode() >= 400) {
+            throw new \Exception('Anthropic API error: ' . $response->getBody());
+        }
+
+        $result = json_decode($response->getBody(), true);
+
+        if (!$result || !isset($result['content'])) {
+            throw new \Exception('Invalid response from Anthropic API');
+        }
+
+        // Set token usage if available
+        if (isset($result['usage'])) {
+            $conversation->setInputTokens($result['usage']['input_tokens'] ?? 0);
+            $conversation->setOutputTokens($result['usage']['output_tokens'] ?? 0);
+        }
+
+        $messages = [];
+        foreach ($result['content'] as $content) {
+            if (!isset($content['type'])) {
+                throw new \Exception('Invalid message type in response');
+            }
+
+            switch ($content['type']) {
+                case 'image':
+                    if (!isset($content['source']['data'])) {
+                        throw new \Exception('Invalid image data in response');
+                    }
+                    $messages[] = new Image(base64_decode($content['source']['data']));
+                    break;
+
+                case 'text':
+                    if (!isset($content['text'])) {
+                        throw new \Exception('Invalid text content in response');
+                    }
+                    $messages[] = new Text($content['text']);
+                    break;
+
+                default:
+                    throw new \Exception('Unsupported message type: ' . $content['type']);
+            }
+        }
+
+        // Add all messages to the conversation
+        foreach ($messages as $message) {
+            $conversation->addMessage(new Assistant('anthropic'), $message);
+        }
+
+        return $messages;
     }
 
     /**

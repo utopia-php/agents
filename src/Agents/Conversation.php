@@ -59,12 +59,18 @@ class Conversation
     /**
      * Send the conversation to the agent and get response
      *
-     * @return array<string, mixed>
+     * @return array<Message>
      * @throws \Exception
      */
     public function send(): array
     {
-        return $this->agent->getAdapter()->send($this);
+        $messages = $this->agent->getAdapter()->send($this);
+        
+        foreach ($messages as $message) {
+            $this->addMessage($this->agent, $message);
+        }
+        
+        return $messages;
     }
 
     /**

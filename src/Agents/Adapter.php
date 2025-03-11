@@ -8,7 +8,7 @@ abstract class Adapter
      * Send a message to the AI model
      *
      * @param Conversation $conversation The conversation instance containing messages and tracking tokens
-     * @return array<string, mixed> Response from the AI model
+     * @return array<Message> Response from the AI model
      * @throws \Exception
      */
     abstract public function send(Conversation $conversation): array;

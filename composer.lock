@@ -4,8 +4,48 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bd9d398f71b4f34b59347ac9a84ccc9e",
-    "packages": [],
+    "content-hash": "71e26dc0cd428be6148998a33e39994a",
+    "packages": [
+        {
+            "name": "utopia-php/fetch",
+            "version": "dev-feat-eldad-v1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/fetch.git",
+                "reference": "4a9c1022c0fc878d8df7bdb86a2a61e1cdd48197"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/fetch/zipball/4a9c1022c0fc878d8df7bdb86a2a61e1cdd48197",
+                "reference": "4a9c1022c0fc878d8df7bdb86a2a61e1cdd48197",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.5.0",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^9.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\Fetch\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A simple library that provides an interface for making HTTP Requests.",
+            "support": {
+                "issues": "https://github.com/utopia-php/fetch/issues",
+                "source": "https://github.com/utopia-php/fetch/tree/feat-eldad-v1"
+            },
+            "time": "2025-03-11T09:09:48+00:00"
+        }
+    ],
     "packages-dev": [
         {
             "name": "amphp/amp",
@@ -3932,15 +3972,13 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "utopia-php/fetch": 20,
         "phpstan/phpstan": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=8.0",
-        "ext-hash": "*",
-        "ext-scrypt": "*",
-        "ext-sodium": "*"
+        "php": ">=8.0"
     },
     "platform-dev": [],
     "plugin-api-version": "2.6.0"

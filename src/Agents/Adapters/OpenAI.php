@@ -4,6 +4,9 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Conversation;
+use Utopia\Agents\Message;
+use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Roles\Assistant;
 
 class OpenAI extends Adapter
 {
@@ -68,7 +71,7 @@ class OpenAI extends Adapter
      * Send a message to the OpenAI API
      *
      * @param Conversation $conversation
-     * @return array<string, mixed>
+     * @return Message
      * @throws \Exception
      */
     public function send(Conversation $conversation): array
@@ -78,7 +81,9 @@ class OpenAI extends Adapter
         // $response = [make API call with $conversation->getMessages()];
         // $conversation->setInputTokens($response['usage']['prompt_tokens']);
         // $conversation->setOutputTokens($response['usage']['completion_tokens']);
-        // return $response;
+        // $message = new Text($response['choices'][0]['message']['content']);
+        // $conversation->addMessage(new Assistant('openai'), $message);
+        // return $message;
         throw new \Exception('Not implemented');
     }
 
