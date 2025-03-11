@@ -18,6 +18,21 @@ class Conversation
     protected Agent $agent;
 
     /**
+     * @var int
+     */
+    protected int $inputTokens = 0;
+
+    /**
+     * @var int
+     */
+    protected int $outputTokens = 0;
+
+    /**
+     * @var int
+     */
+    protected int $totalTokens = 0;
+
+    /**
      * @param Agent $agent
      */
     public function __construct(Agent $agent)
@@ -49,7 +64,7 @@ class Conversation
      */
     public function send(): array
     {
-        return $this->agent->getAdapter()->send($this->messages);
+        return $this->agent->getAdapter()->send($this);
     }
 
     /**
@@ -70,5 +85,59 @@ class Conversation
     public function getAgent(): Agent
     {
         return $this->agent;
+    }
+
+    /**
+     * Get input tokens count
+     *
+     * @return int
+     */
+    public function getInputTokens(): int
+    {
+        return $this->inputTokens;
+    }
+
+    /**
+     * Set input tokens count
+     *
+     * @param int $tokens
+     * @return self
+     */
+    public function setInputTokens(int $tokens): self
+    {
+        $this->inputTokens = $tokens;
+        return $this;
+    }
+
+    /**
+     * Get output tokens count
+     *
+     * @return int
+     */
+    public function getOutputTokens(): int
+    {
+        return $this->outputTokens;
+    }
+
+    /**
+     * Set output tokens count
+     *
+     * @param int $tokens
+     * @return self
+     */
+    public function setOutputTokens(int $tokens): self
+    {
+        $this->outputTokens = $tokens;
+        return $this;
+    }
+
+    /**
+     * Get total tokens count
+     *
+     * @return int
+     */
+    public function getTotalTokens(): int
+    {
+        return $this->inputTokens + $this->outputTokens;
     }
 } 

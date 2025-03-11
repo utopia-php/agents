@@ -3,6 +3,7 @@
 namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
+use Utopia\Agents\Conversation;
 
 class Anthropic extends Adapter
 {
@@ -71,13 +72,18 @@ class Anthropic extends Adapter
     /**
      * Send a message to the Anthropic API
      *
-     * @param array<string, mixed> $messages
+     * @param Conversation $conversation
      * @return array<string, mixed>
      * @throws \Exception
      */
-    public function send(array $messages): array
+    public function send(Conversation $conversation): array
     {
         // TODO: Implement Anthropic API call
+        // Example implementation structure:
+        // $response = [make API call with $conversation->getMessages()];
+        // $conversation->setInputTokens($response['usage']['input_tokens']);
+        // $conversation->setOutputTokens($response['usage']['output_tokens']);
+        // return $response;
         throw new \Exception('Not implemented');
     }
 
