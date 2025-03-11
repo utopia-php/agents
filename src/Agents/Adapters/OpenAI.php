@@ -82,7 +82,7 @@ class OpenAI extends Adapter
         // $conversation->setInputTokens($response['usage']['prompt_tokens']);
         // $conversation->setOutputTokens($response['usage']['completion_tokens']);
         // $message = new Text($response['choices'][0]['message']['content']);
-        // $conversation->addMessage(new Assistant('openai'), $message);
+        // $conversation->message(new Assistant('openai'), $message);
         // return $message;
         throw new \Exception('Not implemented');
     }

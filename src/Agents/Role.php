@@ -9,7 +9,6 @@ abstract class Role
      */
     public const ROLE_ASSISTANT = 'assistant';
     public const ROLE_USER = 'user';
-    public const ROLE_SYSTEM = 'system';
 
     /**
      * @var string

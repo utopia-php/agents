@@ -1,6 +1,6 @@
 <?php
 
-namespace Utopia\Agents\Roles;
+namespace Utopia\Agents;
 
 use Utopia\Agents\Adapter;
 
@@ -33,6 +33,8 @@ class Agent
         $this->adapter = $adapter;
         $this->capabilities = [];
         $this->description = '';
+
+        $this->adapter->setAgent($this);
     }
 
     /**

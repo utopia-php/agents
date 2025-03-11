@@ -34,7 +34,7 @@ Utopia Framework requires PHP 8.0 or later. We recommend using the latest PHP ve
 ```php
 <?php
 
-use Utopia\Agents\Roles\Agent;
+use Utopia\Agents\Agent;
 use Utopia\Agents\Roles\User;
 use Utopia\Agents\Messages\Text;
 use Utopia\Agents\Conversation;
@@ -50,7 +50,7 @@ $user = new User('user-1', 'John');
 // Start a conversation
 $conversation = new Conversation($agent);
 $conversation
-    ->addMessage($user, new Text('What is artificial intelligence?'))
+    ->message($user, new Text('What is artificial intelligence?'))
     ->send();
 ```
 
@@ -96,23 +96,20 @@ Available Anthropic Models:
 ### Managing Conversations
 
 ```php
-use Utopia\Agents\Roles\System;
 use Utopia\Agents\Roles\User;
 use Utopia\Agents\Roles\Assistant;
 use Utopia\Agents\Messages\Text;
 
 // Create a conversation with system instructions
 // Initialize roles
-$system = new System('system-1');
 $user = new User('user-1'); 
 $assistant = new Assistant('assistant-1');
 
 $conversation = new Conversation($agent);
 $conversation
-    ->addMessage($system, new Text('You are a helpful AI assistant.'))
-    ->addMessage($user, new Text('Hello!'))
-    ->addMessage($assistant, new Text('Hi! How can I help you today?'))
-    ->addMessage($user, new Text('What is the capital of France?'));
+    ->message($user, new Text('Hello!'))
+    ->message($assistant, new Text('Hi! How can I help you today?'))
+    ->message($user, new Text('What is the capital of France?'));
 
 // Send and get response
 $response = $conversation->send();

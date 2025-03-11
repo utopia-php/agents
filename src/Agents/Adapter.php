@@ -5,6 +5,13 @@ namespace Utopia\Agents;
 abstract class Adapter
 {
     /**
+     * The agent instance
+     * 
+     * @var ?Agent
+     */
+    protected ?Agent $agent = null;
+
+    /**
      * Send a message to the AI model
      *
      * @param Conversation $conversation The conversation instance containing messages and tracking tokens
@@ -35,4 +42,26 @@ abstract class Adapter
      * @throws \Exception if model is not supported
      */
     abstract public function setModel(string $model): self;
+
+    /**
+     * Get the current agent
+     *
+     * @return ?Agent
+     */
+    public function getAgent(): ?Agent
+    {
+        return $this->agent;
+    }
+
+    /**
+     * Set the agent
+     *
+     * @param Agent $agent
+     * @return self
+     */
+    public function setAgent(Agent $agent): self
+    {
+        $this->agent = $agent;
+        return $this;
+    }
 } 

@@ -8,6 +8,8 @@ use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
 use Utopia\Agents\Messages\Image;
 use Utopia\Agents\Roles\Assistant;
+use Utopia\Fetch\Chunk;
+use Utopia\Fetch\Client;
 
 class Anthropic extends Adapter
 {
@@ -19,7 +21,7 @@ class Anthropic extends Adapter
     /**
      * Claude 3 Sonnet - Ideal balance of intelligence and speed
      */
-    public const MODEL_CLAUDE_3_SONNET = 'claude-3-sonnet-20240229';
+    public const MODEL_CLAUDE_3_SONNET = 'claude-3-7-sonnet-20250219';
 
     /**
      * Claude 3 Haiku - Fastest and most compact model
@@ -77,6 +79,7 @@ class Anthropic extends Adapter
      * Send a message to the Anthropic API
      *
      * @param Conversation $conversation
+     * @param callable|null $listener Optional callback function that receives a Message object for each chunk
      * @return array<Message>
      * @throws \Exception
      */
@@ -96,62 +99,113 @@ class Anthropic extends Adapter
             ];
         }
 
+        $collectedMessages = [];
         $response = $client->fetch(
             'https://api.anthropic.com/v1/messages',
-            \Utopia\Fetch\Client::METHOD_POST,
+            Client::METHOD_POST,
             [
                 'model' => $this->model,
+                'system' => $this->getAgent()->getDescription(),
                 'messages' => $messages,
                 'max_tokens' => $this->maxTokens,
-                'temperature' => $this->temperature
-            ]
+                'temperature' => $this->temperature,
+                'stream' => true
+            ],
+            [],
+            function ($chunk) use ($conversation, &$collectedMessages) {
+                $messages = $this->process($chunk, $conversation, $conversation->getListener());
+                if ($messages) {
+                    $collectedMessages = array_merge($collectedMessages, $messages);
+                }
+            }
         );
 
         if ($response->getStatusCode() >= 400) {
-            throw new \Exception('Anthropic API error: ' . $response->getBody());
+            throw new \Exception('Anthropic API error (' . $response->getStatusCode() . '): ' . $response->getBody());
         }
 
-        $result = json_decode($response->getBody(), true);
+        return $collectedMessages;
+    }
 
-        if (!$result || !isset($result['content'])) {
-            throw new \Exception('Invalid response from Anthropic API');
-        }
-
-        // Set token usage if available
-        if (isset($result['usage'])) {
-            $conversation->setInputTokens($result['usage']['input_tokens'] ?? 0);
-            $conversation->setOutputTokens($result['usage']['output_tokens'] ?? 0);
-        }
-
+    /**
+     * Process a stream chunk from the Anthropic API
+     *
+     * @param \Utopia\Fetch\Chunk $chunk
+     * @param Conversation $conversation
+     * @param callable|null $listener
+     * @return array<Message>
+     * @throws \Exception
+     */
+    protected function process(Chunk $chunk, Conversation $conversation, ?callable $listener): array
+    {
         $messages = [];
-        foreach ($result['content'] as $content) {
-            if (!isset($content['type'])) {
-                throw new \Exception('Invalid message type in response');
+        $data = $chunk->getData();
+        $lines = explode("\n", $data);
+
+        foreach ($lines as $line) {
+            if (empty(trim($line))) {
+                continue;
             }
 
-            switch ($content['type']) {
-                case 'image':
-                    if (!isset($content['source']['data'])) {
-                        throw new \Exception('Invalid image data in response');
-                    }
-                    $messages[] = new Image(base64_decode($content['source']['data']));
-                    break;
-
-                case 'text':
-                    if (!isset($content['text'])) {
-                        throw new \Exception('Invalid text content in response');
-                    }
-                    $messages[] = new Text($content['text']);
-                    break;
-
-                default:
-                    throw new \Exception('Unsupported message type: ' . $content['type']);
+            if (!str_starts_with($line, 'data: ')) {
+                continue;
             }
-        }
 
-        // Add all messages to the conversation
-        foreach ($messages as $message) {
-            $conversation->addMessage(new Assistant('anthropic'), $message);
+            $json = json_decode(substr($line, 6), true);
+            if (!$json) {
+                continue;
+            }
+
+            switch ($json['type']) {
+                case 'message_start':
+                    if (isset($json['message']['usage'])) {
+                        $conversation->countInputTokens($json['message']['usage']['input_tokens'] ?? 0);
+                        $conversation->countOutputTokens($json['message']['usage']['output_tokens'] ?? 0);
+                    }
+                    break;
+
+                case 'content_block_start':
+                    // Initialize content block
+                    break;
+
+                case 'content_block_delta':
+                    if (!isset($json['delta']['type'])) {
+                        break;
+                    }
+
+                    $message = match ($json['delta']['type']) {
+                        'text_delta' => new Text($json['delta']['text']),
+                        //'image' => new Image($json['delta']['source']), // TODO check if this is correct
+                        default => null
+                    };
+
+                    if ($message !== null) {
+                        $conversation->message(new Assistant('anthropic'), $message);
+                        $messages[] = $message;
+                        if ($listener !== null) {
+                            $listener($message);
+                        }
+                    }
+                    break;
+
+                case 'content_block_stop':
+                    // End of content block
+                    break;
+
+                case 'message_delta':
+                    if (isset($json['message']['usage'])) {
+                        $conversation->countInputTokens($json['message']['usage']['input_tokens'] ?? 0);
+                        $conversation->countOutputTokens($json['message']['usage']['output_tokens'] ?? 0);
+                    }
+                    break;
+
+                case 'message_stop':
+                    // End of message
+                    break;
+
+                case 'error':
+                    throw new \Exception('Anthropic API error: ' . ($json['error']['message'] ?? 'Unknown error'));
+            }
         }
 
         return $messages;

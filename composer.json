@@ -27,7 +27,7 @@
         "format": "./vendor/bin/pint"
     },
     "require": {
-        "php": ">=8.0",
+        "php": ">=8.3",
         "utopia-php/fetch": "feat-eldad-v1-dev"
     },
     "require-dev": {

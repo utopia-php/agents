@@ -3,7 +3,8 @@
 namespace Utopia\Agents;
 
 use Utopia\Agents\Role;
-use Utopia\Agents\Roles\Agent;
+use Utopia\Agents\Agent;
+use Utopia\Agents\Roles\Assistant;
 
 class Conversation
 {
@@ -33,11 +34,29 @@ class Conversation
     protected int $totalTokens = 0;
 
     /**
+     * @var \Closure
+     */
+    protected \Closure $listener;
+
+    /**
      * @param Agent $agent
      */
     public function __construct(Agent $agent)
     {
         $this->agent = $agent;
+        $this->listener = function() {};
+    }
+
+    /**
+     * Set a callback to handle chunks
+     *
+     * @param callable $listener
+     * @return self
+     */
+    public function listen(callable $listener): self
+    {
+        $this->listener = $listener;
+        return $this;
     }
 
     /**
@@ -47,7 +66,7 @@ class Conversation
      * @param Role $from
      * @return self
      */
-    public function addMessage(Role $from,Message $message): self
+    public function message(Role $from, Message $message): self
     {
         $this->messages[] = [
             'role' => $from->getIdentifier(),
@@ -65,9 +84,9 @@ class Conversation
     public function send(): array
     {
         $messages = $this->agent->getAdapter()->send($this);
-        
+        $from = new Assistant($this->agent->getAdapter()->getModel(), 'Assistant');
         foreach ($messages as $message) {
-            $this->addMessage($this->agent, $message);
+            $this->message($from, $message);
         }
         
         return $messages;
@@ -94,6 +113,16 @@ class Conversation
     }
 
     /**
+     * Get the current listener callback
+     *
+     * @return callable
+     */
+    public function getListener(): callable
+    {
+        return $this->listener;
+    }
+
+    /**
      * Get input tokens count
      *
      * @return int
@@ -104,14 +133,14 @@ class Conversation
     }
 
     /**
-     * Set input tokens count
+     * Add to input tokens count
      *
      * @param int $tokens
      * @return self
      */
-    public function setInputTokens(int $tokens): self
+    public function countInputTokens(int $tokens): self
     {
-        $this->inputTokens = $tokens;
+        $this->inputTokens += $tokens;
         return $this;
     }
 
@@ -126,14 +155,14 @@ class Conversation
     }
 
     /**
-     * Set output tokens count
+     * Add to output tokens count
      *
      * @param int $tokens
      * @return self
      */
-    public function setOutputTokens(int $tokens): self
+    public function countOutputTokens(int $tokens): self
     {
-        $this->outputTokens = $tokens;
+        $this->outputTokens += $tokens;
         return $this;
     }
 
