@@ -12,6 +12,13 @@ abstract class Adapter
     protected ?Agent $agent = null;
 
     /**
+     * Get the adapter name
+     *
+     * @return string
+     */
+    abstract public function getName(): string;
+
+    /**
      * Send a message to the AI model
      *
      * @param  Conversation  $conversation The conversation instance containing messages and tracking tokens

@@ -96,7 +96,6 @@ class ConversationTest extends TestCase
         $conversationMessages = $this->conversation->getMessages();
         $this->assertNotEmpty($conversationMessages);
         $this->assertEquals(Role::ROLE_ASSISTANT, $conversationMessages[0]['role']);
-
     }
 
     public function testTokenCounting(): void

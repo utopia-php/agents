@@ -156,4 +156,14 @@ class OpenAI extends Adapter
 
         return $this;
     }
+
+    /**
+     * Get the adapter name
+     *
+     * @return string
+     */
+    public function getName(): string
+    {
+        return 'openai';
+    }
 }

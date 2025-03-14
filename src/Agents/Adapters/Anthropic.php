@@ -160,6 +160,8 @@ class Anthropic extends Adapter
                 continue;
             }
 
+            var_dump($json);
+
             $type = $json['type'] ?? null;
             if ($type === null) {
                 continue;
@@ -300,5 +302,15 @@ class Anthropic extends Adapter
         $this->temperature = $temperature;
 
         return $this;
+    }
+
+    /**
+     * Get the adapter name
+     *
+     * @return string
+     */
+    public function getName(): string
+    {
+        return 'anthropic';
     }
 }
