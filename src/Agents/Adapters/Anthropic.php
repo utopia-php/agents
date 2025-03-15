@@ -160,8 +160,6 @@ class Anthropic extends Adapter
                 continue;
             }
 
-            var_dump($json);
-
             $type = $json['type'] ?? null;
             if ($type === null) {
                 continue;
