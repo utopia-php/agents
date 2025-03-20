@@ -6,7 +6,6 @@ use Utopia\Agents\Adapter;
 use Utopia\Agents\Conversation;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
-use Utopia\Agents\Roles\Assistant;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
@@ -77,12 +76,13 @@ class Anthropic extends Adapter
     /**
      * Send a message to the Anthropic API
      *
-     * @param  Conversation  $conversation
+     * @param  array<Message>  $messages
+     * @param  callable|null  $listener
      * @return Message
      *
      * @throws \Exception
      */
-    public function send(Conversation $conversation): Message
+    public function send(array $messages, ?callable $listener = null): Message
     {
         if ($this->getAgent() === null) {
             throw new \Exception('Agent not set');
@@ -94,8 +94,7 @@ class Anthropic extends Adapter
             ->addHeader('anthropic-version', '2023-06-01')
             ->addHeader('content-type', 'application/json');
 
-        $messages = [];
-        foreach ($conversation->getMessages() as $message) {
+        foreach ($messages as $message) {
             $messages[] = [
                 'role' => $message['role'],
                 'content' => $message['content'],
@@ -121,8 +120,8 @@ class Anthropic extends Adapter
                 'stream' => true,
             ],
             [],
-            function ($chunk) use ($conversation, &$content) {
-                $content .= $this->process($chunk, $conversation, $conversation->getListener());
+            function ($chunk) use (&$content, $listener) {
+                $content .= $this->process($chunk, $listener);
             }
         );
 
@@ -145,7 +144,7 @@ class Anthropic extends Adapter
      *
      * @throws \Exception
      */
-    protected function process(Chunk $chunk, Conversation $conversation, ?callable $listener): string
+    protected function process(Chunk $chunk, ?callable $listener): string
     {
         $block = '';
         $data = $chunk->getData();
@@ -176,10 +175,10 @@ class Anthropic extends Adapter
                     if (isset($json['message']['usage'])) {
                         $usage = $json['message']['usage'];
                         if (isset($usage['input_tokens']) && is_int($usage['input_tokens'])) {
-                            $conversation->countInputTokens($usage['input_tokens']);
+                            $this->countInputTokens($usage['input_tokens']);
                         }
                         if (isset($usage['output_tokens']) && is_int($usage['output_tokens'])) {
-                            $conversation->countOutputTokens($usage['output_tokens']);
+                            $this->countOutputTokens($usage['output_tokens']);
                         }
                     }
                     break;
@@ -211,13 +210,13 @@ class Anthropic extends Adapter
                     break;
 
                 case 'message_delta':
-                    if (isset($json['message']['usage'])) {
-                        $usage = $json['message']['usage'];
+                    if (isset($json['usage'])) {
+                        $usage = $json['usage'];
                         if (isset($usage['input_tokens']) && is_int($usage['input_tokens'])) {
-                            $conversation->countInputTokens($usage['input_tokens']);
+                            $this->countInputTokens($usage['input_tokens']);
                         }
                         if (isset($usage['output_tokens']) && is_int($usage['output_tokens'])) {
-                            $conversation->countOutputTokens($usage['output_tokens']);
+                            $this->countOutputTokens($usage['output_tokens']);
                         }
                     }
                     break;

@@ -85,7 +85,11 @@ class Conversation
      */
     public function send(): Message
     {
-        $message = $this->agent->getAdapter()->send($this);
+        $message = $this->agent->getAdapter()->send($this->messages, $this->listener);
+        
+        $this->countInputTokens($this->agent->getAdapter()->getInputTokens());
+        $this->countOutputTokens($this->agent->getAdapter()->getOutputTokens());
+
         $from = new Assistant($this->agent->getAdapter()->getModel(), 'Assistant');
         $this->message($from, $message);
 
