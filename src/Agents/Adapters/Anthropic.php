@@ -108,7 +108,8 @@ class Anthropic extends Adapter
             Client::METHOD_POST,
             [
                 'model' => $this->model,
-                'system' => $this->getAgent()->getDescription(),
+                'system' => $this->getAgent()->getDescription() . 
+                    (empty($this->getAgent()->getCapabilities()) ? '' : "\n\n" . implode("\n\n", $this->getAgent()->getCapabilities())),
                 'messages' => $messages,
                 'max_tokens' => $this->maxTokens,
                 'temperature' => $this->temperature,
