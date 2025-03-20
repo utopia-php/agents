@@ -102,9 +102,9 @@ class Anthropic extends Adapter
             ];
         }
 
-        $capabilities = [];
-        foreach ($this->getAgent()->getCapabilities() as $name => $content) {
-            $capabilities[] = "# " . $name . "\n\n" . $content;
+        $instructions = [];
+        foreach ($this->getAgent()->getInstructions() as $name => $content) {
+            $instructions[] = "# " . $name . "\n\n" . $content;
         }
 
         $collectedMessages = [];
@@ -114,7 +114,7 @@ class Anthropic extends Adapter
             [
                 'model' => $this->model,
                 'system' => $this->getAgent()->getDescription() . 
-                    (empty($capabilities) ? '' : "\n\n" . implode("\n\n", $capabilities)),
+                    (empty($instructions) ? '' : "\n\n" . implode("\n\n", $instructions)),
                 'messages' => $messages,
                 'max_tokens' => $this->maxTokens,
                 'temperature' => $this->temperature,

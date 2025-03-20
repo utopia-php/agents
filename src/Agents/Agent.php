@@ -12,7 +12,7 @@ class Agent
     /**
      * @var array<string, string>
      */
-    protected array $capabilities;
+    protected array $instructions;
 
     /**
      * @var Adapter
@@ -29,7 +29,7 @@ class Agent
     public function __construct(Adapter $adapter)
     {
         $this->adapter = $adapter;
-        $this->capabilities = [];
+        $this->instructions = [];
         $this->description = '';
 
         $this->adapter->setAgent($this);
@@ -49,28 +49,28 @@ class Agent
     }
 
     /**
-     * Set the agent's capabilities
+     * Set the agent's instructions
      *
-     * @param  array<string, string>  $capabilities
+     * @param  array<string, string>  $instructions
      * @return self
      */
-    public function setCapabilities(array $capabilities): self
+    public function setInstructions(array $instructions): self
     {
-        $this->capabilities = $capabilities;
+        $this->instructions = $instructions;
 
         return $this;
     }
 
     /**
-     * Add a capability to the agent
+     * Add an instruction to the agent
      *
      * @param  string  $name
      * @param  string  $content
      * @return self
      */
-    public function addCapability(string $name, string $content): self
+    public function addInstruction(string $name, string $content): self
     {
-        $this->capabilities[$name] = $content;
+        $this->instructions[$name] = $content;
 
         return $this;
     }
@@ -86,13 +86,13 @@ class Agent
     }
 
     /**
-     * Get the agent's capabilities
+     * Get the agent's instructions
      *
      * @return array<string, string>
      */
-    public function getCapabilities(): array
+    public function getInstructions(): array
     {
-        return $this->capabilities;
+        return $this->instructions;
     }
 
     /**

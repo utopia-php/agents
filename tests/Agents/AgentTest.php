@@ -24,7 +24,7 @@ class AgentTest extends TestCase
     {
         $this->assertSame($this->mockAdapter, $this->agent->getAdapter());
         $this->assertEquals('', $this->agent->getDescription());
-        $this->assertEquals([], $this->agent->getCapabilities());
+        $this->assertEquals([], $this->agent->getInstructions());
     }
 
     public function testSetDescription(): void
@@ -37,61 +37,61 @@ class AgentTest extends TestCase
         $this->assertEquals($description, $this->agent->getDescription());
     }
 
-    public function testSetCapabilities(): void
+    public function testSetInstructions(): void
     {
-        $capabilities = [
-            'Capability 1' => 'This is capability 1',
-            'Capability 2' => 'This is capability 2'
+        $instructions = [
+            'Instruction 1' => 'This is instruction 1',
+            'Instruction 2' => 'This is instruction 2'
         ];
 
-        $result = $this->agent->setCapabilities($capabilities);
+        $result = $this->agent->setInstructions($instructions);
 
         $this->assertSame($this->agent, $result);
-        $this->assertEquals($capabilities, $this->agent->getCapabilities());
+        $this->assertEquals($instructions, $this->agent->getInstructions());
     }
 
-    public function testAddCapability(): void
+    public function testAddInstruction(): void
     {
-        // Test adding a single capability
-        $result = $this->agent->addCapability('Capability 1', 'This is capability 1');
+        // Test adding a single instruction
+        $result = $this->agent->addInstruction('Instruction 1', 'This is instruction 1');
         $this->assertSame($this->agent, $result);
         $this->assertEquals([
-            'Capability 1' => 'This is capability 1'
-        ], $this->agent->getCapabilities());
+            'Instruction 1' => 'This is instruction 1'
+        ], $this->agent->getInstructions());
 
-        // Test adding a duplicate capability (should update the content)
-        $this->agent->addCapability('Capability 1', 'Updated content');
+        // Test adding a duplicate instruction (should update the content)
+        $this->agent->addInstruction('Instruction 1', 'Updated content');
         $this->assertEquals([
-            'Capability 1' => 'Updated content'
-        ], $this->agent->getCapabilities());
+            'Instruction 1' => 'Updated content'
+        ], $this->agent->getInstructions());
 
-        // Test adding a second capability
-        $this->agent->addCapability('Capability 2', 'This is capability 2');
+        // Test adding a second instruction
+        $this->agent->addInstruction('Instruction 2', 'This is instruction 2');
         $this->assertEquals([
-            'Capability 1' => 'Updated content',
-            'Capability 2' => 'This is capability 2'
-        ], $this->agent->getCapabilities());
+            'Instruction 1' => 'Updated content',
+            'Instruction 2' => 'This is instruction 2'
+        ], $this->agent->getInstructions());
     }
 
     public function testFluentInterface(): void
     {
         $description = 'Test Description';
-        $capabilities = [
-            'Cap 1' => 'Content 1',
-            'Cap 2' => 'Content 2'
+        $instructions = [
+            'Instruction 1' => 'Content 1',
+            'Instruction 2' => 'Content 2'
         ];
 
         $result = $this->agent
             ->setDescription($description)
-            ->setCapabilities($capabilities)
-            ->addCapability('Cap 3', 'Content 3');
+            ->setInstructions($instructions)
+            ->addInstruction('Instruction 3', 'Content 3');
 
         $this->assertSame($this->agent, $result);
         $this->assertEquals($description, $this->agent->getDescription());
         $this->assertEquals([
-            'Cap 1' => 'Content 1',
-            'Cap 2' => 'Content 2',
-            'Cap 3' => 'Content 3'
-        ], $this->agent->getCapabilities());
+            'Instruction 1' => 'Content 1',
+            'Instruction 2' => 'Content 2',
+            'Instruction 3' => 'Content 3'
+        ], $this->agent->getInstructions());
     }
 }
