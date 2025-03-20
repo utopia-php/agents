@@ -10,7 +10,7 @@ class Agent
     protected string $description;
 
     /**
-     * @var array<string>
+     * @var array<string, string>
      */
     protected array $capabilities;
 
@@ -51,7 +51,7 @@ class Agent
     /**
      * Set the agent's capabilities
      *
-     * @param  array<string>  $capabilities
+     * @param  array<string, string>  $capabilities
      * @return self
      */
     public function setCapabilities(array $capabilities): self
@@ -64,14 +64,13 @@ class Agent
     /**
      * Add a capability to the agent
      *
-     * @param  string  $capability
+     * @param  string  $name
+     * @param  string  $content
      * @return self
      */
-    public function addCapability(string $capability): self
+    public function addCapability(string $name, string $content): self
     {
-        if (! in_array($capability, $this->capabilities)) {
-            $this->capabilities[] = $capability;
-        }
+        $this->capabilities[$name] = $content;
 
         return $this;
     }
@@ -89,7 +88,7 @@ class Agent
     /**
      * Get the agent's capabilities
      *
-     * @return array<string>
+     * @return array<string, string>
      */
     public function getCapabilities(): array
     {

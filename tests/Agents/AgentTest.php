@@ -39,7 +39,10 @@ class AgentTest extends TestCase
 
     public function testSetCapabilities(): void
     {
-        $capabilities = ['capability1', 'capability2'];
+        $capabilities = [
+            'Capability 1' => 'This is capability 1',
+            'Capability 2' => 'This is capability 2'
+        ];
 
         $result = $this->agent->setCapabilities($capabilities);
 
@@ -50,31 +53,45 @@ class AgentTest extends TestCase
     public function testAddCapability(): void
     {
         // Test adding a single capability
-        $result = $this->agent->addCapability('capability1');
+        $result = $this->agent->addCapability('Capability 1', 'This is capability 1');
         $this->assertSame($this->agent, $result);
-        $this->assertEquals(['capability1'], $this->agent->getCapabilities());
+        $this->assertEquals([
+            'Capability 1' => 'This is capability 1'
+        ], $this->agent->getCapabilities());
 
-        // Test adding a duplicate capability (should not add)
-        $this->agent->addCapability('capability1');
-        $this->assertEquals(['capability1'], $this->agent->getCapabilities());
+        // Test adding a duplicate capability (should update the content)
+        $this->agent->addCapability('Capability 1', 'Updated content');
+        $this->assertEquals([
+            'Capability 1' => 'Updated content'
+        ], $this->agent->getCapabilities());
 
-        // Test adding a second unique capability
-        $this->agent->addCapability('capability2');
-        $this->assertEquals(['capability1', 'capability2'], $this->agent->getCapabilities());
+        // Test adding a second capability
+        $this->agent->addCapability('Capability 2', 'This is capability 2');
+        $this->assertEquals([
+            'Capability 1' => 'Updated content',
+            'Capability 2' => 'This is capability 2'
+        ], $this->agent->getCapabilities());
     }
 
     public function testFluentInterface(): void
     {
         $description = 'Test Description';
-        $capabilities = ['cap1', 'cap2'];
+        $capabilities = [
+            'Cap 1' => 'Content 1',
+            'Cap 2' => 'Content 2'
+        ];
 
         $result = $this->agent
             ->setDescription($description)
             ->setCapabilities($capabilities)
-            ->addCapability('cap3');
+            ->addCapability('Cap 3', 'Content 3');
 
         $this->assertSame($this->agent, $result);
         $this->assertEquals($description, $this->agent->getDescription());
-        $this->assertEquals(['cap1', 'cap2', 'cap3'], $this->agent->getCapabilities());
+        $this->assertEquals([
+            'Cap 1' => 'Content 1',
+            'Cap 2' => 'Content 2',
+            'Cap 3' => 'Content 3'
+        ], $this->agent->getCapabilities());
     }
 }
