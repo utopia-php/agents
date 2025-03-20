@@ -79,19 +79,17 @@ class Conversation
     /**
      * Send the conversation to the agent and get response
      *
-     * @return array<Message>
+     * @return Message
      *
      * @throws \Exception
      */
-    public function send(): array
+    public function send(): Message
     {
-        $messages = $this->agent->getAdapter()->send($this);
+        $message = $this->agent->getAdapter()->send($this);
         $from = new Assistant($this->agent->getAdapter()->getModel(), 'Assistant');
-        foreach ($messages as $message) {
-            $this->message($from, $message);
-        }
+        $this->message($from, $message);
 
-        return $messages;
+        return $message;
     }
 
     /**

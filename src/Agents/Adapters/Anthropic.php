@@ -78,11 +78,11 @@ class Anthropic extends Adapter
      * Send a message to the Anthropic API
      *
      * @param  Conversation  $conversation
-     * @return array<Message>
+     * @return Message
      *
      * @throws \Exception
      */
-    public function send(Conversation $conversation): array
+    public function send(Conversation $conversation): Message
     {
         if ($this->getAgent() === null) {
             throw new \Exception('Agent not set');
@@ -107,7 +107,7 @@ class Anthropic extends Adapter
             $instructions[] = "# " . $name . "\n\n" . $content;
         }
 
-        $collectedMessages = [];
+        $content = '';
         $response = $client->fetch(
             'https://api.anthropic.com/v1/messages',
             Client::METHOD_POST,
@@ -121,11 +121,8 @@ class Anthropic extends Adapter
                 'stream' => true,
             ],
             [],
-            function ($chunk) use ($conversation, &$collectedMessages) {
-                $messages = $this->process($chunk, $conversation, $conversation->getListener());
-                if ($messages) {
-                    $collectedMessages = array_merge($collectedMessages, $messages);
-                }
+            function ($chunk) use ($conversation, &$content) {
+                $content .= $this->process($chunk, $conversation, $conversation->getListener());
             }
         );
 
@@ -133,7 +130,9 @@ class Anthropic extends Adapter
             throw new \Exception('Anthropic API error ('.$response->getStatusCode().'): '.$response->getBody());
         }
 
-        return $collectedMessages;
+        $message = new Text($content);
+
+        return $message;
     }
 
     /**
@@ -142,17 +141,18 @@ class Anthropic extends Adapter
      * @param  \Utopia\Fetch\Chunk  $chunk
      * @param  Conversation  $conversation
      * @param  callable|null  $listener
-     * @return array<Message>
+     * @return string
      *
      * @throws \Exception
      */
-    protected function process(Chunk $chunk, Conversation $conversation, ?callable $listener): array
+    protected function process(Chunk $chunk, Conversation $conversation, ?callable $listener): string
     {
-        $messages = [];
+        $block = '';
         $data = $chunk->getData();
         $lines = explode("\n", $data);
 
         foreach ($lines as $line) {
+
             if (empty(trim($line))) {
                 continue;
             }
@@ -194,17 +194,14 @@ class Anthropic extends Adapter
                     }
 
                     $deltaType = $json['delta']['type'];
-                    $message = null;
 
                     if ($deltaType === 'text_delta' && isset($json['delta']['text']) && is_string($json['delta']['text'])) {
-                        $message = new Text($json['delta']['text']);
+                        $block = $json['delta']['text'];
                     }
 
-                    if ($message !== null) {
-                        $conversation->message(new Assistant('anthropic'), $message);
-                        $messages[] = $message;
+                    if (!empty($block)) {
                         if ($listener !== null) {
-                            $listener($message);
+                            $listener($block);
                         }
                     }
                     break;
@@ -226,7 +223,6 @@ class Anthropic extends Adapter
                     break;
 
                 case 'message_stop':
-                    // End of message
                     break;
 
                 case 'error':
@@ -235,7 +231,7 @@ class Anthropic extends Adapter
             }
         }
 
-        return $messages;
+        return $block;
     }
 
     /**

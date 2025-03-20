@@ -71,11 +71,11 @@ class OpenAI extends Adapter
      * Send a message to the OpenAI API
      *
      * @param  Conversation  $conversation
-     * @return array<Message> Response from the AI model
+     * @return Message Response from the AI model
      *
      * @throws \Exception
      */
-    public function send(Conversation $conversation): array
+    public function send(Conversation $conversation): Message
     {
         // TODO: Implement OpenAI API call
         // Example implementation structure:
