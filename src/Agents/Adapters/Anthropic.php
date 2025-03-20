@@ -90,6 +90,7 @@ class Anthropic extends Adapter
 
         $client = new \Utopia\Fetch\Client();
         $client
+            ->setTimeout(90)
             ->addHeader('x-api-key', $this->apiKey)
             ->addHeader('anthropic-version', '2023-06-01')
             ->addHeader('content-type', 'application/json');
