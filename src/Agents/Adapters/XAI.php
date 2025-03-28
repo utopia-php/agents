@@ -135,7 +135,7 @@ class XAI extends Adapter
     /**
      * Process a stream chunk from the XAI API
      *
-     * @param  string  $data
+     * @param  \Utopia\Fetch\Chunk  $chunk
      * @param  callable|null  $listener
      * @return string
      *

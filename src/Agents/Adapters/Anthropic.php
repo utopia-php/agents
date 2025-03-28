@@ -138,7 +138,7 @@ class Anthropic extends Adapter
     /**
      * Process a stream chunk from the Anthropic API
      *
-     * @param  string  $data
+     * @param  \Utopia\Fetch\Chunk  $chunk
      * @param  callable|null  $listener
      * @return string
      *
