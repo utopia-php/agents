@@ -11,6 +11,8 @@ services:
     environment:
       - TESTING=true
       - LLM_KEY_ANTHROPIC=${LLM_KEY_ANTHROPIC}
+      - LLM_KEY_OPENAI=${LLM_KEY_OPENAI}
+      - LLM_KEY_DEEPSEEK=${LLM_KEY_DEEPSEEK}
     networks:
       - utopia
 

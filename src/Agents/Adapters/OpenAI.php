@@ -5,8 +5,6 @@ namespace Utopia\Agents\Adapters;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
-use Utopia\Fetch\Chunk;
-use Utopia\Fetch\Client;
 
 class OpenAI extends Adapter
 {
@@ -82,15 +80,9 @@ class OpenAI extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new Client();
-        $client
-            ->setTimeout(90)
-            ->addHeader('authorization', 'Bearer '.$this->apiKey)
-            ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
-
         $formattedMessages = [];
         foreach ($messages as $message) {
-            if (! isset($message['role']) || ! isset($message['content'])) {
+            if ($message->getRole() === null || $message->getContent() === null) {
                 throw new \Exception('Invalid message format');
             }
             $formattedMessages[] = [
@@ -114,28 +106,51 @@ class OpenAI extends Adapter
             ]);
         }
 
-        $payload = [
+        $content = '';
+
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
+        if ($ch === false) {
+            throw new \Exception('Failed to initialize CURL');
+        }
+
+        $payload = json_encode([
             'model' => $this->model,
             'messages' => $formattedMessages,
             'max_tokens' => $this->maxTokens,
             'temperature' => $this->temperature,
             'stream' => true,
-        ];
+        ]);
 
-        $content = '';
-        $response = $client->fetch(
-            'https://api.openai.com/v1/chat/completions',
-            Client::METHOD_POST,
-            $payload,
-            [],
-            function ($chunk) use (&$content, $listener) {
-                $content .= $this->process($chunk, $listener);
-            }
-        );
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer '.$this->apiKey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_WRITEFUNCTION => function ($ch, $data) use (&$content, $listener) {
+                $content .= $this->process($data, $listener);
 
-        if ($response->getStatusCode() >= 400) {
-            throw new \Exception('Anthropic API error ('.$response->getStatusCode().'): '.$response->getBody());
+                return strlen($data);
+            },
+            CURLOPT_TIMEOUT => 90,
+        ]);
+
+        $response = curl_exec($ch);
+        if ($response === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \Exception('CURL request failed: '.$error);
         }
+
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($httpCode >= 400) {
+            throw new \Exception('OpenAI API error ('.$httpCode.'): '.$response);
+        }
+
+        curl_close($ch);
 
         $message = new Text($content);
 
@@ -145,16 +160,15 @@ class OpenAI extends Adapter
     /**
      * Process a stream chunk from the OpenAI API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
+     * @param  string  $data
      * @param  callable|null  $listener
      * @return string
      *
      * @throws \Exception
      */
-    protected function process(Chunk $chunk, ?callable $listener): string
+    protected function process(string $data, ?callable $listener): string
     {
         $block = '';
-        $data = $chunk->getData();
         $lines = explode("\n", $data);
 
         foreach ($lines as $line) {
@@ -166,73 +180,23 @@ class OpenAI extends Adapter
                 continue;
             }
 
+            // Handle [DONE] message
+            if (trim($line) === 'data: [DONE]') {
+                continue;
+            }
+
             $json = json_decode(substr($line, 6), true);
             if (! is_array($json)) {
                 continue;
             }
 
-            $type = $json['type'] ?? null;
-            if ($type === null) {
-                continue;
-            }
+            // Extract content from the choices array
+            if (isset($json['choices'][0]['delta']['content'])) {
+                $block = $json['choices'][0]['delta']['content'];
 
-            switch ($type) {
-                case 'message_start':
-                    if (isset($json['message']['usage'])) {
-                        $usage = $json['message']['usage'];
-                        if (isset($usage['input_tokens']) && is_int($usage['input_tokens'])) {
-                            $this->countInputTokens($usage['input_tokens']);
-                        }
-                        if (isset($usage['output_tokens']) && is_int($usage['output_tokens'])) {
-                            $this->countOutputTokens($usage['output_tokens']);
-                        }
-                    }
-                    break;
-
-                case 'content_block_start':
-                    // Initialize content block
-                    break;
-
-                case 'content_block_delta':
-                    if (! isset($json['delta']['type'])) {
-                        break;
-                    }
-
-                    $deltaType = $json['delta']['type'];
-
-                    if ($deltaType === 'text_delta' && isset($json['delta']['text']) && is_string($json['delta']['text'])) {
-                        $block = $json['delta']['text'];
-                    }
-
-                    if (! empty($block)) {
-                        if ($listener !== null) {
-                            $listener($block);
-                        }
-                    }
-                    break;
-
-                case 'content_block_stop':
-                    // End of content block
-                    break;
-
-                case 'message_delta':
-                    if (isset($json['usage'])) {
-                        $usage = $json['usage'];
-                        if (isset($usage['input_tokens']) && is_int($usage['input_tokens'])) {
-                            $this->countInputTokens($usage['input_tokens']);
-                        }
-                        if (isset($usage['output_tokens']) && is_int($usage['output_tokens'])) {
-                            $this->countOutputTokens($usage['output_tokens']);
-                        }
-                    }
-                    break;
-
-                case 'message_stop':
-                    break;
-
-                case 'error':
-                    $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
-                    throw new \Exception('Anthropic API error: '.$errorMessage);
+                if (! empty($block) && $listener !== null) {
+                    $listener($block);
+                }
             }
         }
 
