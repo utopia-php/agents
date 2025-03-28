@@ -55,6 +55,7 @@ class XAI extends OpenAI
     {
         return [
             self::MODEL_GROK_2_LATEST,
+            self::MODEL_GROK_2_IMAGE,
         ];
     }
 
