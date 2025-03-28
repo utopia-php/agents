@@ -82,7 +82,7 @@ class OpenAI extends Adapter
 
         $formattedMessages = [];
         foreach ($messages as $message) {
-            if ($message->getRole() === null || $message->getContent() === null) {
+            if (empty($message->getRole()) || empty($message->getContent())) {
                 throw new \Exception('Invalid message format');
             }
             $formattedMessages[] = [
