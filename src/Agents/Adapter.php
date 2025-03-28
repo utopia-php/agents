@@ -90,7 +90,6 @@ abstract class Adapter
         return $this;
     }
 
-
     /**
      * Get input tokens count
      *

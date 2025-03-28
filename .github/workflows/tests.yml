@@ -15,6 +15,12 @@ jobs:
       - run: git checkout HEAD^2
 
       - name: Build
+        env:
+          LLM_KEY_ANTHROPIC: ${{ secrets.LLM_KEY_ANTHROPIC }}
+          LLM_KEY_OPENAI: ${{ secrets.LLM_KEY_OPENAI }}
+          LLM_KEY_DEEPSEEK: ${{ secrets.LLM_KEY_DEEPSEEK }}
+          LLM_KEY_XAI: ${{ secrets.LLM_KEY_XAI }}
+          LLM_KEY_PERPLEXITY: ${{ secrets.LLM_KEY_PERPLEXITY }}
         run: |
           docker compose build
           docker compose up -d

@@ -65,7 +65,7 @@ class Deepseek extends Adapter
     /**
      * Send a message to the Deepseek API
      *
-     * @param  array<array<string, mixed>>  $messages
+     * @param  array<Message>  $messages
      * @param  callable|null  $listener
      * @return Message
      *
@@ -77,35 +77,34 @@ class Deepseek extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new \Utopia\Fetch\Client();
+        $client = new Client();
         $client
             ->setTimeout(90)
-            ->addHeader('authorization', 'Bearer ' . $this->apiKey)
+            ->addHeader('authorization', 'Bearer '.$this->apiKey)
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
 
         $formattedMessages = [];
         foreach ($messages as $message) {
-            if (!isset($message['role']) || !isset($message['content'])) {
-                throw new \Exception('Invalid message format');
+            if (! empty($message->getRole()) && ! empty($message->getContent())) {
+                $formattedMessages[] = [
+                    'role' => $message->getRole(),
+                    'content' => $message->getContent(),
+                ];
             }
-            $formattedMessages[] = [
-                'role' => $message['role'],
-                'content' => $message['content'],
-            ];
         }
 
         $instructions = [];
         foreach ($this->getAgent()->getInstructions() as $name => $content) {
-            $instructions[] = "# " . $name . "\n\n" . $content;
+            $instructions[] = '# '.$name."\n\n".$content;
         }
 
-        $systemMessage = $this->getAgent()->getDescription() . 
-            (empty($instructions) ? '' : "\n\n" . implode("\n\n", $instructions));
+        $systemMessage = $this->getAgent()->getDescription().
+            (empty($instructions) ? '' : "\n\n".implode("\n\n", $instructions));
 
-        if (!empty($systemMessage)) {
+        if (! empty($systemMessage)) {
             array_unshift($formattedMessages, [
                 'role' => 'system',
-                'content' => $systemMessage
+                'content' => $systemMessage,
             ]);
         }
 
@@ -173,7 +172,7 @@ class Deepseek extends Adapter
 
             if (isset($json['choices'][0]['delta']['content'])) {
                 $delta = $json['choices'][0]['delta']['content'];
-                if (!empty($delta)) {
+                if (! empty($delta)) {
                     $block .= $delta;
                     if ($listener !== null) {
                         $listener($delta);
@@ -271,4 +270,4 @@ class Deepseek extends Adapter
     {
         return 'deepseek';
     }
-} 
+}

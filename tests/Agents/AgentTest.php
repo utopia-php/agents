@@ -41,7 +41,7 @@ class AgentTest extends TestCase
     {
         $instructions = [
             'Instruction 1' => 'This is instruction 1',
-            'Instruction 2' => 'This is instruction 2'
+            'Instruction 2' => 'This is instruction 2',
         ];
 
         $result = $this->agent->setInstructions($instructions);
@@ -56,20 +56,20 @@ class AgentTest extends TestCase
         $result = $this->agent->addInstruction('Instruction 1', 'This is instruction 1');
         $this->assertSame($this->agent, $result);
         $this->assertEquals([
-            'Instruction 1' => 'This is instruction 1'
+            'Instruction 1' => 'This is instruction 1',
         ], $this->agent->getInstructions());
 
         // Test adding a duplicate instruction (should update the content)
         $this->agent->addInstruction('Instruction 1', 'Updated content');
         $this->assertEquals([
-            'Instruction 1' => 'Updated content'
+            'Instruction 1' => 'Updated content',
         ], $this->agent->getInstructions());
 
         // Test adding a second instruction
         $this->agent->addInstruction('Instruction 2', 'This is instruction 2');
         $this->assertEquals([
             'Instruction 1' => 'Updated content',
-            'Instruction 2' => 'This is instruction 2'
+            'Instruction 2' => 'This is instruction 2',
         ], $this->agent->getInstructions());
     }
 
@@ -78,7 +78,7 @@ class AgentTest extends TestCase
         $description = 'Test Description';
         $instructions = [
             'Instruction 1' => 'Content 1',
-            'Instruction 2' => 'Content 2'
+            'Instruction 2' => 'Content 2',
         ];
 
         $result = $this->agent
@@ -91,7 +91,7 @@ class AgentTest extends TestCase
         $this->assertEquals([
             'Instruction 1' => 'Content 1',
             'Instruction 2' => 'Content 2',
-            'Instruction 3' => 'Content 3'
+            'Instruction 3' => 'Content 3',
         ], $this->agent->getInstructions());
     }
 }

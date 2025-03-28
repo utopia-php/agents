@@ -10,10 +10,11 @@ class Image extends Message
      * Create a new image message
      *
      * @param  string  $content Binary content of the image
+     * @param  string|null  $role
      */
-    public function __construct(string $content)
+    public function __construct(string $content, ?string $role = null)
     {
-        parent::__construct($content);
+        parent::__construct($content, $role);
     }
 
     /**
