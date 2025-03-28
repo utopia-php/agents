@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "71e26dc0cd428be6148998a33e39994a",
+    "content-hash": "63b495777b601bb890522fe487adf805",
     "packages": [
         {
             "name": "utopia-php/fetch",
-            "version": "dev-feat-eldad-v1",
+            "version": "0.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/fetch.git",
-                "reference": "4a9c1022c0fc878d8df7bdb86a2a61e1cdd48197"
+                "reference": "46e791ff6a95864517750b9df6bbf4a17e3c9c4e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/fetch/zipball/4a9c1022c0fc878d8df7bdb86a2a61e1cdd48197",
-                "reference": "4a9c1022c0fc878d8df7bdb86a2a61e1cdd48197",
+                "url": "https://api.github.com/repos/utopia-php/fetch/zipball/46e791ff6a95864517750b9df6bbf4a17e3c9c4e",
+                "reference": "46e791ff6a95864517750b9df6bbf4a17e3c9c4e",
                 "shasum": ""
             },
             "require": {
@@ -41,9 +41,9 @@
             "description": "A simple library that provides an interface for making HTTP Requests.",
             "support": {
                 "issues": "https://github.com/utopia-php/fetch/issues",
-                "source": "https://github.com/utopia-php/fetch/tree/feat-eldad-v1"
+                "source": "https://github.com/utopia-php/fetch/tree/0.4.0"
             },
-            "time": "2025-03-11T09:09:48+00:00"
+            "time": "2025-03-11T21:06:56+00:00"
         }
     ],
     "packages-dev": [
@@ -3972,14 +3972,13 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "utopia-php/fetch": 20,
         "phpstan/phpstan": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=8.0"
+        "php": ">=8.3"
     },
-    "platform-dev": [],
+    "platform-dev": {},
     "plugin-api-version": "2.6.0"
 }
