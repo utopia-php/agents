@@ -1,0 +1,22 @@
+services:
+  tests:
+    container_name: agents-tests
+    image: agents-dev
+    build:
+      context: .
+    volumes:
+      - ./src:/usr/src/code/src
+      - ./tests:/usr/src/code/tests
+      - ./phpunit.xml:/usr/src/code/phpunit.xml
+    environment:
+      - TESTING=true
+      - LLM_KEY_ANTHROPIC=${LLM_KEY_ANTHROPIC}
+      - LLM_KEY_OPENAI=${LLM_KEY_OPENAI}
+      - LLM_KEY_DEEPSEEK=${LLM_KEY_DEEPSEEK}
+      - LLM_KEY_XAI=${LLM_KEY_XAI}
+      - LLM_KEY_PERPLEXITY=${LLM_KEY_PERPLEXITY}
+    networks:
+      - utopia
+
+networks:
+  utopia:
