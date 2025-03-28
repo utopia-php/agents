@@ -14,7 +14,7 @@ RUN composer update \
     --no-scripts \
     --prefer-dist
 
-FROM php:8.0-cli-alpine AS final
+FROM php:8.3-cli-alpine AS final
 
 LABEL maintainer="team@appwrite.io"
 

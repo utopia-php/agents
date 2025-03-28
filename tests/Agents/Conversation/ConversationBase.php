@@ -1,10 +1,9 @@
 <?php
 
-namespace Tests\Utopia\Agents;
+namespace Utopia\Tests\Agents\Conversation;
 
 use PHPUnit\Framework\TestCase;
 use Utopia\Agents\Adapter;
-use Utopia\Agents\Adapters\Anthropic;
 use Utopia\Agents\Agent;
 use Utopia\Agents\Conversation;
 use Utopia\Agents\Messages\Text;
@@ -12,31 +11,38 @@ use Utopia\Agents\Role;
 use Utopia\Agents\Roles\Assistant;
 use Utopia\Agents\Roles\User;
 
-class ConversationTest extends TestCase
+abstract class ConversationBase extends TestCase
 {
-    private Conversation $conversation;
+    protected Conversation $conversation;
 
-    private Agent $agent;
+    protected Agent $agent;
 
-    private Adapter $adapter;
+    protected Adapter $adapter;
+
+    /**
+     * Abstract method to be implemented by child classes
+     * to specify the specific Adapter
+     *
+     * @return Adapter
+     */
+    abstract protected function createAdapter(): Adapter;
+
+    /**
+     * Optional method to customize agent description
+     *
+     * @return string
+     */
+    protected function getAgentDescription(): string
+    {
+        return 'Test Agent Description';
+    }
 
     protected function setUp(): void
     {
-        $apiKey = getenv('LLM_KEY_ANTHROPIC');
-
-        if ($apiKey === false || empty($apiKey)) {
-            throw new \RuntimeException('LLM_KEY_ANTHROPIC environment variable is not set');
-        }
-
-        $this->adapter = new Anthropic(
-            $apiKey,
-            Anthropic::MODEL_CLAUDE_3_SONNET,
-            1024,
-            1.0
-        );
+        $this->adapter = $this->createAdapter();
 
         $this->agent = new Agent($this->adapter);
-        $this->agent->setDescription('Test Agent Description');
+        $this->agent->setDescription($this->getAgentDescription());
 
         $this->conversation = new Conversation($this->agent);
     }
