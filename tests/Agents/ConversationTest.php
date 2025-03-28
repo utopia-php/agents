@@ -22,8 +22,14 @@ class ConversationTest extends TestCase
 
     protected function setUp(): void
     {
+        $apiKey = getenv('LLM_KEY_ANTHROPIC');
+
+        if ($apiKey === false) {
+            throw new \RuntimeException('LLM_KEY_ANTHROPIC environment variable is not set');
+        }
+
         $this->adapter = new Anthropic(
-            getenv('LLM_KEY_ANTHROPIC'),
+            $apiKey,
             Anthropic::MODEL_CLAUDE_3_SONNET,
             1024,
             1.0
@@ -54,10 +60,10 @@ class ConversationTest extends TestCase
 
         $this->assertSame($this->conversation, $result);
         $this->assertCount(1, $this->conversation->getMessages());
-        $this->assertEquals([
-            'role' => Role::ROLE_USER,
-            'content' => 'Hello, AI!',
-        ], $this->conversation->getMessages()[0]);
+
+        $firstMessage = $this->conversation->getMessages()[0];
+        $this->assertEquals(Role::ROLE_USER, $firstMessage->getRole());
+        $this->assertEquals('Hello, AI!', $firstMessage->getContent());
     }
 
     public function testMultipleMessages(): void
@@ -73,14 +79,14 @@ class ConversationTest extends TestCase
         $messages = $this->conversation->getMessages();
         $this->assertCount(3, $messages);
 
-        $this->assertEquals(Role::ROLE_USER, $messages[0]['role']);
-        $this->assertEquals('Hello', $messages[0]['content']);
+        $this->assertEquals(Role::ROLE_USER, $messages[0]->getRole());
+        $this->assertEquals('Hello', $messages[0]->getContent());
 
-        $this->assertEquals(Role::ROLE_ASSISTANT, $messages[1]['role']);
-        $this->assertEquals('Hi there!', $messages[1]['content']);
+        $this->assertEquals(Role::ROLE_ASSISTANT, $messages[1]->getRole());
+        $this->assertEquals('Hi there!', $messages[1]->getContent());
 
-        $this->assertEquals(Role::ROLE_USER, $messages[2]['role']);
-        $this->assertEquals('How are you?', $messages[2]['content']);
+        $this->assertEquals(Role::ROLE_USER, $messages[2]->getRole());
+        $this->assertEquals('How are you?', $messages[2]->getContent());
     }
 
     public function testSend(): void
@@ -90,12 +96,13 @@ class ConversationTest extends TestCase
             ->send();
 
         $this->assertNotEmpty($messages);
-        $this->assertInstanceOf(Text::class, $messages[0]);
+        $this->assertInstanceOf(Text::class, $messages);
 
         // Verify the response was added to conversation
         $conversationMessages = $this->conversation->getMessages();
         $this->assertNotEmpty($conversationMessages);
-        $this->assertEquals(Role::ROLE_ASSISTANT, $conversationMessages[0]['role']);
+        $this->assertEquals(Role::ROLE_ASSISTANT, $conversationMessages[0]->getRole());
+        $this->assertEquals('Hello', $conversationMessages[0]->getContent());
     }
 
     public function testTokenCounting(): void

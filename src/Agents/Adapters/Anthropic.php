@@ -3,7 +3,6 @@
 namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
-use Utopia\Agents\Conversation;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
 use Utopia\Fetch\Chunk;
@@ -88,23 +87,24 @@ class Anthropic extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new \Utopia\Fetch\Client();
+        $client = new Client();
         $client
             ->setTimeout(90)
             ->addHeader('x-api-key', $this->apiKey)
             ->addHeader('anthropic-version', '2023-06-01')
             ->addHeader('content-type', 'application/json');
 
+        $formattedMessages = [];
         foreach ($messages as $message) {
-            $messages[] = [
-                'role' => $message['role'],
-                'content' => $message['content'],
+            $formattedMessages[] = [
+                'role' => $message->getRole(),
+                'content' => $message->getContent(),
             ];
         }
 
         $instructions = [];
         foreach ($this->getAgent()->getInstructions() as $name => $content) {
-            $instructions[] = "# " . $name . "\n\n" . $content;
+            $instructions[] = '# '.$name."\n\n".$content;
         }
 
         $content = '';
@@ -113,9 +113,9 @@ class Anthropic extends Adapter
             Client::METHOD_POST,
             [
                 'model' => $this->model,
-                'system' => $this->getAgent()->getDescription() . 
-                    (empty($instructions) ? '' : "\n\n" . implode("\n\n", $instructions)),
-                'messages' => $messages,
+                'system' => $this->getAgent()->getDescription().
+                    (empty($instructions) ? '' : "\n\n".implode("\n\n", $instructions)),
+                'messages' => $formattedMessages,
                 'max_tokens' => $this->maxTokens,
                 'temperature' => $this->temperature,
                 'stream' => true,
@@ -139,7 +139,6 @@ class Anthropic extends Adapter
      * Process a stream chunk from the Anthropic API
      *
      * @param  \Utopia\Fetch\Chunk  $chunk
-     * @param  Conversation  $conversation
      * @param  callable|null  $listener
      * @return string
      *
@@ -152,7 +151,6 @@ class Anthropic extends Adapter
         $lines = explode("\n", $data);
 
         foreach ($lines as $line) {
-
             if (empty(trim($line))) {
                 continue;
             }
@@ -199,7 +197,7 @@ class Anthropic extends Adapter
                         $block = $json['delta']['text'];
                     }
 
-                    if (!empty($block)) {
+                    if (! empty($block)) {
                         if ($listener !== null) {
                             $listener($block);
                         }

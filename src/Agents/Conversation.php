@@ -2,12 +2,13 @@
 
 namespace Utopia\Agents;
 
+use Utopia\Agents\Messages\Text;
 use Utopia\Agents\Roles\Assistant;
 
 class Conversation
 {
     /**
-     * @var array<array<string, mixed>>
+     * @var array<Message>
      */
     protected array $messages = [];
 
@@ -68,10 +69,7 @@ class Conversation
      */
     public function message(Role $from, Message $message): self
     {
-        $this->messages[] = [
-            'role' => $from->getIdentifier(),
-            'content' => $message->getContent(),
-        ];
+        $this->messages[] = new Text($message->getContent(), $from->getIdentifier());
 
         return $this;
     }
@@ -86,7 +84,7 @@ class Conversation
     public function send(): Message
     {
         $message = $this->agent->getAdapter()->send($this->messages, $this->listener);
-        
+
         $this->countInputTokens($this->agent->getAdapter()->getInputTokens());
         $this->countOutputTokens($this->agent->getAdapter()->getOutputTokens());
 
@@ -99,7 +97,7 @@ class Conversation
     /**
      * Get all messages in the conversation
      *
-     * @return array<array<string, mixed>>
+     * @return array<Message>
      */
     public function getMessages(): array
     {

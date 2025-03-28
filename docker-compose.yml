@@ -10,8 +10,9 @@ services:
       - ./phpunit.xml:/usr/src/code/phpunit.xml
     environment:
       - TESTING=true
+      - LLM_KEY_ANTHROPIC=${LLM_KEY_ANTHROPIC}
     networks:
       - utopia
 
 networks:
-  utopia: 
+  utopia:
