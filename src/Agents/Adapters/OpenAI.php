@@ -5,6 +5,8 @@ namespace Utopia\Agents\Adapters;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
+use Utopia\Fetch\Chunk;
+use Utopia\Fetch\Client;
 
 class OpenAI extends Adapter
 {
@@ -80,6 +82,12 @@ class OpenAI extends Adapter
             throw new \Exception('Agent not set');
         }
 
+        $client = new Client();
+        $client
+            ->setTimeout(90)
+            ->addHeader('authorization', 'Bearer '.$this->apiKey)
+            ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
+
         $formattedMessages = [];
         foreach ($messages as $message) {
             if (empty($message->getRole()) || empty($message->getContent())) {
@@ -106,51 +114,28 @@ class OpenAI extends Adapter
             ]);
         }
 
-        $content = '';
-
-        $ch = curl_init('https://api.openai.com/v1/chat/completions');
-        if ($ch === false) {
-            throw new \Exception('Failed to initialize CURL');
-        }
-
-        $payload = json_encode([
+        $payload = [
             'model' => $this->model,
             'messages' => $formattedMessages,
             'max_tokens' => $this->maxTokens,
             'temperature' => $this->temperature,
             'stream' => true,
-        ]);
+        ];
 
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer '.$this->apiKey,
-                'Content-Type: application/json',
-            ],
-            CURLOPT_WRITEFUNCTION => function ($ch, $data) use (&$content, $listener) {
-                $content .= $this->process($data, $listener);
+        $content = '';
+        $response = $client->fetch(
+            'https://api.openai.com/v1/chat/completions',
+            Client::METHOD_POST,
+            $payload,
+            [],
+            function ($chunk) use (&$content, $listener) {
+                $content .= $this->process($chunk, $listener);
+            }
+        );
 
-                return strlen($data);
-            },
-            CURLOPT_TIMEOUT => 90,
-        ]);
-
-        $response = curl_exec($ch);
-        if ($response === false) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            throw new \Exception('CURL request failed: '.$error);
+        if ($response->getStatusCode() >= 400) {
+            throw new \Exception('OpenAI API error ('.$response->getStatusCode().'): '.$content);
         }
-
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        if ($httpCode >= 400) {
-            throw new \Exception('OpenAI API error ('.$httpCode.'): '.$response);
-        }
-
-        curl_close($ch);
 
         $message = new Text($content);
 
@@ -160,20 +145,29 @@ class OpenAI extends Adapter
     /**
      * Process a stream chunk from the OpenAI API
      *
-     * @param  string  $data
+     * @param  \Utopia\Fetch\Chunk  $chunk
      * @param  callable|null  $listener
      * @return string
      *
      * @throws \Exception
      */
-    protected function process(string $data, ?callable $listener): string
+    protected function process(Chunk $chunk, ?callable $listener): string
     {
         $block = '';
+        $data = $chunk->getData();
         $lines = explode("\n", $data);
 
         foreach ($lines as $line) {
             if (empty(trim($line))) {
                 continue;
+            }
+
+            // Check for error JSON format
+            if (str_contains($line, '"error"')) {
+                $errorJson = json_decode($line, true);
+                if (is_array($errorJson) && isset($errorJson['error'])) {
+                    throw new \Exception('OpenAI API error: '.urldecode($errorJson['error']));
+                }
             }
 
             if (! str_starts_with($line, 'data: ')) {

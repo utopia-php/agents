@@ -5,6 +5,8 @@ namespace Utopia\Agents\Adapters;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
+use Utopia\Fetch\Chunk;
+use Utopia\Fetch\Client;
 
 class Anthropic extends Adapter
 {
@@ -85,6 +87,13 @@ class Anthropic extends Adapter
             throw new \Exception('Agent not set');
         }
 
+        $client = new Client();
+        $client
+            ->setTimeout(90)
+            ->addHeader('x-api-key', $this->apiKey)
+            ->addHeader('anthropic-version', '2023-06-01')
+            ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
+
         $formattedMessages = [];
         foreach ($messages as $message) {
             $formattedMessages[] = [
@@ -98,14 +107,7 @@ class Anthropic extends Adapter
             $instructions[] = '# '.$name."\n\n".$content;
         }
 
-        $content = '';
-
-        $ch = curl_init('https://api.anthropic.com/v1/messages');
-        if ($ch === false) {
-            throw new \Exception('Failed to initialize CURL');
-        }
-
-        $payload = json_encode([
+        $payload = [
             'model' => $this->model,
             'system' => $this->getAgent()->getDescription().
                 (empty($instructions) ? '' : "\n\n".implode("\n\n", $instructions)),
@@ -113,43 +115,24 @@ class Anthropic extends Adapter
             'max_tokens' => $this->maxTokens,
             'temperature' => $this->temperature,
             'stream' => true,
-        ]);
+        ];
 
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'x-api-key: '.$this->apiKey,
-                'anthropic-version: 2023-06-01',
-                'content-type: application/json',
-            ],
-            CURLOPT_WRITEFUNCTION => function ($ch, $data) use (&$content, $listener) {
-                $content .= $this->process($data, $listener);
+        $content = '';
+        $response = $client->fetch(
+            'https://api.anthropic.com/v1/messages',
+            Client::METHOD_POST,
+            $payload,
+            [],
+            function ($chunk) use (&$content, $listener) {
+                $content .= $this->process($chunk, $listener);
+            }
+        );
 
-                return strlen($data);
-            },
-            CURLOPT_TIMEOUT => 90,
-        ]);
-
-        $response = curl_exec($ch);
-        if ($response === false) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            throw new \Exception('CURL request failed: '.$error);
+        if ($response->getStatusCode() >= 400) {
+            throw new \Exception('Anthropic API error ('.$response->getStatusCode().'): '.$response->getBody());
         }
 
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        if ($httpCode >= 400) {
-            throw new \Exception('Anthropic API error ('.$httpCode.'): '.$response);
-        }
-
-        curl_close($ch);
-
-        $message = new Text($content);
-
-        return $message;
+        return new Text($content);
     }
 
     /**
@@ -161,9 +144,10 @@ class Anthropic extends Adapter
      *
      * @throws \Exception
      */
-    protected function process(string $data, ?callable $listener): string
+    protected function process(Chunk $chunk, ?callable $listener): string
     {
         $block = '';
+        $data = $chunk->getData();
         $lines = explode("\n", $data);
 
         foreach ($lines as $line) {
