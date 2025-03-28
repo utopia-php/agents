@@ -5,8 +5,6 @@ namespace Utopia\Agents\Adapters;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
-use Utopia\Fetch\Chunk;
-use Utopia\Fetch\Client;
 
 class Anthropic extends Adapter
 {
@@ -87,13 +85,6 @@ class Anthropic extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new Client();
-        $client
-            ->setTimeout(90)
-            ->addHeader('x-api-key', $this->apiKey)
-            ->addHeader('anthropic-version', '2023-06-01')
-            ->addHeader('content-type', 'application/json');
-
         $formattedMessages = [];
         foreach ($messages as $message) {
             $formattedMessages[] = [
@@ -108,27 +99,44 @@ class Anthropic extends Adapter
         }
 
         $content = '';
-        $response = $client->fetch(
-            'https://api.anthropic.com/v1/messages',
-            Client::METHOD_POST,
-            [
-                'model' => $this->model,
-                'system' => $this->getAgent()->getDescription().
-                    (empty($instructions) ? '' : "\n\n".implode("\n\n", $instructions)),
-                'messages' => $formattedMessages,
-                'max_tokens' => $this->maxTokens,
-                'temperature' => $this->temperature,
-                'stream' => true,
-            ],
-            [],
-            function ($chunk) use (&$content, $listener) {
-                $content .= $this->process($chunk, $listener);
-            }
-        );
 
-        if ($response->getStatusCode() >= 400) {
-            throw new \Exception('Anthropic API error ('.$response->getStatusCode().'): '.$response->getBody());
+        $ch = curl_init('https://api.anthropic.com/v1/messages');
+
+        $payload = json_encode([
+            'model' => $this->model,
+            'system' => $this->getAgent()->getDescription().
+                (empty($instructions) ? '' : "\n\n".implode("\n\n", $instructions)),
+            'messages' => $formattedMessages,
+            'max_tokens' => $this->maxTokens,
+            'temperature' => $this->temperature,
+            'stream' => true,
+        ]);
+
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'x-api-key: '.$this->apiKey,
+                'anthropic-version: 2023-06-01',
+                'content-type: application/json',
+            ],
+            CURLOPT_WRITEFUNCTION => function ($ch, $data) use (&$content, $listener) {
+                $content .= $this->process($data, $listener);
+
+                return strlen($data);
+            },
+            CURLOPT_TIMEOUT => 90,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($httpCode >= 400) {
+            throw new \Exception('Anthropic API error ('.$httpCode.'): '.$response);
         }
+
+        curl_close($ch);
 
         $message = new Text($content);
 
@@ -138,16 +146,15 @@ class Anthropic extends Adapter
     /**
      * Process a stream chunk from the Anthropic API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
+     * @param  string  $data
      * @param  callable|null  $listener
      * @return string
      *
      * @throws \Exception
      */
-    protected function process(Chunk $chunk, ?callable $listener): string
+    protected function process(string $data, ?callable $listener): string
     {
         $block = '';
-        $data = $chunk->getData();
         $lines = explode("\n", $data);
 
         foreach ($lines as $line) {

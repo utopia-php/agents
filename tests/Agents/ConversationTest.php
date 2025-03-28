@@ -101,8 +101,12 @@ class ConversationTest extends TestCase
         // Verify the response was added to conversation
         $conversationMessages = $this->conversation->getMessages();
         $this->assertNotEmpty($conversationMessages);
-        $this->assertEquals(Role::ROLE_ASSISTANT, $conversationMessages[0]->getRole());
+        $this->assertEquals(Role::ROLE_USER, $conversationMessages[0]->getRole());
         $this->assertEquals('Hello', $conversationMessages[0]->getContent());
+
+        // Verify AI response
+        $this->assertEquals(Role::ROLE_ASSISTANT, $conversationMessages[1]->getRole());
+        $this->assertNotEmpty($conversationMessages[1]->getContent());
     }
 
     public function testTokenCounting(): void
