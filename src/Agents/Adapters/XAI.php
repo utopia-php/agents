@@ -5,20 +5,13 @@ namespace Utopia\Agents\Adapters;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
-use Utopia\Fetch\Chunk;
-use Utopia\Fetch\Client;
 
-class Deepseek extends Adapter
+class XAI extends Adapter
 {
     /**
-     * Deepseek-Chat - Most powerful model
+     * Grok 2 Image - Latest and most capable model
      */
-    public const MODEL_DEEPSEEK_CHAT = 'deepseek-chat';
-
-    /**
-     * Deepseek-Coder - Specialized for code
-     */
-    public const MODEL_DEEPSEEK_CODER = 'deepseek-coder';
+    public const MODEL_GROK_2_LATEST = 'grok-2-latest';
 
     /**
      * @var string
@@ -41,7 +34,7 @@ class Deepseek extends Adapter
     protected float $temperature;
 
     /**
-     * Create a new Deepseek adapter
+     * Create a new XAI adapter
      *
      * @param  string  $apiKey
      * @param  string  $model
@@ -52,7 +45,7 @@ class Deepseek extends Adapter
      */
     public function __construct(
         string $apiKey,
-        string $model = self::MODEL_DEEPSEEK_CHAT,
+        string $model = self::MODEL_GROK_2_LATEST,
         int $maxTokens = 1024,
         float $temperature = 1.0
     ) {
@@ -63,7 +56,7 @@ class Deepseek extends Adapter
     }
 
     /**
-     * Send a message to the Deepseek API
+     * Send a message to the XAI API
      *
      * @param  array<Message>  $messages
      * @param  callable|null  $listener
@@ -77,20 +70,15 @@ class Deepseek extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new Client();
-        $client
-            ->setTimeout(90)
-            ->addHeader('authorization', 'Bearer '.$this->apiKey)
-            ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
-
         $formattedMessages = [];
         foreach ($messages as $message) {
-            if (! empty($message->getRole()) && ! empty($message->getContent())) {
-                $formattedMessages[] = [
-                    'role' => $message->getRole(),
-                    'content' => $message->getContent(),
-                ];
+            if (empty($message->getRole()) || empty($message->getContent())) {
+                throw new \Exception('Invalid message format');
             }
+            $formattedMessages[] = [
+                'role' => $message->getRole(),
+                'content' => $message->getContent(),
+            ];
         }
 
         $instructions = [];
@@ -108,28 +96,51 @@ class Deepseek extends Adapter
             ]);
         }
 
-        $payload = [
+        $content = '';
+
+        $ch = curl_init('https://api.x.ai/v1/chat/completions');
+        if ($ch === false) {
+            throw new \Exception('Failed to initialize CURL');
+        }
+
+        $payload = json_encode([
             'model' => $this->model,
             'messages' => $formattedMessages,
             'max_tokens' => $this->maxTokens,
             'temperature' => $this->temperature,
             'stream' => true,
-        ];
+        ]);
 
-        $content = '';
-        $response = $client->fetch(
-            'https://api.deepseek.com/chat/completions',
-            Client::METHOD_POST,
-            $payload,
-            [],
-            function ($chunk) use (&$content, $listener) {
-                $content .= $this->process($chunk, $listener);
-            }
-        );
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer '.$this->apiKey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_WRITEFUNCTION => function ($ch, $data) use (&$content, $listener) {
+                $content .= $this->process($data, $listener);
 
-        if ($response->getStatusCode() >= 400) {
-            throw new \Exception('Deepseek API error ('.$response->getStatusCode().'): '.$response->getBody());
+                return strlen($data);
+            },
+            CURLOPT_TIMEOUT => 90,
+        ]);
+
+        $response = curl_exec($ch);
+        if ($response === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \Exception('CURL request failed: '.$error);
         }
+
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($httpCode >= 400) {
+            throw new \Exception('XAI API error ('.$httpCode.'): '.$content);
+        }
+
+        curl_close($ch);
 
         $message = new Text($content);
 
@@ -137,18 +148,17 @@ class Deepseek extends Adapter
     }
 
     /**
-     * Process a stream chunk from the Deepseek API
+     * Process a stream chunk from the XAI API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
+     * @param  string  $data
      * @param  callable|null  $listener
      * @return string
      *
      * @throws \Exception
      */
-    protected function process(Chunk $chunk, ?callable $listener): string
+    protected function process(string $data, ?callable $listener): string
     {
         $block = '';
-        $data = $chunk->getData();
         $lines = explode("\n", $data);
 
         foreach ($lines as $line) {
@@ -156,36 +166,34 @@ class Deepseek extends Adapter
                 continue;
             }
 
+            // Check for error JSON format
+            if (str_contains($line, '"error"')) {
+                $errorJson = json_decode($line, true);
+                if (is_array($errorJson) && isset($errorJson['error'])) {
+                    throw new \Exception('XAI API error: '.urldecode($errorJson['error']));
+                }
+            }
+
             if (! str_starts_with($line, 'data: ')) {
                 continue;
             }
 
-            $line = substr($line, 6);
-            if ($line === '[DONE]') {
+            // Handle [DONE] message
+            if (trim($line) === 'data: [DONE]') {
                 continue;
             }
 
-            $json = json_decode($line, true);
+            $json = json_decode(substr($line, 6), true);
             if (! is_array($json)) {
                 continue;
             }
 
+            // Extract content from the choices array
             if (isset($json['choices'][0]['delta']['content'])) {
-                $delta = $json['choices'][0]['delta']['content'];
-                if (! empty($delta)) {
-                    $block .= $delta;
-                    if ($listener !== null) {
-                        $listener($delta);
-                    }
-                }
-            }
+                $block = $json['choices'][0]['delta']['content'];
 
-            if (isset($json['usage'])) {
-                if (isset($json['usage']['prompt_tokens'])) {
-                    $this->countInputTokens($json['usage']['prompt_tokens']);
-                }
-                if (isset($json['usage']['completion_tokens'])) {
-                    $this->countOutputTokens($json['usage']['completion_tokens']);
+                if (! empty($block) && $listener !== null) {
+                    $listener($block);
                 }
             }
         }
@@ -201,8 +209,7 @@ class Deepseek extends Adapter
     public function getModels(): array
     {
         return [
-            self::MODEL_DEEPSEEK_CHAT,
-            self::MODEL_DEEPSEEK_CODER,
+            self::MODEL_GROK_2_LATEST,
         ];
     }
 
@@ -268,6 +275,6 @@ class Deepseek extends Adapter
      */
     public function getName(): string
     {
-        return 'deepseek';
+        return 'xai';
     }
 }
