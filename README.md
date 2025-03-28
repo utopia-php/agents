@@ -21,10 +21,10 @@ Utopia Framework requires PHP 8.0 or later. We recommend using the latest PHP ve
 
 ## Features
 
-- **Multiple AI Providers** - Support for OpenAI and Anthropic APIs
+- **Multiple AI Providers** - Support for OpenAI, Anthropic, and Deepseek APIs
 - **Flexible Message Types** - Support for text and structured content in messages
 - **Conversation Management** - Easy-to-use conversation handling between agents and users
-- **Model Selection** - Choose from various AI models (GPT-4, Claude 3, etc.)
+- **Model Selection** - Choose from various AI models (GPT-4, Claude 3, Deepseek Chat, etc.)
 - **Parameter Control** - Fine-tune model behavior with temperature and token controls
 
 ## Usage
@@ -92,6 +92,23 @@ Available Anthropic Models:
 - `MODEL_CLAUDE_3_SONNET`: Balanced performance
 - `MODEL_CLAUDE_3_HAIKU`: Fast and efficient
 - `MODEL_CLAUDE_2_1`: Previous generation
+
+#### Deepseek
+
+```php
+use Utopia\Agents\Adapters\Deepseek;
+
+$deepseek = new Deepseek(
+    apiKey: 'your-api-key',
+    model: Deepseek::MODEL_DEEPSEEK_CHAT,
+    maxTokens: 2048,
+    temperature: 0.7
+);
+```
+
+Available Deepseek Models:
+- `MODEL_DEEPSEEK_CHAT`: General-purpose chat model
+- `MODEL_DEEPSEEK_CODER`: Specialized for code-related tasks
 
 ### Managing Conversations
 
