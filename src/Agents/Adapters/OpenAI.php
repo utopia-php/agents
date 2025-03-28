@@ -26,6 +26,11 @@ class OpenAI extends Adapter
     public const MODEL_GPT_3_5_TURBO = 'gpt-3.5-turbo';
 
     /**
+     * Default OpenAI API endpoint
+     */
+    protected const ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+
+    /**
      * @var string
      */
     protected string $apiKey;
@@ -46,12 +51,18 @@ class OpenAI extends Adapter
     protected float $temperature;
 
     /**
+     * @var string
+     */
+    protected string $endpoint;
+
+    /**
      * Create a new OpenAI adapter
      *
      * @param  string  $apiKey
      * @param  string  $model
      * @param  int  $maxTokens
      * @param  float  $temperature
+     * @param  string|null  $endpoint
      *
      * @throws \Exception
      */
@@ -59,16 +70,18 @@ class OpenAI extends Adapter
         string $apiKey,
         string $model = self::MODEL_GPT_3_5_TURBO,
         int $maxTokens = 1024,
-        float $temperature = 1.0
+        float $temperature = 1.0,
+        ?string $endpoint = null
     ) {
         $this->apiKey = $apiKey;
         $this->maxTokens = $maxTokens;
         $this->temperature = $temperature;
+        $this->endpoint = $endpoint ?? self::ENDPOINT;
         $this->setModel($model);
     }
 
     /**
-     * Send a message to the OpenAI API
+     * Send a message to the API
      *
      * @param  array<Message>  $messages
      * @param  callable|null  $listener
@@ -124,7 +137,7 @@ class OpenAI extends Adapter
 
         $content = '';
         $response = $client->fetch(
-            'https://api.openai.com/v1/chat/completions',
+            $this->endpoint,
             Client::METHOD_POST,
             $payload,
             [],
@@ -134,7 +147,7 @@ class OpenAI extends Adapter
         );
 
         if ($response->getStatusCode() >= 400) {
-            throw new \Exception('OpenAI API error ('.$response->getStatusCode().'): '.$content);
+            throw new \Exception($this->getName().' API error ('.$response->getStatusCode().'): '.$content);
         }
 
         $message = new Text($content);
@@ -262,6 +275,29 @@ class OpenAI extends Adapter
     public function setTemperature(float $temperature): self
     {
         $this->temperature = $temperature;
+
+        return $this;
+    }
+
+    /**
+     * Get the API endpoint
+     *
+     * @return string
+     */
+    public function getEndpoint(): string
+    {
+        return $this->endpoint;
+    }
+
+    /**
+     * Set the API endpoint
+     *
+     * @param  string  $endpoint
+     * @return self
+     */
+    public function setEndpoint(string $endpoint): self
+    {
+        $this->endpoint = $endpoint;
 
         return $this;
     }

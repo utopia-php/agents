@@ -21,10 +21,10 @@ Utopia Framework requires PHP 8.0 or later. We recommend using the latest PHP ve
 
 ## Features
 
-- **Multiple AI Providers** - Support for OpenAI, Anthropic, and Deepseek APIs
+- **Multiple AI Providers** - Support for OpenAI, Anthropic, Deepseek, Perplexity, and XAI APIs
 - **Flexible Message Types** - Support for text and structured content in messages
 - **Conversation Management** - Easy-to-use conversation handling between agents and users
-- **Model Selection** - Choose from various AI models (GPT-4, Claude 3, Deepseek Chat, etc.)
+- **Model Selection** - Choose from various AI models (GPT-4, Claude 3, Deepseek Chat, Sonar, Grok, etc.)
 - **Parameter Control** - Fine-tune model behavior with temperature and token controls
 
 ## Usage
@@ -109,6 +109,43 @@ $deepseek = new Deepseek(
 Available Deepseek Models:
 - `MODEL_DEEPSEEK_CHAT`: General-purpose chat model
 - `MODEL_DEEPSEEK_CODER`: Specialized for code-related tasks
+
+#### Perplexity
+
+```php
+use Utopia\Agents\Adapters\Perplexity;
+
+$perplexity = new Perplexity(
+    apiKey: 'your-api-key',
+    model: Perplexity::MODEL_SONAR,
+    maxTokens: 2048,
+    temperature: 0.7
+);
+```
+
+Available Perplexity Models:
+- `MODEL_SONAR`: General-purpose search model
+- `MODEL_SONAR_PRO`: Enhanced search model
+- `MODEL_SONAR_DEEP_RESEARCH`: Advanced search model
+- `MODEL_SONAR_REASONING`: Reasoning model
+- `MODEL_SONAR_REASONING_PRO`: Enhanced reasoning model
+
+#### XAI
+
+```php
+use Utopia\Agents\Adapters\XAI;
+
+$xai = new XAI(
+    apiKey: 'your-api-key',
+    model: XAI::MODEL_GROK_2_LATEST,
+    maxTokens: 2048,
+    temperature: 0.7
+);
+```
+
+Available XAI Models:
+- `MODEL_GROK_2_LATEST`: Latest Grok model
+- `MODEL_GROK_2_IMAGE`: Latest Grok model with image support
 
 ### Managing Conversations
 
