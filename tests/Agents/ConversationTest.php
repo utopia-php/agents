@@ -24,7 +24,7 @@ class ConversationTest extends TestCase
     {
         $apiKey = getenv('LLM_KEY_ANTHROPIC');
 
-        if ($apiKey === false) {
+        if ($apiKey === false || empty($apiKey)) {
             throw new \RuntimeException('LLM_KEY_ANTHROPIC environment variable is not set');
         }
 

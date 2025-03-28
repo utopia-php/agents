@@ -101,6 +101,9 @@ class Anthropic extends Adapter
         $content = '';
 
         $ch = curl_init('https://api.anthropic.com/v1/messages');
+        if ($ch === false) {
+            throw new \Exception('Failed to initialize CURL');
+        }
 
         $payload = json_encode([
             'model' => $this->model,
@@ -130,6 +133,12 @@ class Anthropic extends Adapter
         ]);
 
         $response = curl_exec($ch);
+        if ($response === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \Exception('CURL request failed: '.$error);
+        }
+
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         if ($httpCode >= 400) {
