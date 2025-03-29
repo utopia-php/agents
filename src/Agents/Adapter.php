@@ -26,6 +26,13 @@ abstract class Adapter
     protected int $outputTokens = 0;
 
     /**
+     * Request timeout in seconds
+     *
+     * @var int
+     */
+    protected int $timeout = 90;
+
+    /**
      * Get the adapter name
      *
      * @return string
@@ -144,5 +151,28 @@ abstract class Adapter
     public function getTotalTokens(): int
     {
         return $this->inputTokens + $this->outputTokens;
+    }
+
+    /**
+     * Set timeout in seconds
+     *
+     * @param  int  $timeout
+     * @return self
+     */
+    public function setTimeout(int $timeout): self
+    {
+        $this->timeout = $timeout;
+
+        return $this;
+    }
+
+    /**
+     * Get timeout in seconds
+     *
+     * @return int
+     */
+    public function getTimeout(): int
+    {
+        return $this->timeout;
     }
 }
