@@ -51,11 +51,6 @@ class Anthropic extends Adapter
     protected float $temperature;
 
     /**
-     * @var int
-     */
-    protected int $timeout;
-
-    /**
      * Create a new Anthropic adapter
      *
      * @param  string  $apiKey
@@ -308,29 +303,6 @@ class Anthropic extends Adapter
         $this->temperature = $temperature;
 
         return $this;
-    }
-
-    /**
-     * Set timeout in seconds
-     *
-     * @param  int  $timeout
-     * @return self
-     */
-    public function setTimeout(int $timeout): self
-    {
-        $this->timeout = $timeout;
-
-        return $this;
-    }
-
-    /**
-     * Get timeout in seconds
-     *
-     * @return int
-     */
-    public function getTimeout(): int
-    {
-        return $this->timeout;
     }
 
     /**
