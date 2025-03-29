@@ -51,12 +51,18 @@ class Anthropic extends Adapter
     protected float $temperature;
 
     /**
+     * @var int
+     */
+    protected int $timeout;
+
+    /**
      * Create a new Anthropic adapter
      *
      * @param  string  $apiKey
      * @param  string  $model
      * @param  int  $maxTokens
      * @param  float  $temperature
+     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -64,11 +70,13 @@ class Anthropic extends Adapter
         string $apiKey,
         string $model = self::MODEL_CLAUDE_3_SONNET,
         int $maxTokens = 1024,
-        float $temperature = 1.0
+        float $temperature = 1.0,
+        int $timeout = 90
     ) {
         $this->apiKey = $apiKey;
         $this->maxTokens = $maxTokens;
         $this->temperature = $temperature;
+        $this->timeout = $timeout;
         $this->setModel($model);
     }
 
@@ -89,7 +97,7 @@ class Anthropic extends Adapter
 
         $client = new Client();
         $client
-            ->setTimeout(90)
+            ->setTimeout($this->timeout)
             ->addHeader('x-api-key', $this->apiKey)
             ->addHeader('anthropic-version', '2023-06-01')
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
@@ -300,6 +308,29 @@ class Anthropic extends Adapter
         $this->temperature = $temperature;
 
         return $this;
+    }
+
+    /**
+     * Set timeout in seconds
+     *
+     * @param  int  $timeout
+     * @return self
+     */
+    public function setTimeout(int $timeout): self
+    {
+        $this->timeout = $timeout;
+
+        return $this;
+    }
+
+    /**
+     * Get timeout in seconds
+     *
+     * @return int
+     */
+    public function getTimeout(): int
+    {
+        return $this->timeout;
     }
 
     /**
