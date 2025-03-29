@@ -56,6 +56,11 @@ class OpenAI extends Adapter
     protected string $endpoint;
 
     /**
+     * @var int
+     */
+    protected int $timeout;
+
+    /**
      * Create a new OpenAI adapter
      *
      * @param  string  $apiKey
@@ -63,6 +68,7 @@ class OpenAI extends Adapter
      * @param  int  $maxTokens
      * @param  float  $temperature
      * @param  string|null  $endpoint
+     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -71,12 +77,14 @@ class OpenAI extends Adapter
         string $model = self::MODEL_GPT_3_5_TURBO,
         int $maxTokens = 1024,
         float $temperature = 1.0,
-        ?string $endpoint = null
+        ?string $endpoint = null,
+        int $timeout = 90
     ) {
         $this->apiKey = $apiKey;
         $this->maxTokens = $maxTokens;
         $this->temperature = $temperature;
         $this->endpoint = $endpoint ?? self::ENDPOINT;
+        $this->timeout = $timeout;
         $this->setModel($model);
     }
 
@@ -97,7 +105,7 @@ class OpenAI extends Adapter
 
         $client = new Client();
         $client
-            ->setTimeout(90)
+            ->setTimeout($this->timeout)
             ->addHeader('authorization', 'Bearer '.$this->apiKey)
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
 

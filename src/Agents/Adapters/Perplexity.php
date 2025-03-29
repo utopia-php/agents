@@ -42,6 +42,7 @@ class Perplexity extends OpenAI
      * @param  int  $maxTokens
      * @param  float  $temperature
      * @param  string|null  $endpoint
+     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -50,14 +51,16 @@ class Perplexity extends OpenAI
         string $model = self::MODEL_SONAR,
         int $maxTokens = 1024,
         float $temperature = 1.0,
-        ?string $endpoint = null
+        ?string $endpoint = null,
+        int $timeout = 90
     ) {
         parent::__construct(
             $apiKey,
             $model,
             $maxTokens,
             $temperature,
-            $endpoint ?? self::ENDPOINT
+            $endpoint ?? self::ENDPOINT,
+            $timeout
         );
     }
 

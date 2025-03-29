@@ -41,12 +41,18 @@ class Deepseek extends Adapter
     protected float $temperature;
 
     /**
+     * @var int
+     */
+    protected int $timeout;
+
+    /**
      * Create a new Deepseek adapter
      *
      * @param  string  $apiKey
      * @param  string  $model
      * @param  int  $maxTokens
      * @param  float  $temperature
+     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -54,11 +60,13 @@ class Deepseek extends Adapter
         string $apiKey,
         string $model = self::MODEL_DEEPSEEK_CHAT,
         int $maxTokens = 1024,
-        float $temperature = 1.0
+        float $temperature = 1.0,
+        int $timeout = 90
     ) {
         $this->apiKey = $apiKey;
         $this->maxTokens = $maxTokens;
         $this->temperature = $temperature;
+        $this->timeout = $timeout;
         $this->setModel($model);
     }
 
@@ -79,7 +87,7 @@ class Deepseek extends Adapter
 
         $client = new Client();
         $client
-            ->setTimeout(90)
+            ->setTimeout($this->timeout)
             ->addHeader('authorization', 'Bearer '.$this->apiKey)
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
 
