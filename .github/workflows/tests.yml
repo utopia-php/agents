@@ -21,6 +21,7 @@ jobs:
           LLM_KEY_DEEPSEEK: ${{ secrets.LLM_KEY_DEEPSEEK }}
           LLM_KEY_XAI: ${{ secrets.LLM_KEY_XAI }}
           LLM_KEY_PERPLEXITY: ${{ secrets.LLM_KEY_PERPLEXITY }}
+          LLM_KEY_GEMINI: ${{ secrets.LLM_KEY_GEMINI }}
         run: |
           docker compose build
           docker compose up -d
