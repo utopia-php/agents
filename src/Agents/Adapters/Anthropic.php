@@ -36,6 +36,11 @@ class Anthropic extends Adapter
     private const CACHE_TTL_3600 = 'ephemeral';
 
     /**
+     * Limit of instructions that can be cached
+     */
+    private const CACHE_LIMIT = 4;
+
+    /**
      * @var string
      */
     protected string $apiKey;
@@ -102,21 +107,32 @@ class Anthropic extends Adapter
             ->addHeader('anthropic-version', '2023-06-01')
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
 
-        $systemMessages[] = [
-            'type' => 'text',
-            'text' => $this->getAgent()->getDescription(),
-            'cache_control' => [
-                'type' => self::CACHE_TTL_3600,
-            ],
-        ];
-        foreach ($this->getAgent()->getInstructions() as $name => $content) {
+        $systemMessages = [];
+        if (! empty($this->getAgent()->getDescription())) {
             $systemMessages[] = [
                 'type' => 'text',
-                'text' => '# '.$name."\n\n".$content,
+                'text' => $this->getAgent()->getDescription(),
                 'cache_control' => [
                     'type' => self::CACHE_TTL_3600,
                 ],
             ];
+        }
+
+        $cacheControlCount = ! empty($this->getAgent()->getDescription()) ? 1 : 0;
+        foreach ($this->getAgent()->getInstructions() as $name => $content) {
+            $message = [
+                'type' => 'text',
+                'text' => '# '.$name."\n\n".$content,
+            ];
+
+            if ($cacheControlCount < self::CACHE_LIMIT) {
+                $message['cache_control'] = [
+                    'type' => self::CACHE_TTL_3600,
+                ];
+                $cacheControlCount++;
+            }
+
+            $systemMessages[] = $message;
         }
 
         $formattedMessages = [];
@@ -204,6 +220,12 @@ class Anthropic extends Adapter
                         }
                         if (isset($usage['output_tokens']) && is_int($usage['output_tokens'])) {
                             $this->countOutputTokens($usage['output_tokens']);
+                        }
+                        if (isset($usage['cache_creation_input_tokens']) && is_int($usage['cache_creation_input_tokens'])) {
+                            $this->countCacheCreationInputTokens($usage['cache_creation_input_tokens']);
+                        }
+                        if (isset($usage['cache_read_input_tokens']) && is_int($usage['cache_read_input_tokens'])) {
+                            $this->countCacheReadInputTokens($usage['cache_read_input_tokens']);
                         }
                     }
                     break;
