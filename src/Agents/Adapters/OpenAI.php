@@ -180,7 +180,7 @@ class OpenAI extends Adapter
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
-            throw new \Exception('OpenAI API error ('.$json['error']['code'].'): '.$json['error']['message']);
+            throw new \Exception(ucfirst($this->getName()).' API error ('.$json['error']['code'].'): '.$json['error']['message']);
         }
 
         foreach ($lines as $line) {
