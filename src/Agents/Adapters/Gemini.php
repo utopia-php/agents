@@ -139,7 +139,7 @@ class Gemini extends Adapter
 
         $content = '';
         $response = $client->fetch(
-            $this->endpoint ?? 'https://generativelanguage.googleapis.com/v1beta/models/'.$this->model.':streamGenerateContent?key='.$this->apiKey,
+            $this->endpoint,
             Client::METHOD_POST,
             $payload,
             [],
