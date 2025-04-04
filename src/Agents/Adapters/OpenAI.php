@@ -178,17 +178,14 @@ class OpenAI extends Adapter
         $data = $chunk->getData();
         $lines = explode("\n", $data);
 
+        $json = json_decode($data, true);
+        if (is_array($json) && isset($json['error'])) {
+            throw new \Exception('OpenAI API error ('.$json['error']['code'].'): '.$json['error']['message']);
+        }
+
         foreach ($lines as $line) {
             if (empty(trim($line))) {
                 continue;
-            }
-
-            // Check for error JSON format
-            if (str_contains($line, '"error"')) {
-                $errorJson = json_decode($line, true);
-                if (is_array($errorJson) && isset($errorJson['error'])) {
-                    throw new \Exception('OpenAI API error: '.urldecode($errorJson['error']));
-                }
             }
 
             if (! str_starts_with($line, 'data: ')) {
