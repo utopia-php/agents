@@ -26,6 +26,20 @@ abstract class Adapter
     protected int $outputTokens = 0;
 
     /**
+     * Cache creation input tokens count
+     *
+     * @var int
+     */
+    protected int $cacheCreationInputTokens = 0;
+
+    /**
+     * Cache read input tokens count
+     *
+     * @var int
+     */
+    protected int $cacheReadInputTokens = 0;
+
+    /**
      * Request timeout in seconds
      *
      * @var int
@@ -108,6 +122,36 @@ abstract class Adapter
     }
 
     /**
+     * Get output tokens count
+     *
+     * @return int
+     */
+    public function getOutputTokens(): int
+    {
+        return $this->outputTokens;
+    }
+
+    /**
+     * Get cache creation input tokens count
+     *
+     * @return int
+     */
+    public function getCacheCreationInputTokens(): int
+    {
+        return $this->cacheCreationInputTokens;
+    }
+
+    /**
+     * Get cache read input tokens count
+     *
+     * @return int
+     */
+    public function getCacheReadInputTokens(): int
+    {
+        return $this->cacheReadInputTokens;
+    }
+
+    /**
      * Add to input tokens count
      *
      * @param  int  $tokens
@@ -118,16 +162,6 @@ abstract class Adapter
         $this->inputTokens += $tokens;
 
         return $this;
-    }
-
-    /**
-     * Get output tokens count
-     *
-     * @return int
-     */
-    public function getOutputTokens(): int
-    {
-        return $this->outputTokens;
     }
 
     /**
@@ -144,13 +178,39 @@ abstract class Adapter
     }
 
     /**
+     * Add to cache creation input tokens count
+     *
+     * @param  int  $tokens
+     * @return self
+     */
+    public function countCacheCreationInputTokens(int $tokens): self
+    {
+        $this->cacheCreationInputTokens += $tokens;
+
+        return $this;
+    }
+
+    /**
+     * Add to cache read input tokens count
+     *
+     * @param  int  $tokens
+     * @return self
+     */
+    public function countCacheReadInputTokens(int $tokens): self
+    {
+        $this->cacheReadInputTokens += $tokens;
+
+        return $this;
+    }
+
+    /**
      * Get total tokens count
      *
      * @return int
      */
     public function getTotalTokens(): int
     {
-        return $this->inputTokens + $this->outputTokens;
+        return $this->inputTokens + $this->outputTokens + $this->cacheCreationInputTokens + $this->cacheReadInputTokens;
     }
 
     /**

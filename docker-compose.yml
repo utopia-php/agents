@@ -15,6 +15,7 @@ services:
       - LLM_KEY_DEEPSEEK=${LLM_KEY_DEEPSEEK}
       - LLM_KEY_XAI=${LLM_KEY_XAI}
       - LLM_KEY_PERPLEXITY=${LLM_KEY_PERPLEXITY}
+      - LLM_KEY_GEMINI=${LLM_KEY_GEMINI}
     networks:
       - utopia
 

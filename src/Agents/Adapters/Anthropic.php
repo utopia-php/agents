@@ -31,6 +31,16 @@ class Anthropic extends Adapter
     public const MODEL_CLAUDE_2_1 = 'claude-2.1';
 
     /**
+     * Cache TTL for 3600 seconds
+     */
+    private const CACHE_TTL_3600 = 'ephemeral';
+
+    /**
+     * Limit of instructions that can be cached
+     */
+    private const CACHE_LIMIT = 4;
+
+    /**
      * @var string
      */
     protected string $apiKey;
@@ -97,6 +107,34 @@ class Anthropic extends Adapter
             ->addHeader('anthropic-version', '2023-06-01')
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
 
+        $systemMessages = [];
+        if (! empty($this->getAgent()->getDescription())) {
+            $systemMessages[] = [
+                'type' => 'text',
+                'text' => $this->getAgent()->getDescription(),
+                'cache_control' => [
+                    'type' => self::CACHE_TTL_3600,
+                ],
+            ];
+        }
+
+        $cacheControlCount = ! empty($this->getAgent()->getDescription()) ? 1 : 0;
+        foreach ($this->getAgent()->getInstructions() as $name => $content) {
+            $message = [
+                'type' => 'text',
+                'text' => '# '.$name."\n\n".$content,
+            ];
+
+            if ($cacheControlCount < self::CACHE_LIMIT) {
+                $message['cache_control'] = [
+                    'type' => self::CACHE_TTL_3600,
+                ];
+                $cacheControlCount++;
+            }
+
+            $systemMessages[] = $message;
+        }
+
         $formattedMessages = [];
         foreach ($messages as $message) {
             $formattedMessages[] = [
@@ -105,15 +143,9 @@ class Anthropic extends Adapter
             ];
         }
 
-        $instructions = [];
-        foreach ($this->getAgent()->getInstructions() as $name => $content) {
-            $instructions[] = '# '.$name."\n\n".$content;
-        }
-
         $payload = [
             'model' => $this->model,
-            'system' => $this->getAgent()->getDescription().
-                (empty($instructions) ? '' : "\n\n".implode("\n\n", $instructions)),
+            'system' => $systemMessages,
             'messages' => $formattedMessages,
             'max_tokens' => $this->maxTokens,
             'temperature' => $this->temperature,
@@ -159,6 +191,13 @@ class Anthropic extends Adapter
             }
 
             if (! str_starts_with($line, 'data: ')) {
+                // Check for error response
+                $json = json_decode($line, true);
+                if (is_array($json) && isset($json['type']) && $json['type'] === 'error') {
+                    $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
+                    throw new \Exception('Anthropic API error: '.$errorMessage);
+                }
+
                 continue;
             }
 
@@ -181,6 +220,12 @@ class Anthropic extends Adapter
                         }
                         if (isset($usage['output_tokens']) && is_int($usage['output_tokens'])) {
                             $this->countOutputTokens($usage['output_tokens']);
+                        }
+                        if (isset($usage['cache_creation_input_tokens']) && is_int($usage['cache_creation_input_tokens'])) {
+                            $this->countCacheCreationInputTokens($usage['cache_creation_input_tokens']);
+                        }
+                        if (isset($usage['cache_read_input_tokens']) && is_int($usage['cache_read_input_tokens'])) {
+                            $this->countCacheReadInputTokens($usage['cache_read_input_tokens']);
                         }
                     }
                     break;

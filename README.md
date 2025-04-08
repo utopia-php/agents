@@ -155,6 +155,12 @@ use Utopia\Agents\Roles\Assistant;
 use Utopia\Agents\Messages\Text;
 
 // Create a conversation with system instructions
+$agent = new Agent($adapter);
+$agent->setInstructions([
+    'description' => 'You are a helpful assistant that can answer questions and help with tasks.',
+    'tone' => 'friendly and helpful',
+]);
+
 // Initialize roles
 $user = new User('user-1'); 
 $assistant = new Assistant('assistant-1');
@@ -181,15 +187,6 @@ $textMessage = new Text('Hello, how are you?');
 // Image message
 $imageMessage = new Image($imageBinaryContent);
 $mimeType = $imageMessage->getMimeType(); // Get the MIME type of the image
-```
-
-### Configuring Agents
-
-```php
-$agent = new Agent($adapter);
-$agent
-    ->setDescription('An AI agent specialized in research and analysis')
-    ->setCapabilities(['research', 'analysis', 'writing']);
 ```
 
 ## Tests

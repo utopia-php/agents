@@ -8,27 +8,22 @@ use Utopia\Agents\Messages\Text;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
-class OpenAI extends Adapter
+class Gemini extends Adapter
 {
     /**
-     * GPT-4 Turbo - Latest and most capable model
+     * Gemini 1.5 Pro - Latest and most capable model
      */
-    public const MODEL_GPT_4_TURBO = 'gpt-4-turbo-preview';
+    public const MODEL_GEMINI_2_5_PRO = 'gemini-2.5-pro';
 
     /**
-     * GPT-4 - Previous generation model
+     * Gemini 2.0 Flash - Previous generation model
      */
-    public const MODEL_GPT_4 = 'gpt-4';
+    public const MODEL_GEMINI_2_0_FLASH = 'gemini-2.0-flash';
 
     /**
-     * GPT-3.5 Turbo - Fast and efficient model
+     * Gemini 2.0 Flash Lite - Fast and efficient model
      */
-    public const MODEL_GPT_3_5_TURBO = 'gpt-3.5-turbo';
-
-    /**
-     * Default OpenAI API endpoint
-     */
-    protected const ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+    public const MODEL_GEMINI_2_0_FLASH_LITE = 'gemini-2.0-flash-lite';
 
     /**
      * @var string
@@ -61,7 +56,7 @@ class OpenAI extends Adapter
     protected int $timeout;
 
     /**
-     * Create a new OpenAI adapter
+     * Create a new Gemini adapter
      *
      * @param  string  $apiKey
      * @param  string  $model
@@ -74,7 +69,7 @@ class OpenAI extends Adapter
      */
     public function __construct(
         string $apiKey,
-        string $model = self::MODEL_GPT_3_5_TURBO,
+        string $model = self::MODEL_GEMINI_2_5_PRO,
         int $maxTokens = 1024,
         float $temperature = 1.0,
         ?string $endpoint = null,
@@ -83,7 +78,7 @@ class OpenAI extends Adapter
         $this->apiKey = $apiKey;
         $this->maxTokens = $maxTokens;
         $this->temperature = $temperature;
-        $this->endpoint = $endpoint ?? self::ENDPOINT;
+        $this->endpoint = $endpoint ?? 'https://generativelanguage.googleapis.com/v1beta/models/'.$model.':streamGenerateContent?alt=sse&key='.$apiKey;
         $this->timeout = $timeout;
         $this->setModel($model);
     }
@@ -106,41 +101,40 @@ class OpenAI extends Adapter
         $client = new Client();
         $client
             ->setTimeout($this->timeout)
-            ->addHeader('authorization', 'Bearer '.$this->apiKey)
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
 
-        $formattedMessages = [];
-        foreach ($messages as $message) {
-            if (empty($message->getRole()) || empty($message->getContent())) {
-                throw new \Exception('Invalid message format');
-            }
-            $formattedMessages[] = [
-                'role' => $message->getRole(),
-                'content' => $message->getContent(),
+        $systemParts = [];
+        $systemParts[] = [
+            'text' => $this->getAgent()->getDescription(),
+        ];
+
+        foreach ($this->getAgent()->getInstructions() as $name => $content) {
+            $systemParts[] = [
+                'text' => '# '.$name."\n\n".$content,
             ];
         }
 
-        $instructions = [];
-        foreach ($this->getAgent()->getInstructions() as $name => $content) {
-            $instructions[] = '# '.$name."\n\n".$content;
-        }
-
-        $systemMessage = $this->getAgent()->getDescription().
-            (empty($instructions) ? '' : "\n\n".implode("\n\n", $instructions));
-
-        if (! empty($systemMessage)) {
-            array_unshift($formattedMessages, [
-                'role' => 'system',
-                'content' => $systemMessage,
-            ]);
+        $formattedMessages = [];
+        foreach ($messages as $message) {
+            $formattedMessages[] = [
+                'role' => $message->getRole() === 'user' ? 'user' : 'model',
+                'parts' => [
+                    [
+                        'text' => $message->getContent(),
+                    ],
+                ],
+            ];
         }
 
         $payload = [
-            'model' => $this->model,
-            'messages' => $formattedMessages,
-            'max_tokens' => $this->maxTokens,
-            'temperature' => $this->temperature,
-            'stream' => true,
+            'system_instruction' => [
+                'parts' => $systemParts,
+            ],
+            'contents' => $formattedMessages,
+            'generationConfig' => [
+                'maxOutputTokens' => $this->maxTokens,
+                'temperature' => $this->temperature,
+            ],
         ];
 
         $content = '';
@@ -164,7 +158,7 @@ class OpenAI extends Adapter
     }
 
     /**
-     * Process a stream chunk from the OpenAI API
+     * Process a stream chunk from the Gemini API
      *
      * @param  \Utopia\Fetch\Chunk  $chunk
      * @param  callable|null  $listener
@@ -178,9 +172,13 @@ class OpenAI extends Adapter
         $data = $chunk->getData();
         $lines = explode("\n", $data);
 
+        // Handle both cases where error can be in an array or directly in the response
         $json = json_decode($data, true);
+        if (is_array($json) && isset($json[0]['error'])) {
+            throw new \Exception('Gemini API error: '.$json[0]['error']['message']);
+        }
         if (is_array($json) && isset($json['error'])) {
-            throw new \Exception(ucfirst($this->getName()).' API error ('.$json['error']['code'].'): '.$json['error']['message']);
+            throw new \Exception('Gemini API error: '.$json['error']['message']);
         }
 
         foreach ($lines as $line) {
@@ -202,9 +200,9 @@ class OpenAI extends Adapter
                 continue;
             }
 
-            // Extract content from the choices array
-            if (isset($json['choices'][0]['delta']['content'])) {
-                $block = $json['choices'][0]['delta']['content'];
+            // Extract content from Gemini response format
+            if (isset($json['candidates'][0]['content']['parts'][0]['text'])) {
+                $block = $json['candidates'][0]['content']['parts'][0]['text'];
 
                 if (! empty($block) && $listener !== null) {
                     $listener($block);
@@ -223,9 +221,9 @@ class OpenAI extends Adapter
     public function getModels(): array
     {
         return [
-            self::MODEL_GPT_4_TURBO,
-            self::MODEL_GPT_4,
-            self::MODEL_GPT_3_5_TURBO,
+            self::MODEL_GEMINI_2_5_PRO,
+            self::MODEL_GEMINI_2_0_FLASH,
+            self::MODEL_GEMINI_2_0_FLASH_LITE,
         ];
     }
 
@@ -314,6 +312,6 @@ class OpenAI extends Adapter
      */
     public function getName(): string
     {
-        return 'openai';
+        return 'gemini';
     }
 }

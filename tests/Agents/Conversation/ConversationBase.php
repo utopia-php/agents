@@ -43,6 +43,9 @@ abstract class ConversationBase extends TestCase
 
         $this->agent = new Agent($this->adapter);
         $this->agent->setDescription($this->getAgentDescription());
+        $this->agent->setInstructions([
+            'description' => 'You are a helpful assistant that can answer questions and help with tasks.',
+        ]);
 
         $this->conversation = new Conversation($this->agent);
     }
