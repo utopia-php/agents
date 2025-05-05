@@ -184,13 +184,14 @@ class OpenAI extends Adapter
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
             if (isset($json['error']['code'], $json['error']['message'])) {
-                throw new \Exception(ucfirst($this->getName()).' API error ('.$json['error']['code'].'): '.$json['error']['message']);
+                return '('.$json['error']['code'].') '.$json['error']['message'];
             }
-            throw new \Exception(ucfirst($this->getName()).' API error: '.$json['error']);
+
+            return $json['error'];
         }
 
         if (preg_match('/^\s*<(html|!DOCTYPE html)/i', $data)) {
-            throw new \Exception(ucfirst($this->getName()).' API error: '.PHP_EOL.$data);
+            return PHP_EOL.$data;
         }
 
         foreach ($lines as $line) {

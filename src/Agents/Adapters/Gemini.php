@@ -185,13 +185,9 @@ class Gemini extends Adapter
         $data = $chunk->getData();
         $lines = explode("\n", $data);
 
-        // Handle both cases where error can be in an array or directly in the response
         $json = json_decode($data, true);
-        if (is_array($json) && isset($json[0]['error'])) {
-            throw new \Exception(ucfirst($this->getName()).' API error: '.$json[0]['error']['message']);
-        }
         if (is_array($json) && isset($json['error'])) {
-            throw new \Exception(ucfirst($this->getName()).' API error: '.$json['error']['message']);
+            return '('.$json['error']['status'].') '.$json['error']['message'].PHP_EOL.json_encode($json['error']['details'], JSON_PRETTY_PRINT);
         }
 
         foreach ($lines as $line) {

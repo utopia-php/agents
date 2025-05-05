@@ -137,7 +137,7 @@ class Deepseek extends Adapter
 
         if ($response->getStatusCode() >= 400) {
             throw new \Exception(
-                ucfirst($this->getName()).' API error: '.$response->getBody(),
+                ucfirst($this->getName()).' API error: '.$content,
                 $response->getStatusCode()
             );
         }
@@ -164,7 +164,7 @@ class Deepseek extends Adapter
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
-            throw new \Exception(ucfirst($this->getName()).' API error: '.$json['error']['message']);
+            return '('.$json['error']['type'].') '.$json['error']['message'];
         }
 
         foreach ($lines as $line) {
