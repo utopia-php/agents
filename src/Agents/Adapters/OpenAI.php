@@ -155,7 +155,10 @@ class OpenAI extends Adapter
         );
 
         if ($response->getStatusCode() >= 400) {
-            throw new \Exception($this->getName().' API error ('.$response->getStatusCode().'): '.$content);
+            throw new \Exception(
+                ucfirst($this->getName()).' API error: '.$content,
+                $response->getStatusCode()
+            );
         }
 
         $message = new Text($content);
@@ -180,7 +183,14 @@ class OpenAI extends Adapter
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
-            throw new \Exception(ucfirst($this->getName()).' API error ('.$json['error']['code'].'): '.$json['error']['message']);
+            if (isset($json['error']['code'], $json['error']['message'])) {
+                throw new \Exception(ucfirst($this->getName()).' API error ('.$json['error']['code'].'): '.$json['error']['message']);
+            }
+            throw new \Exception(ucfirst($this->getName()).' API error: '.$json['error']);
+        }
+
+        if (preg_match('/^\s*<(html|!DOCTYPE html)/i', $data)) {
+            throw new \Exception(ucfirst($this->getName()).' API error: '.PHP_EOL.$data);
         }
 
         foreach ($lines as $line) {
