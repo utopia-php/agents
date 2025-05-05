@@ -11,19 +11,29 @@ use Utopia\Fetch\Client;
 class Gemini extends Adapter
 {
     /**
-     * Gemini 1.5 Pro - Latest and most capable model
+     * Gemini 2.5 Flash Preview - Our best model in terms of price-performance, offering well-rounded capabilities.
      */
-    public const MODEL_GEMINI_2_5_PRO = 'gemini-2.5-pro';
+    public const MODEL_GEMINI_2_5_FLASH_PREVIEW = 'gemini-2.5-flash-preview-04-17';
 
     /**
-     * Gemini 2.0 Flash - Previous generation model
+     * Gemini 2.5 Pro Preview - Enhanced thinking and reasoning, multimodal understanding, advanced coding, and more.
+     */
+    public const MODEL_GEMINI_2_5_PRO_PREVIEW = 'gemini-2.5-pro-preview-03-25';
+
+    /**
+     * Gemini 2.0 Flash - Next generation features, speed, thinking, realtime streaming, and multimodal generation.
      */
     public const MODEL_GEMINI_2_0_FLASH = 'gemini-2.0-flash';
 
     /**
-     * Gemini 2.0 Flash Lite - Fast and efficient model
+     * Gemini 2.0 Flash Lite - Cost efficiency and low latency.
      */
     public const MODEL_GEMINI_2_0_FLASH_LITE = 'gemini-2.0-flash-lite';
+
+    /**
+     * Gemini 1.5 Pro - Complex reasoning tasks requiring more intelligence.
+     */
+    public const MODEL_GEMINI_1_5_PRO = 'gemini-1.5-pro';
 
     /**
      * @var string
