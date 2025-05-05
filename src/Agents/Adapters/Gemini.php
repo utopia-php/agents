@@ -79,7 +79,7 @@ class Gemini extends Adapter
      */
     public function __construct(
         string $apiKey,
-        string $model = self::MODEL_GEMINI_2_5_PRO,
+        string $model = self::MODEL_GEMINI_2_0_FLASH,
         int $maxTokens = 1024,
         float $temperature = 1.0,
         ?string $endpoint = null,
@@ -231,9 +231,11 @@ class Gemini extends Adapter
     public function getModels(): array
     {
         return [
-            self::MODEL_GEMINI_2_5_PRO,
             self::MODEL_GEMINI_2_0_FLASH,
             self::MODEL_GEMINI_2_0_FLASH_LITE,
+            self::MODEL_GEMINI_1_5_PRO,
+            self::MODEL_GEMINI_2_5_FLASH_PREVIEW,
+            self::MODEL_GEMINI_2_5_PRO_PREVIEW,
         ];
     }
 
