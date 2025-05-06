@@ -187,7 +187,12 @@ class Gemini extends Adapter
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
-            return '('.$json['error']['status'].') '.$json['error']['message'].PHP_EOL.json_encode($json['error']['details'], JSON_PRETTY_PRINT);
+            $error = '('.($json['error']['status'] ?? '').') '.($json['error']['message'] ?? 'Unknown error');
+            if (! empty($json['error']['details'])) {
+                $error .= PHP_EOL.json_encode($json['error']['details'], JSON_PRETTY_PRINT);
+            }
+
+            return $error;
         }
 
         foreach ($lines as $line) {

@@ -195,7 +195,10 @@ class Anthropic extends Adapter
 
             $json = json_decode($line, true);
             if (is_array($json) && isset($json['type']) && $json['type'] === 'error') {
-                return '('.$json['error']['type'].') '.$json['error']['message'];
+                $type = isset($json['error']['type']) ? $json['error']['type'] : '';
+                $message = isset($json['error']['message']) ? $json['error']['message'] : 'Unknown error';
+
+                return '('.$type.') '.$message;
             }
 
             $json = json_decode(substr($line, 6), true);

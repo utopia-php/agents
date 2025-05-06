@@ -164,7 +164,10 @@ class Deepseek extends Adapter
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
-            return '('.$json['error']['type'].') '.$json['error']['message'];
+            $type = isset($json['error']['type']) ? $json['error']['type'] : '';
+            $message = isset($json['error']['message']) ? $json['error']['message'] : 'Unknown error';
+
+            return '('.$type.') '.$message;
         }
 
         foreach ($lines as $line) {
