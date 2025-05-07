@@ -164,7 +164,10 @@ class Anthropic extends Adapter
         );
 
         if ($response->getStatusCode() >= 400) {
-            throw new \Exception('Anthropic API error ('.$response->getStatusCode().'): '.$response->getBody());
+            throw new \Exception(
+                ucfirst($this->getName()).' API error: '.$content,
+                $response->getStatusCode()
+            );
         }
 
         return new Text($content);
@@ -190,15 +193,12 @@ class Anthropic extends Adapter
                 continue;
             }
 
-            if (! str_starts_with($line, 'data: ')) {
-                // Check for error response
-                $json = json_decode($line, true);
-                if (is_array($json) && isset($json['type']) && $json['type'] === 'error') {
-                    $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
-                    throw new \Exception('Anthropic API error: '.$errorMessage);
-                }
+            $json = json_decode($line, true);
+            if (is_array($json) && isset($json['type']) && $json['type'] === 'error') {
+                $type = $json['error']['type'] ?? '';
+                $message = $json['error']['message'] ?? 'Unknown error';
 
-                continue;
+                return '('.$type.') '.$message;
             }
 
             $json = json_decode(substr($line, 6), true);

@@ -159,7 +159,10 @@ class Gemini extends Adapter
         );
 
         if ($response->getStatusCode() >= 400) {
-            throw new \Exception($this->getName().' API error ('.$response->getStatusCode().'): '.$content);
+            throw new \Exception(
+                ucfirst($this->getName()).' API error: '.$content,
+                $response->getStatusCode()
+            );
         }
 
         $message = new Text($content);
@@ -182,13 +185,14 @@ class Gemini extends Adapter
         $data = $chunk->getData();
         $lines = explode("\n", $data);
 
-        // Handle both cases where error can be in an array or directly in the response
         $json = json_decode($data, true);
-        if (is_array($json) && isset($json[0]['error'])) {
-            throw new \Exception('Gemini API error: '.$json[0]['error']['message']);
-        }
         if (is_array($json) && isset($json['error'])) {
-            throw new \Exception('Gemini API error: '.$json['error']['message']);
+            $error = '('.($json['error']['status'] ?? '').') '.($json['error']['message'] ?? 'Unknown error');
+            if (! empty($json['error']['details'])) {
+                $error .= PHP_EOL.json_encode($json['error']['details'], JSON_PRETTY_PRINT);
+            }
+
+            return $error;
         }
 
         foreach ($lines as $line) {

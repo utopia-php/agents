@@ -2,6 +2,8 @@
 
 namespace Utopia\Agents\Adapters;
 
+use Utopia\Fetch\Chunk;
+
 class Perplexity extends OpenAI
 {
     /**
@@ -88,5 +90,70 @@ class Perplexity extends OpenAI
     public function getName(): string
     {
         return 'perplexity';
+    }
+
+    /**
+     * Process a stream chunk from the Perplexity API
+     *
+     * @param  \Utopia\Fetch\Chunk  $chunk
+     * @param  callable|null  $listener
+     * @return string
+     *
+     * @throws \Exception
+     */
+    protected function process(Chunk $chunk, ?callable $listener): string
+    {
+        $block = '';
+        $data = $chunk->getData();
+        $lines = explode("\n", $data);
+
+        $json = json_decode($data, true);
+        if (is_array($json)) {
+            if (isset($json['error']['code'], $json['error']['message'])) {
+                return '('.$json['error']['code'].') '.$json['error']['message'];
+            }
+
+            return $json['error'] ?? 'Unknown error';
+        }
+
+        // Specifically for Authorization and similar errors that return HTML
+        $trimmed = ltrim($data);
+        if (
+            stripos($trimmed, '<html') === 0 ||
+            stripos($trimmed, '<!DOCTYPE html') === 0
+        ) {
+            return PHP_EOL.$data;
+        }
+
+        foreach ($lines as $line) {
+            if (empty(trim($line))) {
+                continue;
+            }
+
+            if (! str_starts_with($line, 'data: ')) {
+                continue;
+            }
+
+            // Handle [DONE] message
+            if (trim($line) === 'data: [DONE]') {
+                continue;
+            }
+
+            $json = json_decode(substr($line, 6), true);
+            if (! is_array($json)) {
+                continue;
+            }
+
+            // Extract content from the choices array
+            if (isset($json['choices'][0]['delta']['content'])) {
+                $block = $json['choices'][0]['delta']['content'];
+
+                if (! empty($block) && $listener !== null) {
+                    $listener($block);
+                }
+            }
+        }
+
+        return $block;
     }
 }
