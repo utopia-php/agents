@@ -190,7 +190,11 @@ class OpenAI extends Adapter
             return $json['error'];
         }
 
-        if (preg_match('/^\s*<(html|!DOCTYPE html)/i', $data)) {
+        $trimmed = ltrim($data);
+        if (
+            stripos($trimmed, '<html') === 0 ||
+            stripos($trimmed, '<!DOCTYPE html') === 0
+        ) {
             return PHP_EOL.$data;
         }
 
