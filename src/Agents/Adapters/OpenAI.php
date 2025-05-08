@@ -11,32 +11,32 @@ use Utopia\Fetch\Client;
 class OpenAI extends Adapter
 {
     /**
-     * GPT-4.5 Preview - Preview of the latest and most capable model
+     * GPT-4.5 Preview - OpenAI's most advanced model with enhanced reasoning, broader knowledge, and improved instruction following
      */
     public const MODEL_GPT_4_5_PREVIEW = 'gpt-4.5-preview';
 
     /**
-     * GPT-4.1 - A highly capable model with advanced language understanding
+     * GPT-4.1 - Advanced large language model with strong reasoning capabilities and improved context handling
      */
     public const MODEL_GPT_4_1 = 'gpt-4.1';
 
     /**
-     * GPT-4o - A model optimized for specific tasks and domains
+     * GPT-4o - Multimodal model optimized for both text and image processing with faster response times
      */
     public const MODEL_GPT_4O = 'gpt-4o';
 
     /**
-     * o4-mini - A smaller and more efficient model for general tasks
+     * o4-mini - Compact version of GPT-4o offering good performance with higher throughput and lower latency
      */
     public const MODEL_O4_MINI = 'o4-mini';
 
     /**
-     * o3 - A model with a balance of capabilities and efficiency
+     * o3 - Balanced model offering good performance for general language tasks with efficient resource usage
      */
     public const MODEL_O3 = 'o3';
 
     /**
-     * o3-mini - A smaller and more efficient model for general tasks, optimized for miniaturization
+     * o3-mini - Streamlined model optimized for speed and efficiency while maintaining good capabilities for routine tasks
      */
     public const MODEL_O3_MINI = 'o3-mini';
 
