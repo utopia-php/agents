@@ -11,19 +11,34 @@ use Utopia\Fetch\Client;
 class OpenAI extends Adapter
 {
     /**
-     * GPT-4 Turbo - Latest and most capable model
+     * GPT-4.5 Preview - OpenAI's most advanced model with enhanced reasoning, broader knowledge, and improved instruction following
      */
-    public const MODEL_GPT_4_TURBO = 'gpt-4-turbo-preview';
+    public const MODEL_GPT_4_5_PREVIEW = 'gpt-4.5-preview';
 
     /**
-     * GPT-4 - Previous generation model
+     * GPT-4.1 - Advanced large language model with strong reasoning capabilities and improved context handling
      */
-    public const MODEL_GPT_4 = 'gpt-4';
+    public const MODEL_GPT_4_1 = 'gpt-4.1';
 
     /**
-     * GPT-3.5 Turbo - Fast and efficient model
+     * GPT-4o - Multimodal model optimized for both text and image processing with faster response times
      */
-    public const MODEL_GPT_3_5_TURBO = 'gpt-3.5-turbo';
+    public const MODEL_GPT_4O = 'gpt-4o';
+
+    /**
+     * o4-mini - Compact version of GPT-4o offering good performance with higher throughput and lower latency
+     */
+    public const MODEL_O4_MINI = 'o4-mini';
+
+    /**
+     * o3 - Balanced model offering good performance for general language tasks with efficient resource usage
+     */
+    public const MODEL_O3 = 'o3';
+
+    /**
+     * o3-mini - Streamlined model optimized for speed and efficiency while maintaining good capabilities for routine tasks
+     */
+    public const MODEL_O3_MINI = 'o3-mini';
 
     /**
      * Default OpenAI API endpoint
@@ -74,7 +89,7 @@ class OpenAI extends Adapter
      */
     public function __construct(
         string $apiKey,
-        string $model = self::MODEL_GPT_3_5_TURBO,
+        string $model = self::MODEL_O3_MINI,
         int $maxTokens = 1024,
         float $temperature = 1.0,
         ?string $endpoint = null,
@@ -138,10 +153,21 @@ class OpenAI extends Adapter
         $payload = [
             'model' => $this->model,
             'messages' => $formattedMessages,
-            'max_tokens' => $this->maxTokens,
             'temperature' => $this->temperature,
             'stream' => true,
         ];
+
+        // Use 'max_completion_tokens' for o-series models, else 'max_tokens'
+        $oSeriesModels = [
+            self::MODEL_O3,
+            self::MODEL_O3_MINI,
+            self::MODEL_O4_MINI,
+        ];
+        if (in_array($this->model, $oSeriesModels)) {
+            $payload['max_completion_tokens'] = $this->maxTokens;
+        } else {
+            $payload['max_tokens'] = $this->maxTokens;
+        }
 
         $content = '';
         $response = $client->fetch(
@@ -230,9 +256,12 @@ class OpenAI extends Adapter
     public function getModels(): array
     {
         return [
-            self::MODEL_GPT_4_TURBO,
-            self::MODEL_GPT_4,
-            self::MODEL_GPT_3_5_TURBO,
+            self::MODEL_GPT_4_5_PREVIEW,
+            self::MODEL_GPT_4_1,
+            self::MODEL_GPT_4O,
+            self::MODEL_O4_MINI,
+            self::MODEL_O3,
+            self::MODEL_O3_MINI,
         ];
     }
 

@@ -16,7 +16,7 @@ class AgentTest extends TestCase
     protected function setUp(): void
     {
         // Create a mock adapter
-        $this->mockAdapter = new OpenAI('test-api-key', OpenAI::MODEL_GPT_3_5_TURBO);
+        $this->mockAdapter = new OpenAI('test-api-key', OpenAI::MODEL_O3_MINI);
         $this->agent = new Agent($this->mockAdapter);
     }
 

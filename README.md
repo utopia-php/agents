@@ -70,9 +70,12 @@ $openai = new OpenAI(
 ```
 
 Available OpenAI Models:
-- `MODEL_GPT_4_TURBO`: Latest GPT-4 Turbo
-- `MODEL_GPT_4`: Standard GPT-4
-- `MODEL_GPT_3_5_TURBO`: Fast GPT-3.5 Turbo
+- `MODEL_GPT_4_5_PREVIEW`: GPT-4.5 Preview - OpenAI's most advanced model with enhanced reasoning, broader knowledge, and improved instruction following
+- `MODEL_GPT_4_1`: GPT-4.1 - Advanced large language model with strong reasoning capabilities and improved context handling
+- `MODEL_GPT_4O`: GPT-4o - Multimodal model optimized for both text and image processing with faster response times
+- `MODEL_O4_MINI`: o4-mini - Compact version of GPT-4o offering good performance with higher throughput and lower latency
+- `MODEL_O3`: o3 - Balanced model offering good performance for general language tasks with efficient resource usage
+- `MODEL_O3_MINI`: o3-mini - Streamlined model optimized for speed and efficiency while maintaining good capabilities for routine tasks
 
 #### Anthropic
 
