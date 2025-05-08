@@ -89,7 +89,7 @@ class OpenAI extends Adapter
      */
     public function __construct(
         string $apiKey,
-        string $model = self::MODEL_GPT_3_5_TURBO,
+        string $model = self::MODEL_O3_MINI,
         int $maxTokens = 1024,
         float $temperature = 1.0,
         ?string $endpoint = null,
