@@ -213,7 +213,7 @@ class OpenAI extends Adapter
                 return '('.$json['error']['code'].') '.$json['error']['message'];
             }
 
-            return $json['error'];
+            return is_array($json['error']) ? json_encode($json['error']) : $json['error'];
         }
 
         foreach ($lines as $line) {
