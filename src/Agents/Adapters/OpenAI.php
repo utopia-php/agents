@@ -153,10 +153,21 @@ class OpenAI extends Adapter
         $payload = [
             'model' => $this->model,
             'messages' => $formattedMessages,
-            'max_tokens' => $this->maxTokens,
             'temperature' => $this->temperature,
             'stream' => true,
         ];
+
+        // Use 'max_completion_tokens' for o-series models, else 'max_tokens'
+        $oSeriesModels = [
+            self::MODEL_O3,
+            self::MODEL_O3_MINI,
+            self::MODEL_O4_MINI,
+        ];
+        if (in_array($this->model, $oSeriesModels)) {
+            $payload['max_completion_tokens'] = $this->maxTokens;
+        } else {
+            $payload['max_tokens'] = $this->maxTokens;
+        }
 
         $content = '';
         $response = $client->fetch(
