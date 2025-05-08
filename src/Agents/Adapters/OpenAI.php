@@ -11,19 +11,34 @@ use Utopia\Fetch\Client;
 class OpenAI extends Adapter
 {
     /**
-     * GPT-4 Turbo - Latest and most capable model
+     * GPT-4.5 Preview - Preview of the latest and most capable model
      */
-    public const MODEL_GPT_4_TURBO = 'gpt-4-turbo-preview';
+    public const MODEL_GPT_4_5_PREVIEW = 'gpt-4.5-preview';
 
     /**
-     * GPT-4 - Previous generation model
+     * GPT-4.1 - A highly capable model with advanced language understanding
      */
-    public const MODEL_GPT_4 = 'gpt-4';
+    public const MODEL_GPT_4_1 = 'gpt-4.1';
 
     /**
-     * GPT-3.5 Turbo - Fast and efficient model
+     * GPT-4o - A model optimized for specific tasks and domains
      */
-    public const MODEL_GPT_3_5_TURBO = 'gpt-3.5-turbo';
+    public const MODEL_GPT_4O = 'gpt-4o';
+
+    /**
+     * o4-mini - A smaller and more efficient model for general tasks
+     */
+    public const MODEL_O4_MINI = 'o4-mini';
+
+    /**
+     * o3 - A model with a balance of capabilities and efficiency
+     */
+    public const MODEL_O3 = 'o3';
+
+    /**
+     * o3-mini - A smaller and more efficient model for general tasks, optimized for miniaturization
+     */
+    public const MODEL_O3_MINI = 'o3-mini';
 
     /**
      * Default OpenAI API endpoint
@@ -223,9 +238,12 @@ class OpenAI extends Adapter
     public function getModels(): array
     {
         return [
-            self::MODEL_GPT_4_TURBO,
-            self::MODEL_GPT_4,
-            self::MODEL_GPT_3_5_TURBO,
+            self::MODEL_GPT_4_5_PREVIEW,
+            self::MODEL_GPT_4_1,
+            self::MODEL_GPT_4O,
+            self::MODEL_O4_MINI,
+            self::MODEL_O3,
+            self::MODEL_O3_MINI,
         ];
     }
 

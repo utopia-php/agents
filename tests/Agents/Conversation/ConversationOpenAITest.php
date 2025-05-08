@@ -17,7 +17,7 @@ class ConversationOpenAITest extends ConversationBase
 
         return new OpenAI(
             $apiKey,
-            OpenAI::MODEL_GPT_4,
+            OpenAI::MODEL_O3_MINI,
             1024,
             1.0
         );
