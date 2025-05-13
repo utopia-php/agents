@@ -2,6 +2,8 @@
 
 namespace Utopia\Agents;
 
+use Utopia\Agents\Schema\SchemaObject;
+
 class Schema
 {
     protected string $name;
@@ -9,9 +11,9 @@ class Schema
     protected string $description;
 
     /**
-     * @var array<string, mixed> Properties following JSON Schema format
+     * @var SchemaObject Properties following JSON Schema format
      */
-    protected array $properties;
+    protected SchemaObject $object;
 
     protected string $type;
 
@@ -24,20 +26,20 @@ class Schema
      * @param  string  $name - name of the schema
      * @param  string  $description - description of the schema
      * @param  string  $type - array, boolean, null, integer, object, string
-     * @param  array<string, mixed>  $properties must follow JSON Schema format - https://json-schema.org/understanding-json-schema/
+     * @param  SchemaObject  $object a Schema object
      * @param  array<int, string>  $required - array of required properties
      */
     public function __construct(
         string $name,
         string $description,
-        string $type = 'object',
-        array $properties = [],
+        string $type,
+        SchemaObject $object,
         array $required = []
     ) {
         $this->name = $name;
         $this->description = $description;
         $this->type = $type;
-        $this->properties = $properties;
+        $this->object = $object;
         $this->required = $required;
     }
 
@@ -57,11 +59,11 @@ class Schema
     }
 
     /**
-     * @return array<string, mixed>
+     * @return SchemaObject
      */
-    public function getProperties(): array
+    public function getObject(): SchemaObject
     {
-        return $this->properties;
+        return $this->object;
     }
 
     /**
@@ -84,7 +86,7 @@ class Schema
             'description' => $this->description,
             'input_schema' => [
                 'type' => $this->type,
-                'properties' => $this->properties,
+                'properties' => $this->object->getProperties(),
                 'required' => $this->required,
             ],
         ];

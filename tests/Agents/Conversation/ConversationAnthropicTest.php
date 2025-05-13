@@ -7,6 +7,7 @@ use Utopia\Agents\Adapters\Anthropic;
 use Utopia\Agents\Messages\Text;
 use Utopia\Agents\Roles\User;
 use Utopia\Agents\Schema;
+use Utopia\Agents\Schema\SchemaObject;
 
 class ConversationAnthropicTest extends ConversationBase
 {
@@ -33,22 +34,23 @@ class ConversationAnthropicTest extends ConversationBase
 
     public function testSchema(): void
     {
+        $object = new SchemaObject();
+        $object->addProperty('location', [
+            'type' => 'string',
+            'description' => 'The city and state, e.g. San Francisco, CA',
+        ]);
+        $object->addProperty('unit', [
+            'type' => 'string',
+            'enum' => ['celsius', 'fahrenheit'],
+            'description' => 'The unit of temperature, either "celsius" or "fahrenheit"',
+        ]);
+
         $schema = new Schema(
             'get_weather',
             'Get the current weather in a given location in well structured JSON',
             'object',
-            [
-                'location' => [
-                    'type' => 'string',
-                    'description' => 'The city and state, e.g. San Francisco, CA',
-                ],
-                'unit' => [
-                    'type' => 'string',
-                    'enum' => ['celsius', 'fahrenheit'],
-                    'description' => 'The unit of temperature, either "celsius" or "fahrenheit"',
-                ],
-            ],
-            ['location']
+            $object,
+            $object->getNames()
         );
 
         $this->agent->setSchema($schema);
