@@ -101,7 +101,6 @@ class SchemaObject
      *
      * @param  string  $name - name of the property
      * @param  array<string, mixed>  $property - property definition (must be defined in JSON Schema format)
-     *
      * @return bool
      */
     public function validateProperty(string $name, array $property): bool
