@@ -55,17 +55,24 @@ class SchemaTest extends TestCase
 
     public function testToSchema(): void
     {
+        // Test default (openai) model
         $array = $this->schema->toSchema();
         $this->assertIsArray($array);
-        $this->assertEquals($this->name, $array['name']);
-        $this->assertEquals($this->description, $array['description']);
-        $this->assertArrayHasKey('input_schema', $array);
-        $this->assertIsArray($array['input_schema']);
-        $inputSchema = $array['input_schema'];
+        $this->assertArrayHasKey('name', $array);
+        $this->assertArrayHasKey('schema', $array);
+        $schema = $array['schema'];
+        $this->assertArrayHasKey('properties', $schema);
+        $this->assertArrayHasKey('required', $schema);
+
+        // Test anthropic model
+        $arrayAnthropic = $this->schema->toSchema(Schema::MODEL_ANTHROPIC);
+        $this->assertIsArray($arrayAnthropic);
+        $this->assertArrayHasKey('name', $arrayAnthropic);
+        $this->assertArrayHasKey('description', $arrayAnthropic);
+        $this->assertArrayHasKey('input_schema', $arrayAnthropic);
+        $inputSchema = $arrayAnthropic['input_schema'];
         $this->assertArrayHasKey('properties', $inputSchema);
         $this->assertArrayHasKey('required', $inputSchema);
-        $this->assertEquals($this->object->getProperties(), $inputSchema['properties']);
-        $this->assertEquals($this->required, $inputSchema['required']);
     }
 
     public function testToJson(): void

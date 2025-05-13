@@ -205,8 +205,13 @@ class OpenAI extends Adapter
                 Client::METHOD_POST,
                 $payload,
             );
-            $json = json_decode($response->getBody(), true);
-            $content = $json['choices'][0]['message']['content'];
+            $body = $response->getBody();
+            $json = is_string($body) ? json_decode($body, true) : null;
+            if (is_array($json) && isset($json['choices'][0]['message']['content'])) {
+                $content = $json['choices'][0]['message']['content'];
+            } else {
+                throw new \Exception('Invalid response format received from the API');
+            }
         }
 
         return new Text($content);

@@ -123,6 +123,11 @@ class Schema
         return $json;
     }
 
+    /**
+     * Returns an array of valid models
+     *
+     * @return array<int, string>
+     */
     public function getValidModels(): array
     {
         return [
