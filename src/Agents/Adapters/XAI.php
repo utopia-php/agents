@@ -50,6 +50,16 @@ class XAI extends OpenAI
     }
 
     /**
+     * Check if the model supports JSON schema
+     *
+     * @return bool
+     */
+    public function isSchemaSupported(): bool
+    {
+        return false;
+    }
+
+    /**
      * Get available models
      *
      * @return array<string>

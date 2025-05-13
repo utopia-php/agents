@@ -89,6 +89,13 @@ abstract class Adapter
     abstract public function setModel(string $model): self;
 
     /**
+     * Check if the model supports JSON schema
+     *
+     * @return bool
+     */
+    abstract public function isSchemaSupported(): bool;
+
+    /**
      * Get the current agent
      *
      * @return ?Agent

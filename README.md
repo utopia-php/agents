@@ -192,6 +192,30 @@ $imageMessage = new Image($imageBinaryContent);
 $mimeType = $imageMessage->getMimeType(); // Get the MIME type of the image
 ```
 
+## Schema and Schema Objects
+
+You can use the `Schema` class to define a schema for a structured output. The `Schema` class utilizes `SchemaObject`s to define each property of the schema, following the [JSON Schema](https://json-schema.org/) format.
+
+```php
+use Utopia\Agents\Schema\Schema;
+use Utopia\Agents\Schema\SchemaObject;
+
+$object = new SchemaObject();
+$object->addProperty('location', [
+    'type' => SchemaObject::TYPE_STRING,
+    'description' => 'The city and state, e.g. San Francisco, CA',
+]);
+
+$schema = new Schema(
+    name: 'get_weather',
+    description: 'Get the current weather in a given location in well structured JSON',
+    object: $object,
+    required: $object->getNames()
+);
+
+$agent->setSchema($schema);
+```
+
 ## Tests
 
 To run all unit tests, use the following Docker command:

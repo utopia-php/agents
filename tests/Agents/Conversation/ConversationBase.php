@@ -10,6 +10,8 @@ use Utopia\Agents\Messages\Text;
 use Utopia\Agents\Role;
 use Utopia\Agents\Roles\Assistant;
 use Utopia\Agents\Roles\User;
+use Utopia\Agents\Schema;
+use Utopia\Agents\Schema\SchemaObject;
 
 abstract class ConversationBase extends TestCase
 {
@@ -116,6 +118,53 @@ abstract class ConversationBase extends TestCase
         // Verify AI response
         $this->assertEquals(Role::ROLE_ASSISTANT, $conversationMessages[1]->getRole());
         $this->assertNotEmpty($conversationMessages[1]->getContent());
+    }
+
+    public function testSchema(): void
+    {
+        if (! $this->adapter->isSchemaSupported()) {
+            $this->markTestSkipped('Structured output hasn\'t been implemented for this model');
+        }
+
+        $object = new SchemaObject();
+        $object->addProperty('location', [
+            'type' => SchemaObject::TYPE_STRING,
+            'description' => 'The city and state, e.g. San Francisco, CA',
+        ]);
+        $object->addProperty('unit', [
+            'type' => SchemaObject::TYPE_STRING,
+            'enum' => ['celsius', 'fahrenheit'],
+            'description' => 'The unit of temperature, either "celsius" or "fahrenheit"',
+        ]);
+
+        $schema = new Schema(
+            'get_weather',
+            'Get the current weather in a given location in well structured JSON',
+            $object,
+            $object->getNames()
+        );
+
+        $this->agent->setSchema($schema);
+
+        $messages = $this->conversation
+            ->message(new User('user-2', 'Test User'), new Text('What is the weather in San Francisco in celsius?'))
+            ->send();
+
+        $content = $messages->getContent();
+        $this->assertIsString($content, 'Message content must be a string');
+
+        $json = json_decode($content, true);
+        $this->assertNotNull($json, 'JSON decoding failed');
+        $this->assertIsArray($json, 'Decoded content must be an array');
+
+        $this->assertArrayHasKey('location', $json);
+        $this->assertArrayHasKey('unit', $json);
+
+        $this->assertIsString($json['location'], 'Location must be a string');
+        $this->assertIsString($json['unit'], 'Unit must be a string');
+
+        $this->assertStringContainsString('San Francisco', $json['location']);
+        $this->assertEquals('celsius', $json['unit']);
     }
 
     public function testTokenCounting(): void
