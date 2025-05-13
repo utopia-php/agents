@@ -15,7 +15,7 @@ class SchemaObject
     protected array $properties;
 
     /**
-     * @param array<string, array<string, mixed>> $properties
+     * @param  array<string, array<string, mixed>>  $properties
      */
     public function __construct(array $properties = [])
     {
