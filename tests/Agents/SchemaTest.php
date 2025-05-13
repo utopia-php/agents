@@ -75,8 +75,8 @@ class SchemaTest extends TestCase
         $this->assertArrayHasKey('id', $json);
         $this->assertArrayHasKey('name', $json);
         $this->assertArrayHasKey('age', $json);
-        $this->assertEquals('id (string)', $json['id']);
-        $this->assertEquals('name (string)', $json['name']);
-        $this->assertEquals('age (integer)', $json['age']);
+        $this->assertEquals('The ID of the user (string)', $json['id']);
+        $this->assertEquals('The name of the user (string)', $json['name']);
+        $this->assertEquals('The age of the user (integer)', $json['age']);
     }
 }
