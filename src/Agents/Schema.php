@@ -91,7 +91,9 @@ class Schema
     {
         $json = [];
         foreach ($this->object->getProperties() as $property => $value) {
-            $json[$property] = $value['description'].' ('.$value['type'].')';
+            $description = $value['description'] ?? '';
+            $type = $value['type'] ?? '';
+            $json[$property] = $description.' ('.$type.')';
         }
 
         return $json;

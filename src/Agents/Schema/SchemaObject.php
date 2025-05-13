@@ -33,6 +33,13 @@ class SchemaObject
      */
     public function __construct(array $properties = [])
     {
+        foreach ($properties as $name => $property) {
+            if (! $this->validateProperty($name, $property)) {
+                throw new \InvalidArgumentException(
+                    'Invalid type '.var_export($property['type'], true)." for property '$name'. Must be one of: ".implode(', ', self::getValidTypes())
+                );
+            }
+        }
         $this->properties = $properties;
     }
 
@@ -64,7 +71,7 @@ class SchemaObject
      */
     public function addProperty(string $name, array $property): self
     {
-        if (! isset($property['type']) || ! in_array($property['type'], self::getValidTypes(), true)) {
+        if (! $this->validateProperty($name, $property)) {
             throw new \InvalidArgumentException(
                 'Invalid type '.var_export($property['type'], true)." for property '$name'. Must be one of: ".implode(', ', self::getValidTypes())
             );
@@ -87,6 +94,23 @@ class SchemaObject
     public function getNames(): array
     {
         return array_keys($this->properties);
+    }
+
+    /**
+     * Validate a property
+     *
+     * @param  string  $name - name of the property
+     * @param  array<string, mixed>  $property - property definition (must be defined in JSON Schema format)
+     *
+     * @return bool
+     */
+    public function validateProperty(string $name, array $property): bool
+    {
+        if (! isset($property['type']) || ! in_array($property['type'], self::getValidTypes(), true)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

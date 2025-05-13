@@ -24,9 +24,18 @@ class SchemaTest extends TestCase
     protected function setUp(): void
     {
         $this->object = new SchemaObject([
-            'id' => ['type' => SchemaObject::TYPE_STRING],
-            'name' => ['type' => SchemaObject::TYPE_STRING],
-            'age' => ['type' => SchemaObject::TYPE_INTEGER],
+            'id' => [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'The ID of the user',
+            ],
+            'name' => [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'The name of the user',
+            ],
+            'age' => [
+                'type' => SchemaObject::TYPE_INTEGER,
+                'description' => 'The age of the user',
+            ],
         ]);
         $this->schema = new Schema(
             $this->name,
