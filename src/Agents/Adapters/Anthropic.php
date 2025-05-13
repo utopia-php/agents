@@ -199,14 +199,14 @@ class Anthropic extends Adapter
         $json = is_string($body) ? json_decode($body, true) : null;
 
         $text = '';
-        if (is_array($json)) {
+        if (is_array($json) && $schema !== null) {
             $content = $json['content'] ?? null;
             if (is_array($content) && isset($content[0])) {
                 $item = $content[0];
                 if (is_array($item) &&
-                    isset($item['type']) && $item['type'] === 'text' &&
-                    isset($item['text']) && is_string($item['text'])) {
-                    $text = $item['text'];
+                    isset($item['type']) && $item['type'] === 'tool_use' &&
+                    isset($item['name']) && $item['name'] === $schema->getName()) {
+                    $text = $item['input'];
                 }
             }
         }
@@ -215,7 +215,9 @@ class Anthropic extends Adapter
             $text = is_string($body) ? $body : (is_array($json) ? json_encode($json) : '');
         }
 
-        $text = (string) $text;
+        if (is_array($text)) {
+            $text = json_encode($text);
+        }
 
         return new Text($text);
     }

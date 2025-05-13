@@ -64,28 +64,13 @@ class ConversationAnthropicTest extends ConversationBase
         $this->assertNotNull($json, 'JSON decoding failed');
         $this->assertIsArray($json, 'Decoded content must be an array');
 
-        // Check that we have content array
-        $this->assertArrayHasKey('content', $json);
-        $this->assertIsArray($json['content']);
-        $this->assertNotEmpty($json['content']);
+        $this->assertArrayHasKey('location', $json);
+        $this->assertArrayHasKey('unit', $json);
 
-        // Check first content item is tool_use
-        $this->assertArrayHasKey('type', $json['content'][0]);
-        $this->assertEquals('tool_use', $json['content'][0]['type']);
+        $this->assertIsString($json['location'], 'Location must be a string');
+        $this->assertIsString($json['unit'], 'Unit must be a string');
 
-        // Check tool_use has input
-        $this->assertArrayHasKey('input', $json['content'][0]);
-        $this->assertIsArray($json['content'][0]['input']);
-
-        // Now check the actual values
-        $input = $json['content'][0]['input'];
-        $this->assertArrayHasKey('location', $input);
-        $this->assertArrayHasKey('unit', $input);
-
-        $this->assertIsString($input['location'], 'Location must be a string');
-        $this->assertIsString($input['unit'], 'Unit must be a string');
-
-        $this->assertStringContainsString('San Francisco', $input['location']);
-        $this->assertEquals('celsius', $input['unit']);
+        $this->assertStringContainsString('San Francisco', $json['location']);
+        $this->assertEquals('celsius', $json['unit']);
     }
 }
