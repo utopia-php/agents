@@ -53,39 +53,18 @@ class SchemaTest extends TestCase
         $this->assertEquals($this->required, $this->schema->getRequired());
     }
 
-    public function testToSchema(): void
-    {
-        // Test default (openai) model
-        $array = $this->schema->toSchema();
-        $this->assertIsArray($array);
-        $this->assertArrayHasKey('name', $array);
-        $this->assertArrayHasKey('schema', $array);
-        $this->assertIsArray($array['schema']);
-        $schema = $array['schema'];
-        $this->assertArrayHasKey('properties', $schema);
-        $this->assertArrayHasKey('required', $schema);
-
-        // Test anthropic model
-        $arrayAnthropic = $this->schema->toSchema(Schema::MODEL_ANTHROPIC);
-        $this->assertIsArray($arrayAnthropic);
-        $this->assertArrayHasKey('name', $arrayAnthropic);
-        $this->assertArrayHasKey('description', $arrayAnthropic);
-        $this->assertArrayHasKey('input_schema', $arrayAnthropic);
-        $this->assertIsArray($arrayAnthropic['input_schema']);
-        $inputSchema = $arrayAnthropic['input_schema'];
-        $this->assertArrayHasKey('properties', $inputSchema);
-        $this->assertArrayHasKey('required', $inputSchema);
-    }
-
     public function testToJson(): void
     {
         $json = $this->schema->toJson();
-        $this->assertIsArray($json);
-        $this->assertArrayHasKey('id', $json);
-        $this->assertArrayHasKey('name', $json);
-        $this->assertArrayHasKey('age', $json);
-        $this->assertEquals('The ID of the user (string)', $json['id']);
-        $this->assertEquals('The name of the user (string)', $json['name']);
-        $this->assertEquals('The age of the user (integer)', $json['age']);
+        $this->assertIsString($json);
+
+        $jsonArray = json_decode($json, true);
+        $this->assertIsArray($jsonArray);
+        $this->assertArrayHasKey('id', $jsonArray);
+        $this->assertArrayHasKey('name', $jsonArray);
+        $this->assertArrayHasKey('age', $jsonArray);
+        $this->assertEquals('The ID of the user (string)', $jsonArray['id']);
+        $this->assertEquals('The name of the user (string)', $jsonArray['name']);
+        $this->assertEquals('The age of the user (integer)', $jsonArray['age']);
     }
 }

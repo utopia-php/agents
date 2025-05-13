@@ -87,6 +87,16 @@ class Anthropic extends Adapter
     }
 
     /**
+     * Check if the model supports JSON schema
+     *
+     * @return bool
+     */
+    public function isSchemaSupported(): bool
+    {
+        return true;
+    }
+
+    /**
      * Send a message to the Anthropic API
      *
      * @param  array<Message>  $messages
@@ -155,7 +165,15 @@ class Anthropic extends Adapter
 
         if (isset($schema)) {
             $payload['tools'] = [
-                $schema->toSchema(Schema::MODEL_ANTHROPIC),
+                [
+                    'name' => $schema->getName(),
+                    'description' => $schema->getDescription(),
+                    'input_schema' => [
+                        'type' => 'object',
+                        'properties' => $schema->getProperties(),
+                        'required' => $schema->getRequired(),
+                    ],
+                ],
             ];
             $payload['tool_choice'] = [
                 'type' => 'tool',

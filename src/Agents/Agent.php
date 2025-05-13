@@ -128,6 +128,10 @@ class Agent
      */
     public function setSchema(Schema $schema): self
     {
+        if (! $this->adapter->isSchemaSupported()) {
+            throw new \Exception('Schema is not supported for this model');
+        }
+
         $this->schema = $schema;
 
         return $this;

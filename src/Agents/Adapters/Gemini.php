@@ -94,6 +94,16 @@ class Gemini extends Adapter
     }
 
     /**
+     * Check if the model supports JSON schema
+     *
+     * @return bool
+     */
+    public function isSchemaSupported(): bool
+    {
+        return false;
+    }
+
+    /**
      * Send a message to the API
      *
      * @param  array<Message>  $messages

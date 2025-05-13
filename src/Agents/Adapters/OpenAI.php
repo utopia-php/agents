@@ -105,6 +105,16 @@ class OpenAI extends Adapter
     }
 
     /**
+     * Check if the model supports JSON schema
+     *
+     * @return bool
+     */
+    public function isSchemaSupported(): bool
+    {
+        return true;
+    }
+
+    /**
      * Send a message to the API
      *
      * @param  array<Message>  $messages
@@ -161,7 +171,16 @@ class OpenAI extends Adapter
         if ($schema !== null) {
             $payload['response_format'] = [
                 'type' => 'json_schema',
-                'json_schema' => $schema->toSchema(Schema::MODEL_OPENAI),
+                'json_schema' => [
+                    'name' => $schema->getName(),
+                    'strict' => true,
+                    'schema' => [
+                        'type' => 'object',
+                        'properties' => $schema->getProperties(),
+                        'required' => $schema->getRequired(),
+                        'additionalProperties' => false,
+                    ],
+                ],
             ];
             $payload['stream'] = false;
         } else {

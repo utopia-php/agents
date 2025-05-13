@@ -71,6 +71,16 @@ class Deepseek extends Adapter
     }
 
     /**
+     * Check if the model supports JSON schema
+     *
+     * @return bool
+     */
+    public function isSchemaSupported(): bool
+    {
+        return true;
+    }
+
+    /**
      * Send a message to the Deepseek API
      *
      * @param  array<Message>  $messages
@@ -111,7 +121,7 @@ class Deepseek extends Adapter
 
         $schema = $this->getAgent()->getSchema();
         if ($schema !== null) {
-            $systemMessage .= "\n\n"."USE THE JSON SCHEMA BELOW TO GENERATE A VALID JSON RESPONSE: \n".json_encode($schema->toJson());
+            $systemMessage .= "\n\n"."USE THE JSON SCHEMA BELOW TO GENERATE A VALID JSON RESPONSE: \n".$schema->toJson();
         }
 
         if (! empty($systemMessage)) {

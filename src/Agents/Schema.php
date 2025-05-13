@@ -6,10 +6,6 @@ use Utopia\Agents\Schema\SchemaObject;
 
 class Schema
 {
-    public const MODEL_OPENAI = 'openai';
-
-    public const MODEL_ANTHROPIC = 'anthropic';
-
     protected string $name;
 
     protected string $description;
@@ -69,49 +65,19 @@ class Schema
     }
 
     /**
-     * Convert the schema parameters to a JSON Schema object
-     *
-     * @param  string  $model - the model to use (anthropic, openai) default is openai
      * @return array<string, mixed>
      */
-    public function toSchema(string $model = self::MODEL_OPENAI): array
+    public function getProperties(): array
     {
-        if (! in_array($model, $this->getValidModels())) {
-            throw new \InvalidArgumentException(
-                'Invalid model selected. Must be one of: '.implode(', ', $this->getValidModels())
-            );
-        }
-
-        if ($model === self::MODEL_ANTHROPIC) {
-            return [
-                'name' => $this->name,
-                'description' => $this->description,
-                'input_schema' => [
-                    'type' => 'object',
-                    'properties' => $this->object->getProperties(),
-                    'required' => $this->required,
-                ],
-            ];
-        }
-
-        return [
-            'name' => $this->name,
-            'strict' => true,
-            'schema' => [
-                'type' => 'object',
-                'properties' => $this->object->getProperties(),
-                'required' => $this->required,
-                'additionalProperties' => false,
-            ],
-        ];
+        return $this->object->getProperties();
     }
 
     /**
-     * Convert the schema parameters to a simple JSON object
+     * Convert the schema parameters to a simple JSON string
      *
-     * @return array<string, string>
+     * @return string
      */
-    public function toJson(): array
+    public function toJson(): string
     {
         $json = [];
         foreach ($this->object->getProperties() as $property => $value) {
@@ -120,19 +86,10 @@ class Schema
             $json[$property] = $description.' ('.$type.')';
         }
 
-        return $json;
-    }
+        if (! json_encode($json)) {
+            throw new \Exception('Invalid JSON: '.json_last_error_msg());
+        }
 
-    /**
-     * Returns an array of valid models
-     *
-     * @return array<int, string>
-     */
-    public function getValidModels(): array
-    {
-        return [
-            self::MODEL_OPENAI,
-            self::MODEL_ANTHROPIC,
-        ];
+        return json_encode($json);
     }
 }
