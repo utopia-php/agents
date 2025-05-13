@@ -109,6 +109,11 @@ class Deepseek extends Adapter
         $systemMessage = $this->getAgent()->getDescription().
             (empty($instructions) ? '' : "\n\n".implode("\n\n", $instructions));
 
+        $schema = $this->getAgent()->getSchema();
+        if ($schema !== null) {
+            $systemMessage .= "\n\n"."USE THE JSON SCHEMA BELOW TO GENERATE A VALID JSON RESPONSE: \n".json_encode($schema->toJson());
+        }
+
         if (! empty($systemMessage)) {
             array_unshift($formattedMessages, [
                 'role' => 'system',
@@ -123,6 +128,12 @@ class Deepseek extends Adapter
             'temperature' => $this->temperature,
             'stream' => true,
         ];
+
+        if ($schema !== null) {
+            $payload['response_format'] = [
+                'type' => 'json_object',
+            ];
+        }
 
         $content = '';
         $response = $client->fetch(
@@ -142,9 +153,7 @@ class Deepseek extends Adapter
             );
         }
 
-        $message = new Text($content);
-
-        return $message;
+        return new Text($content);
     }
 
     /**

@@ -44,9 +44,9 @@ class SchemaTest extends TestCase
         $this->assertEquals($this->required, $this->schema->getRequired());
     }
 
-    public function testToArray(): void
+    public function testToSchema(): void
     {
-        $array = $this->schema->toArray();
+        $array = $this->schema->toSchema();
         $this->assertIsArray($array);
         $this->assertEquals($this->name, $array['name']);
         $this->assertEquals($this->description, $array['description']);
@@ -57,5 +57,17 @@ class SchemaTest extends TestCase
         $this->assertArrayHasKey('required', $inputSchema);
         $this->assertEquals($this->object->getProperties(), $inputSchema['properties']);
         $this->assertEquals($this->required, $inputSchema['required']);
+    }
+
+    public function testToJson(): void
+    {
+        $json = $this->schema->toJson();
+        $this->assertIsArray($json);
+        $this->assertArrayHasKey('id', $json);
+        $this->assertArrayHasKey('name', $json);
+        $this->assertArrayHasKey('age', $json);
+        $this->assertEquals('id (string)', $json['id']);
+        $this->assertEquals('name (string)', $json['name']);
+        $this->assertEquals('age (integer)', $json['age']);
     }
 }

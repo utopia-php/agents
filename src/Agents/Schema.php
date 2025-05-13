@@ -65,11 +65,11 @@ class Schema
     }
 
     /**
-     * Convert the schema to an array compatible with JSON Schema
+     * Convert the schema parameters to a JSON Schema object
      *
      * @return array<string, mixed>
      */
-    public function toArray(): array
+    public function toSchema(): array
     {
         return [
             'name' => $this->name,
@@ -80,5 +80,20 @@ class Schema
                 'required' => $this->required,
             ],
         ];
+    }
+
+    /**
+     * Convert the schema parameters to a simple JSON object
+     *
+     * @return array<string, string>
+     */
+    public function toJson(): array
+    {
+        $json = [];
+        foreach ($this->object->getProperties() as $property => $value) {
+            $json[$property] = $value['description'].' ('.$value['type'].')';
+        }
+
+        return $json;
     }
 }

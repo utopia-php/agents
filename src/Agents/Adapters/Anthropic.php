@@ -154,7 +154,7 @@ class Anthropic extends Adapter
 
         if (isset($schema)) {
             $payload['tools'] = [
-                $schema->toArray(),
+                $schema->toSchema(),
             ];
             $payload['tool_choice'] = [
                 'type' => 'tool',
