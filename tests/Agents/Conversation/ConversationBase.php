@@ -4,6 +4,9 @@ namespace Utopia\Tests\Agents\Conversation;
 
 use PHPUnit\Framework\TestCase;
 use Utopia\Agents\Adapter;
+use Utopia\Agents\Adapters\Gemini;
+use Utopia\Agents\Adapters\Perplexity;
+use Utopia\Agents\Adapters\XAI;
 use Utopia\Agents\Agent;
 use Utopia\Agents\Conversation;
 use Utopia\Agents\Messages\Text;
@@ -122,6 +125,14 @@ abstract class ConversationBase extends TestCase
 
     public function testSchema(): void
     {
+        if (
+            $this->adapter->getModel() === GEMINI::MODEL_GEMINI_2_0_FLASH_LITE ||
+            $this->adapter->getModel() === PERPLEXITY::MODEL_SONAR ||
+            $this->adapter->getModel() === XAI::MODEL_GROK_2_LATEST
+        ) {
+            $this->markTestSkipped('Structured output hasn\'t been implemented for this model');
+        }
+
         $object = new SchemaObject();
         $object->addProperty('location', [
             'type' => SchemaObject::TYPE_STRING,

@@ -60,6 +60,7 @@ class SchemaTest extends TestCase
         $this->assertIsArray($array);
         $this->assertArrayHasKey('name', $array);
         $this->assertArrayHasKey('schema', $array);
+        $this->assertIsArray($array['schema']);
         $schema = $array['schema'];
         $this->assertArrayHasKey('properties', $schema);
         $this->assertArrayHasKey('required', $schema);
@@ -70,6 +71,7 @@ class SchemaTest extends TestCase
         $this->assertArrayHasKey('name', $arrayAnthropic);
         $this->assertArrayHasKey('description', $arrayAnthropic);
         $this->assertArrayHasKey('input_schema', $arrayAnthropic);
+        $this->assertIsArray($arrayAnthropic['input_schema']);
         $inputSchema = $arrayAnthropic['input_schema'];
         $this->assertArrayHasKey('properties', $inputSchema);
         $this->assertArrayHasKey('required', $inputSchema);
