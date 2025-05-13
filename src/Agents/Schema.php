@@ -15,8 +15,6 @@ class Schema
      */
     protected SchemaObject $object;
 
-    protected string $type;
-
     /**
      * @var array<int, string> List of required property names
      */
@@ -25,20 +23,17 @@ class Schema
     /**
      * @param  string  $name - name of the schema
      * @param  string  $description - description of the schema
-     * @param  string  $type - array, boolean, null, integer, object, string
      * @param  SchemaObject  $object a Schema object
      * @param  array<int, string>  $required - array of required properties
      */
     public function __construct(
         string $name,
         string $description,
-        string $type,
         SchemaObject $object,
         array $required = []
     ) {
         $this->name = $name;
         $this->description = $description;
-        $this->type = $type;
         $this->object = $object;
         $this->required = $required;
     }
@@ -51,11 +46,6 @@ class Schema
     public function getDescription(): string
     {
         return $this->description;
-    }
-
-    public function getType(): string
-    {
-        return $this->type;
     }
 
     /**
@@ -85,7 +75,7 @@ class Schema
             'name' => $this->name,
             'description' => $this->description,
             'input_schema' => [
-                'type' => $this->type,
+                'type' => 'object',
                 'properties' => $this->object->getProperties(),
                 'required' => $this->required,
             ],

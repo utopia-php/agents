@@ -36,11 +36,11 @@ class ConversationAnthropicTest extends ConversationBase
     {
         $object = new SchemaObject();
         $object->addProperty('location', [
-            'type' => 'string',
+            'type' => SchemaObject::TYPE_STRING,
             'description' => 'The city and state, e.g. San Francisco, CA',
         ]);
         $object->addProperty('unit', [
-            'type' => 'string',
+            'type' => SchemaObject::TYPE_STRING,
             'enum' => ['celsius', 'fahrenheit'],
             'description' => 'The unit of temperature, either "celsius" or "fahrenheit"',
         ]);
@@ -48,7 +48,6 @@ class ConversationAnthropicTest extends ConversationBase
         $schema = new Schema(
             'get_weather',
             'Get the current weather in a given location in well structured JSON',
-            'object',
             $object,
             $object->getNames()
         );

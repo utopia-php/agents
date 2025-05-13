@@ -202,14 +202,13 @@ use Utopia\Agents\Schema\SchemaObject;
 
 $object = new SchemaObject();
 $object->addProperty('location', [
-    'type' => 'string',
+    'type' => SchemaObject::TYPE_STRING,
     'description' => 'The city and state, e.g. San Francisco, CA',
 ]);
 
 $schema = new Schema(
     name: 'get_weather',
     description: 'Get the current weather in a given location in well structured JSON',
-    type: 'object',
     object: $object,
     required: $object->getNames()
 );

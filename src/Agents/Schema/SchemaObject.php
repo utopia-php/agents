@@ -9,6 +9,20 @@ namespace Utopia\Agents\Schema;
  */
 class SchemaObject
 {
+    public const TYPE_STRING = 'string';
+
+    public const TYPE_ARRAY = 'array';
+
+    public const TYPE_BOOLEAN = 'boolean';
+
+    public const TYPE_INTEGER = 'integer';
+
+    public const TYPE_NUMBER = 'number';
+
+    public const TYPE_OBJECT = 'object';
+
+    public const TYPE_NULL = 'null';
+
     /**
      * @var array<string, array<string, mixed>>
      */
@@ -50,6 +64,11 @@ class SchemaObject
      */
     public function addProperty(string $name, array $property): self
     {
+        if (! isset($property['type']) || ! in_array($property['type'], self::getValidTypes(), true)) {
+            throw new \InvalidArgumentException(
+                'Invalid type '.var_export($property['type'], true)." for property '$name'. Must be one of: ".implode(', ', self::getValidTypes())
+            );
+        }
         $this->properties[$name] = $property;
 
         return $this;
@@ -68,5 +87,21 @@ class SchemaObject
     public function getNames(): array
     {
         return array_keys($this->properties);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function getValidTypes(): array
+    {
+        return [
+            self::TYPE_STRING,
+            self::TYPE_ARRAY,
+            self::TYPE_BOOLEAN,
+            self::TYPE_INTEGER,
+            self::TYPE_NUMBER,
+            self::TYPE_OBJECT,
+            self::TYPE_NULL,
+        ];
     }
 }
