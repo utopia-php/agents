@@ -15,6 +15,11 @@ class Agent
     protected array $instructions;
 
     /**
+     * @var Schema|null
+     */
+    protected ?Schema $schema = null;
+
+    /**
      * @var Adapter
      */
     protected Adapter $adapter;
@@ -103,5 +108,28 @@ class Agent
     public function getAdapter(): Adapter
     {
         return $this->adapter;
+    }
+
+    /**
+     * Get the agent's schema
+     *
+     * @return Schema|null
+     */
+    public function getSchema(): ?Schema
+    {
+        return $this->schema;
+    }
+
+    /**
+     * Set the agent's schema
+     *
+     * @param  Schema  $schema
+     * @return self
+     */
+    public function setSchema(Schema $schema): self
+    {
+        $this->schema = $schema;
+
+        return $this;
     }
 }

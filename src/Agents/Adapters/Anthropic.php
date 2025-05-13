@@ -143,25 +143,46 @@ class Anthropic extends Adapter
             ];
         }
 
+        $schema = $this->getAgent()->getSchema();
         $payload = [
             'model' => $this->model,
             'system' => $systemMessages,
             'messages' => $formattedMessages,
             'max_tokens' => $this->maxTokens,
             'temperature' => $this->temperature,
-            'stream' => true,
         ];
 
+        if (isset($schema)) {
+            $payload['tools'] = [
+                $schema->toArray(),
+            ];
+            $payload['tool_choice'] = [
+                'type' => 'tool',
+                'name' => $schema->getName(),
+            ];
+            $payload['stream'] = false;
+        } else {
+            $payload['stream'] = true;
+        }
+
         $content = '';
-        $response = $client->fetch(
-            'https://api.anthropic.com/v1/messages',
-            Client::METHOD_POST,
-            $payload,
-            [],
-            function ($chunk) use (&$content, $listener) {
-                $content .= $this->process($chunk, $listener);
-            }
-        );
+        if ($payload['stream']) {
+            $response = $client->fetch(
+                'https://api.anthropic.com/v1/messages',
+                Client::METHOD_POST,
+                $payload,
+                [],
+                function ($chunk) use (&$content, $listener) {
+                    $content .= $this->process($chunk, $listener);
+                }
+            );
+        } else {
+            $response = $client->fetch(
+                'https://api.anthropic.com/v1/messages',
+                Client::METHOD_POST,
+                $payload,
+            );
+        }
 
         if ($response->getStatusCode() >= 400) {
             throw new \Exception(
@@ -170,7 +191,33 @@ class Anthropic extends Adapter
             );
         }
 
-        return new Text($content);
+        if ($payload['stream']) {
+            return new Text($content);
+        }
+
+        $body = $response->getBody();
+        $json = is_string($body) ? json_decode($body, true) : null;
+
+        $text = '';
+        if (is_array($json)) {
+            $content = $json['content'] ?? null;
+            if (is_array($content) && isset($content[0])) {
+                $item = $content[0];
+                if (is_array($item) &&
+                    isset($item['type']) && $item['type'] === 'text' &&
+                    isset($item['text']) && is_string($item['text'])) {
+                    $text = $item['text'];
+                }
+            }
+        }
+
+        if ($text === '') {
+            $text = is_string($body) ? $body : (is_array($json) ? json_encode($json) : '');
+        }
+
+        $text = (string) $text;
+
+        return new Text($text);
     }
 
     /**
