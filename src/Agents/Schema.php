@@ -6,6 +6,10 @@ use Utopia\Agents\Schema\SchemaObject;
 
 class Schema
 {
+    public const MODEL_OPENAI = 'openai';
+
+    public const MODEL_ANTHROPIC = 'anthropic';
+
     protected string $name;
 
     protected string $description;
@@ -67,17 +71,37 @@ class Schema
     /**
      * Convert the schema parameters to a JSON Schema object
      *
+     * @param  string  $model - the model to use (anthropic, openai) default is openai
      * @return array<string, mixed>
      */
-    public function toSchema(): array
+    public function toSchema(string $model = self::MODEL_OPENAI): array
     {
+        if (! in_array($model, $this->getValidModels())) {
+            throw new \InvalidArgumentException(
+                'Invalid model selected. Must be one of: '.implode(', ', $this->getValidModels())
+            );
+        }
+
+        if ($model === self::MODEL_ANTHROPIC) {
+            return [
+                'name' => $this->name,
+                'description' => $this->description,
+                'input_schema' => [
+                    'type' => 'object',
+                    'properties' => $this->object->getProperties(),
+                    'required' => $this->required,
+                ],
+            ];
+        }
+
         return [
             'name' => $this->name,
-            'description' => $this->description,
-            'input_schema' => [
+            'strict' => true,
+            'schema' => [
                 'type' => 'object',
                 'properties' => $this->object->getProperties(),
                 'required' => $this->required,
+                'additionalProperties' => false,
             ],
         ];
     }
@@ -97,5 +121,13 @@ class Schema
         }
 
         return $json;
+    }
+
+    public function getValidModels(): array
+    {
+        return [
+            self::MODEL_OPENAI,
+            self::MODEL_ANTHROPIC,
+        ];
     }
 }

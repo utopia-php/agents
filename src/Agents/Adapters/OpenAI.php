@@ -5,6 +5,7 @@ namespace Utopia\Agents\Adapters;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Schema;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
@@ -154,8 +155,18 @@ class OpenAI extends Adapter
             'model' => $this->model,
             'messages' => $formattedMessages,
             'temperature' => $this->temperature,
-            'stream' => true,
         ];
+
+        $schema = $this->getAgent()->getSchema();
+        if ($schema !== null) {
+            $payload['response_format'] = [
+                'type' => 'json_schema',
+                'json_schema' => $schema->toSchema(Schema::MODEL_OPENAI),
+            ];
+            $payload['stream'] = false;
+        } else {
+            $payload['stream'] = true;
+        }
 
         // Use 'max_completion_tokens' for o-series models, else 'max_tokens'
         $oSeriesModels = [
@@ -170,26 +181,35 @@ class OpenAI extends Adapter
         }
 
         $content = '';
-        $response = $client->fetch(
-            $this->endpoint,
-            Client::METHOD_POST,
-            $payload,
-            [],
-            function ($chunk) use (&$content, $listener) {
-                $content .= $this->process($chunk, $listener);
-            }
-        );
 
-        if ($response->getStatusCode() >= 400) {
-            throw new \Exception(
-                ucfirst($this->getName()).' API error: '.$content,
-                $response->getStatusCode()
+        if ($payload['stream']) {
+            $response = $client->fetch(
+                $this->endpoint,
+                Client::METHOD_POST,
+                $payload,
+                [],
+                function ($chunk) use (&$content, $listener) {
+                    $content .= $this->process($chunk, $listener);
+                }
             );
+
+            if ($response->getStatusCode() >= 400) {
+                throw new \Exception(
+                    ucfirst($this->getName()).' API error: '.$content,
+                    $response->getStatusCode()
+                );
+            }
+        } else {
+            $response = $client->fetch(
+                $this->endpoint,
+                Client::METHOD_POST,
+                $payload,
+            );
+            $json = json_decode($response->getBody(), true);
+            $content = $json['choices'][0]['message']['content'];
         }
 
-        $message = new Text($content);
-
-        return $message;
+        return new Text($content);
     }
 
     /**

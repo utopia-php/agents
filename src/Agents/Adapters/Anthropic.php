@@ -5,6 +5,7 @@ namespace Utopia\Agents\Adapters;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Schema;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
@@ -154,7 +155,7 @@ class Anthropic extends Adapter
 
         if (isset($schema)) {
             $payload['tools'] = [
-                $schema->toSchema(),
+                $schema->toSchema(Schema::MODEL_ANTHROPIC),
             ];
             $payload['tool_choice'] = [
                 'type' => 'tool',
