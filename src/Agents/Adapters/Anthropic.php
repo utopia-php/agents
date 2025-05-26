@@ -12,24 +12,39 @@ use Utopia\Fetch\Client;
 class Anthropic extends Adapter
 {
     /**
-     * Claude 3 Opus - Most powerful model for highly complex tasks
+     * Claude 4 Opus - Flagship model with exceptional reasoning for the most demanding tasks
      */
-    public const MODEL_CLAUDE_3_OPUS = 'claude-3-opus-20240229';
+    public const MODEL_CLAUDE_4_OPUS = 'claude-opus-4-0';
 
     /**
-     * Claude 3 Sonnet - Ideal balance of intelligence and speed
+     * Claude 3 Opus - Premium model with superior performance on complex analysis and creative work
      */
-    public const MODEL_CLAUDE_3_SONNET = 'claude-3-7-sonnet-20250219';
+    public const MODEL_CLAUDE_3_OPUS = 'claude-3-opus-latest';
 
     /**
-     * Claude 3 Haiku - Fastest and most compact model
+     * Claude 4 Sonnet - Intelligent and responsive model optimized for productivity workflows
      */
-    public const MODEL_CLAUDE_3_HAIKU = 'claude-3-haiku-20240229';
+    public const MODEL_CLAUDE_4_SONNET = 'claude-sonnet-4-0';
 
     /**
-     * Claude 2.1 - Previous generation model
+     * Claude 3.7 Sonnet - Enhanced model with improved reasoning and coding capabilities
      */
-    public const MODEL_CLAUDE_2_1 = 'claude-2.1';
+    public const MODEL_CLAUDE_3_7_SONNET = 'claude-3-7-sonnet-latest';
+
+    /**
+     * Claude 3.5 Sonnet - Versatile model balancing capability and speed for general use
+     */
+    public const MODEL_CLAUDE_3_5_SONNET = 'claude-3-5-sonnet-latest';
+
+    /**
+     * Claude 3.5 Haiku - Ultra-fast model for quick responses and lightweight processing
+     */
+    public const MODEL_CLAUDE_3_5_HAIKU = 'claude-3-5-haiku-latest';
+
+    /**
+     * Claude 3 Haiku - Rapid model designed for speed and efficiency on straightforward tasks
+     */
+    public const MODEL_CLAUDE_3_HAIKU = 'claude-3-haiku-20240307';
 
     /**
      * Cache TTL for 3600 seconds
@@ -74,7 +89,7 @@ class Anthropic extends Adapter
      */
     public function __construct(
         string $apiKey,
-        string $model = self::MODEL_CLAUDE_3_SONNET,
+        string $model = self::MODEL_CLAUDE_3_HAIKU,
         int $maxTokens = 1024,
         float $temperature = 1.0,
         int $timeout = 90
@@ -356,10 +371,13 @@ class Anthropic extends Adapter
     public function getModels(): array
     {
         return [
+            self::MODEL_CLAUDE_4_OPUS,
             self::MODEL_CLAUDE_3_OPUS,
-            self::MODEL_CLAUDE_3_SONNET,
+            self::MODEL_CLAUDE_4_SONNET,
+            self::MODEL_CLAUDE_3_7_SONNET,
+            self::MODEL_CLAUDE_3_5_SONNET,
+            self::MODEL_CLAUDE_3_5_HAIKU,
             self::MODEL_CLAUDE_3_HAIKU,
-            self::MODEL_CLAUDE_2_1,
         ];
     }
 
@@ -378,15 +396,9 @@ class Anthropic extends Adapter
      *
      * @param  string  $model
      * @return self
-     *
-     * @throws \Exception
      */
     public function setModel(string $model): self
     {
-        if (! in_array($model, $this->getModels())) {
-            throw new \Exception('Unsupported model: '.$model);
-        }
-
         $this->model = $model;
 
         return $this;

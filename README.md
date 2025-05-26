@@ -84,17 +84,20 @@ use Utopia\Agents\Adapters\Anthropic;
 
 $anthropic = new Anthropic(
     apiKey: 'your-api-key',
-    model: Anthropic::MODEL_CLAUDE_3_SONNET,
+    model: Anthropic::MODEL_CLAUDE_3_HAIKU,
     maxTokens: 2048,
     temperature: 0.7
 );
 ```
 
 Available Anthropic Models:
-- `MODEL_CLAUDE_3_OPUS`: Most powerful model
-- `MODEL_CLAUDE_3_SONNET`: Balanced performance
-- `MODEL_CLAUDE_3_HAIKU`: Fast and efficient
-- `MODEL_CLAUDE_2_1`: Previous generation
+- `MODEL_CLAUDE_4_OPUS`: Flagship model with exceptional reasoning for the most demanding tasks
+- `MODEL_CLAUDE_3_OPUS`: Premium model with superior performance on complex analysis and creative work
+- `MODEL_CLAUDE_4_SONNET`: Intelligent and responsive model optimized for productivity workflows
+- `MODEL_CLAUDE_3_7_SONNET`: Enhanced model with improved reasoning and coding capabilities
+- `MODEL_CLAUDE_3_5_SONNET`: Versatile model balancing capability and speed for general use
+- `MODEL_CLAUDE_3_5_HAIKU`: Ultra-fast model for quick responses and lightweight processing
+- `MODEL_CLAUDE_3_HAIKU`: Rapid model designed for speed and efficiency on straightforward tasks
 
 #### Deepseek
 

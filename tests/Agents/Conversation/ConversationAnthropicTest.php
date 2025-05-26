@@ -17,7 +17,7 @@ class ConversationAnthropicTest extends ConversationBase
 
         return new Anthropic(
             $apiKey,
-            Anthropic::MODEL_CLAUDE_3_SONNET,
+            Anthropic::MODEL_CLAUDE_3_HAIKU,
             1024,
             1.0
         );
