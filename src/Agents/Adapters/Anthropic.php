@@ -378,15 +378,9 @@ class Anthropic extends Adapter
      *
      * @param  string  $model
      * @return self
-     *
-     * @throws \Exception
      */
     public function setModel(string $model): self
     {
-        if (! in_array($model, $this->getModels())) {
-            throw new \Exception('Unsupported model: '.$model);
-        }
-
         $this->model = $model;
 
         return $this;

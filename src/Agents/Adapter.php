@@ -83,8 +83,6 @@ abstract class Adapter
      *
      * @param  string  $model
      * @return self
-     *
-     * @throws \Exception if model is not supported
      */
     abstract public function setModel(string $model): self;
 
