@@ -12,24 +12,34 @@ use Utopia\Fetch\Client;
 class Anthropic extends Adapter
 {
     /**
+     * Claude 4 Opus - Most powerful model for highly complex tasks
+     */
+    public const MODEL_CLAUDE_4_OPUS = 'claude-opus-4-0';
+
+    /**
      * Claude 3 Opus - Most powerful model for highly complex tasks
      */
-    public const MODEL_CLAUDE_3_OPUS = 'claude-3-opus-20240229';
+    public const MODEL_CLAUDE_3_OPUS = 'claude-3-opus-latest';
 
     /**
-     * Claude 3 Sonnet - Ideal balance of intelligence and speed
+     * Claude 4 Sonnet - Smart, efficient model for everyday use
      */
-    public const MODEL_CLAUDE_3_SONNET = 'claude-3-7-sonnet-20250219';
+    public const MODEL_CLAUDE_4_SONNET = 'claude-sonnet-4-0';
 
     /**
-     * Claude 3 Haiku - Fastest and most compact model
+     * Claude 3.7 Sonnet - Enhanced version with improved capabilities
      */
-    public const MODEL_CLAUDE_3_HAIKU = 'claude-3-haiku-20240229';
+    public const MODEL_CLAUDE_3_7_SONNET = 'claude-3-7-sonnet-latest';
 
     /**
-     * Claude 2.1 - Previous generation model
+     * Claude 3.5 Sonnet - Balanced model for most tasks
      */
-    public const MODEL_CLAUDE_2_1 = 'claude-2.1';
+    public const MODEL_CLAUDE_3_5_SONNET = 'claude-3-5-sonnet-latest';
+
+    /**
+     * Claude 3.5 Haiku - Fast, lightweight model for simple tasks
+     */
+    public const MODEL_CLAUDE_3_5_HAIKU = 'claude-3-5-haiku-latest';
 
     /**
      * Cache TTL for 3600 seconds
