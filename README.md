@@ -84,7 +84,7 @@ use Utopia\Agents\Adapters\Anthropic;
 
 $anthropic = new Anthropic(
     apiKey: 'your-api-key',
-    model: Anthropic::MODEL_CLAUDE_3_SONNET,
+    model: Anthropic::MODEL_CLAUDE_3_HAIKU,
     maxTokens: 2048,
     temperature: 0.7
 );
@@ -92,7 +92,7 @@ $anthropic = new Anthropic(
 
 Available Anthropic Models:
 - `MODEL_CLAUDE_3_OPUS`: Most powerful model
-- `MODEL_CLAUDE_3_SONNET`: Balanced performance
+- `MODEL_CLAUDE_3_HAIKU`: Balanced performance
 - `MODEL_CLAUDE_3_HAIKU`: Fast and efficient
 - `MODEL_CLAUDE_2_1`: Previous generation
 
