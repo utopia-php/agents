@@ -197,12 +197,7 @@ class Gemini extends Adapter
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
-            $error = '('.($json['error']['status'] ?? '').') '.($json['error']['message'] ?? 'Unknown error');
-            if (! empty($json['error']['details'])) {
-                $error .= PHP_EOL.json_encode($json['error']['details'], JSON_PRETTY_PRINT);
-            }
-
-            return $error;
+            return $this->formatErrorMessage($json);
         }
 
         foreach ($lines as $line) {
@@ -333,5 +328,24 @@ class Gemini extends Adapter
     public function getName(): string
     {
         return 'gemini';
+    }
+
+    /**
+     * Extract and format error information from API response
+     *
+     * @param  mixed  $json
+     * @return string
+     */
+    protected function formatErrorMessage($json): string
+    {
+        if (! is_array($json)) {
+            return '(unknown_error) Unknown error';
+        }
+
+        $errorType = isset($json['error']['status']) ? (string) $json['error']['status'] : 'unknown_error';
+        $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
+        $errorDetails = isset($json['error']['details']) ? json_encode($json['error']['details'], JSON_PRETTY_PRINT) : '';
+
+        return '('.$errorType.') '.$errorMessage.PHP_EOL.$errorDetails;
     }
 }

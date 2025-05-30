@@ -183,10 +183,7 @@ class Deepseek extends Adapter
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
-            $type = $json['error']['type'] ?? '';
-            $message = $json['error']['message'] ?? 'Unknown error';
-
-            return '('.$type.') '.$message;
+            return $this->formatErrorMessage($json);
         }
 
         foreach ($lines as $line) {
@@ -301,5 +298,23 @@ class Deepseek extends Adapter
     public function getName(): string
     {
         return 'deepseek';
+    }
+
+    /**
+     * Extract and format error information from API response
+     *
+     * @param  mixed  $json
+     * @return string
+     */
+    protected function formatErrorMessage($json): string
+    {
+        if (! is_array($json)) {
+            return '(unknown_error) Unknown error';
+        }
+
+        $errorType = isset($json['error']['type']) ? (string) $json['error']['type'] : 'unknown_error';
+        $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
+
+        return '('.$errorType.') '.$errorMessage;
     }
 }

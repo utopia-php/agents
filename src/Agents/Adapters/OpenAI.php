@@ -225,6 +225,16 @@ class OpenAI extends Adapter
                 $payload,
             );
             $body = $response->getBody();
+
+            if ($response->getStatusCode() >= 400) {
+                $json = is_string($body) ? json_decode($body, true) : null;
+                $content = $this->formatErrorMessage($json);
+                throw new \Exception(
+                    ucfirst($this->getName()).' API error: '.$content,
+                    $response->getStatusCode()
+                );
+            }
+
             $json = is_string($body) ? json_decode($body, true) : null;
             if (is_array($json) && isset($json['choices'][0]['message']['content'])) {
                 $content = $json['choices'][0]['message']['content'];
@@ -253,11 +263,7 @@ class OpenAI extends Adapter
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
-            if (isset($json['error']['code'], $json['error']['message'])) {
-                return '('.$json['error']['code'].') '.$json['error']['message'];
-            }
-
-            return is_array($json['error']) ? json_encode($json['error']) : $json['error'];
+            return $this->formatErrorMessage($json);
         }
 
         foreach ($lines as $line) {
@@ -389,5 +395,23 @@ class OpenAI extends Adapter
     public function getName(): string
     {
         return 'openai';
+    }
+
+    /**
+     * Extract and format error information from API response
+     *
+     * @param  mixed  $json
+     * @return string
+     */
+    protected function formatErrorMessage($json): string
+    {
+        if (! is_array($json)) {
+            return '(unknown_error) Unknown error';
+        }
+
+        $errorType = isset($json['error']['code']) ? (string) $json['error']['code'] : 'unknown_error';
+        $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
+
+        return '('.$errorType.') '.$errorMessage;
     }
 }

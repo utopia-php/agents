@@ -446,7 +446,7 @@ class Anthropic extends Adapter
      * @param  mixed  $json
      * @return string
      */
-    private function formatErrorMessage($json): string
+    protected function formatErrorMessage($json): string
     {
         if (! is_array($json)) {
             return '(unknown_error) Unknown error';

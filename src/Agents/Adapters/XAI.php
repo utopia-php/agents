@@ -2,6 +2,8 @@
 
 namespace Utopia\Agents\Adapters;
 
+use Utopia\Fetch\Chunk;
+
 class XAI extends OpenAI
 {
     /**
@@ -80,5 +82,75 @@ class XAI extends OpenAI
     public function getName(): string
     {
         return 'xai';
+    }
+
+    /**
+     * Process a stream chunk from the OpenAI API
+     *
+     * @param  \Utopia\Fetch\Chunk  $chunk
+     * @param  callable|null  $listener
+     * @return string
+     *
+     * @throws \Exception
+     */
+    protected function process(Chunk $chunk, ?callable $listener): string
+    {
+        $block = '';
+        $data = $chunk->getData();
+        $lines = explode("\n", $data);
+
+        $json = json_decode($data, true);
+        if (is_array($json) && isset($json['error'])) {
+            return $this->formatErrorMessage($json);
+        }
+
+        foreach ($lines as $line) {
+            if (empty(trim($line))) {
+                continue;
+            }
+
+            if (! str_starts_with($line, 'data: ')) {
+                continue;
+            }
+
+            // Handle [DONE] message
+            if (trim($line) === 'data: [DONE]') {
+                continue;
+            }
+
+            $json = json_decode(substr($line, 6), true);
+            if (! is_array($json)) {
+                continue;
+            }
+
+            // Extract content from the choices array
+            if (isset($json['choices'][0]['delta']['content'])) {
+                $block = $json['choices'][0]['delta']['content'];
+
+                if (! empty($block) && $listener !== null) {
+                    $listener($block);
+                }
+            }
+        }
+
+        return $block;
+    }
+
+    /**
+     * Extract and format error information from API response
+     *
+     * @param  mixed  $json
+     * @return string
+     */
+    protected function formatErrorMessage($json): string
+    {
+        if (! is_array($json)) {
+            return '(unknown_error) Unknown error';
+        }
+
+        $errorType = isset($json['code']) ? (string) $json['code'] : 'unknown_error';
+        $errorMessage = isset($json['error']) ? (string) $json['error'] : 'Unknown error';
+
+        return '('.$errorType.') '.$errorMessage;
     }
 }
