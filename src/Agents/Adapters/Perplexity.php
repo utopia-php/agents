@@ -118,12 +118,8 @@ class Perplexity extends OpenAI
         $lines = explode("\n", $data);
 
         $json = json_decode($data, true);
-        if (is_array($json)) {
-            if (isset($json['error']['code'], $json['error']['message'])) {
-                return '('.$json['error']['code'].') '.$json['error']['message'];
-            }
-
-            return $json['error'] ?? 'Unknown error';
+        if (is_array($json) && isset($json['error'])) {
+            return $this->formatErrorMessage($json);
         }
 
         // Specifically for Authorization and similar errors that return HTML

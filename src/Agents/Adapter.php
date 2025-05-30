@@ -94,6 +94,14 @@ abstract class Adapter
     abstract public function isSchemaSupported(): bool;
 
     /**
+     * Format error message
+     *
+     * @param  mixed  $json
+     * @return string
+     */
+    abstract protected function formatErrorMessage($json): string;
+
+    /**
      * Get the current agent
      *
      * @return ?Agent
