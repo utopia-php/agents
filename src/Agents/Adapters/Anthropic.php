@@ -219,6 +219,12 @@ class Anthropic extends Adapter
         }
 
         if ($response->getStatusCode() >= 400) {
+            if (! $payload['stream']) {
+                $responseBody = $response->getBody();
+                $json = is_string($responseBody) ? json_decode($responseBody, true) : null;
+                $content = $this->formatErrorMessage($json);
+            }
+
             throw new \Exception(
                 ucfirst($this->getName()).' API error: '.$content,
                 $response->getStatusCode()
@@ -276,15 +282,10 @@ class Anthropic extends Adapter
                 continue;
             }
 
-            $json = json_decode($line, true);
-            if (is_array($json) && isset($json['type']) && $json['type'] === 'error') {
-                $type = $json['error']['type'] ?? '';
-                $message = $json['error']['message'] ?? 'Unknown error';
+            // Check if line starts with "data: " prefix and remove it, otherwise use the line as-is
+            $jsonString = str_starts_with($line, 'data: ') ? substr($line, 6) : $line;
+            $json = json_decode($jsonString, true);
 
-                return '('.$type.') '.$message;
-            }
-
-            $json = json_decode(substr($line, 6), true);
             if (! is_array($json)) {
                 continue;
             }
@@ -355,8 +356,7 @@ class Anthropic extends Adapter
                     break;
 
                 case 'error':
-                    $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
-                    throw new \Exception('Anthropic API error: '.$errorMessage);
+                    return $this->formatErrorMessage($json);
             }
         }
 
@@ -438,5 +438,23 @@ class Anthropic extends Adapter
     public function getName(): string
     {
         return 'anthropic';
+    }
+
+    /**
+     * Extract and format error information from API response
+     *
+     * @param  mixed  $json
+     * @return string
+     */
+    private function formatErrorMessage($json): string
+    {
+        if (! is_array($json)) {
+            return '(unknown_error) Unknown error';
+        }
+
+        $errorType = isset($json['error']['type']) ? (string) $json['error']['type'] : 'unknown_error';
+        $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
+
+        return '('.$errorType.') '.$errorMessage;
     }
 }
