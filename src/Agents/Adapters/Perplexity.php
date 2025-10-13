@@ -73,7 +73,7 @@ class Perplexity extends OpenAI
      */
     public function isSchemaSupported(): bool
     {
-        return false;
+        return true;
     }
 
     /**
