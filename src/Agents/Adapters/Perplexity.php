@@ -128,7 +128,7 @@ class Perplexity extends OpenAI
             stripos($trimmed, '<html') === 0 ||
             stripos($trimmed, '<!DOCTYPE html') === 0
         ) {
-            return PHP_EOL.$data;
+            return $this->sanitizeHtmlError($data);
         }
 
         foreach ($lines as $line) {
@@ -161,5 +161,46 @@ class Perplexity extends OpenAI
         }
 
         return $block;
+    }
+
+    /**
+     * Sanitize HTML error responses into readable error messages
+     *
+     * @param  string  $html
+     * @return string
+     */
+    protected function sanitizeHtmlError(string $html): string
+    {
+        // Try to extract the error from the title tag
+        if (preg_match('/<title>(.*?)<\/title>/is', $html, $matches)) {
+            $errorMessage = trim($matches[1]);
+
+            // Extract status code and message if present (e.g., "401 Authorization Required")
+            if (preg_match('/^(\d{3})\s+(.+)$/i', $errorMessage, $parts)) {
+                $statusCode = $parts[1];
+                $message = $parts[2];
+
+                return PHP_EOL.'(http_'.$statusCode.') '.$message;
+            }
+
+            return PHP_EOL.'(html_error) '.$errorMessage;
+        }
+
+        // Try to extract from h1 tag
+        if (preg_match('/<h1>(.*?)<\/h1>/is', $html, $matches)) {
+            $errorMessage = trim(strip_tags($matches[1]));
+
+            if (preg_match('/^(\d{3})\s+(.+)$/i', $errorMessage, $parts)) {
+                $statusCode = $parts[1];
+                $message = $parts[2];
+
+                return PHP_EOL.'(http_'.$statusCode.') '.$message;
+            }
+
+            return PHP_EOL.'(html_error) '.$errorMessage;
+        }
+
+        // Fallback for unrecognized HTML errors
+        return PHP_EOL.'(html_error) Received HTML error response from API';
     }
 }
