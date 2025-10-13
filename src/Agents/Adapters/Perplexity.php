@@ -180,10 +180,10 @@ class Perplexity extends OpenAI
                 $statusCode = $parts[1];
                 $message = $parts[2];
 
-                return PHP_EOL.'(http_'.$statusCode.') '.$message;
+                return '(http_'.$statusCode.') '.$message;
             }
 
-            return PHP_EOL.'(html_error) '.$errorMessage;
+            return '(html_error) '.$errorMessage;
         }
 
         // Try to extract from h1 tag
@@ -194,13 +194,13 @@ class Perplexity extends OpenAI
                 $statusCode = $parts[1];
                 $message = $parts[2];
 
-                return PHP_EOL.'(http_'.$statusCode.') '.$message;
+                return '(http_'.$statusCode.') '.$message;
             }
 
-            return PHP_EOL.'(html_error) '.$errorMessage;
+            return '(html_error) '.$errorMessage;
         }
 
         // Fallback for unrecognized HTML errors
-        return PHP_EOL.'(html_error) Received HTML error response from API';
+        return '(html_error) Received HTML error response from API';
     }
 }
