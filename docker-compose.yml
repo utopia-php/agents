@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   tests:
     container_name: agents-tests
@@ -8,6 +10,7 @@ services:
       - ./src:/usr/src/code/src
       - ./tests:/usr/src/code/tests
       - ./phpunit.xml:/usr/src/code/phpunit.xml
+      - ./vendor:/usr/src/code/vendor
     environment:
       - TESTING=true
       - LLM_KEY_ANTHROPIC=${LLM_KEY_ANTHROPIC}
@@ -16,8 +19,31 @@ services:
       - LLM_KEY_XAI=${LLM_KEY_XAI}
       - LLM_KEY_PERPLEXITY=${LLM_KEY_PERPLEXITY}
       - LLM_KEY_GEMINI=${LLM_KEY_GEMINI}
+    depends_on:
+      - ollama
     networks:
       - utopia
+
+  ollama:
+    build: 
+      context: .
+      dockerfile: ollama.dockerfile
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    # persistent for caching models across restarts and preloading
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      - MODELS=embeddinggemma
+      # duration to keep model in memory
+      - OLLAMA_KEEP_ALIVE=24h
+    networks:
+      - utopia
+
+volumes:
+  ollama_models:
 
 networks:
   utopia:

@@ -103,6 +103,16 @@ class Perplexity extends OpenAI
     }
 
     /**
+     * Get support for embeddings
+     *
+     * @return bool
+     */
+    public function getSupportForEmbeddings(): bool
+    {
+        return false;
+    }
+
+    /**
      * Process a stream chunk from the Perplexity API
      *
      * @param  \Utopia\Fetch\Chunk  $chunk
@@ -202,5 +212,10 @@ class Perplexity extends OpenAI
 
         // Fallback for unrecognized HTML errors
         return '(html_error) Received HTML error response from API';
+    }
+
+    public function embed(string $text): array
+    {
+        throw new \Exception('Embeddings are not supported for this adapter.');
     }
 }

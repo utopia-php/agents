@@ -414,4 +414,14 @@ class OpenAI extends Adapter
 
         return '('.$errorType.') '.$errorMessage;
     }
+
+    public function getSupportForEmbeddings(): bool
+    {
+        return false;
+    }
+
+    public function embed(string $text): array
+    {
+        throw new \Exception('Embeddings are not supported for this adapter.');
+    }
 }
