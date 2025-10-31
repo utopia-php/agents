@@ -23,6 +23,10 @@ class Ollama extends Adapter
      */
     protected int $timeout;
 
+    private string $endpoint = 'http://ollama:11434/api/embed';
+
+    public const MODELS = [self::MODEL_EMBEDDING_GEMMA];
+
     /**
      * Create a new Ollama adapter (no API key required for local call)
      *
@@ -60,7 +64,7 @@ class Ollama extends Adapter
             'input' => $text,
         ];
         $response = $client->fetch(
-            'http://ollama:11434/api/embed',
+            $this->getEndpoint(),
             Client::METHOD_POST,
             $payload
         );
@@ -84,7 +88,7 @@ class Ollama extends Adapter
      */
     public function getModels(): array
     {
-        return [self::MODEL_EMBEDDING_GEMMA];
+        return self::MODELS;
     }
 
     /**
@@ -157,6 +161,29 @@ class Ollama extends Adapter
         $msg = $json['error'] ?? ($json['message'] ?? 'Unknown error');
 
         return '(ollama_error) '.$msg;
+    }
+
+    /**
+     * Get the API endpoint
+     *
+     * @return string
+     */
+    public function getEndpoint(): string
+    {
+        return $this->endpoint;
+    }
+
+    /**
+     * Set the API endpoint
+     *
+     * @param  string  $endpoint
+     * @return self
+     */
+    public function setEndpoint(string $endpoint): self
+    {
+        $this->endpoint = $endpoint;
+
+        return $this;
     }
 
     public function getSupportForEmbeddings(): bool
