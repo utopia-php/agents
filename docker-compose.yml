@@ -25,7 +25,7 @@ services:
       - utopia
 
   ollama:
-    build: 
+    build:
       context: .
       dockerfile: ollama.dockerfile
     container_name: ollama

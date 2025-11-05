@@ -1,4 +1,4 @@
-FROM ollama/ollama:latest
+FROM ollama/ollama:0.12.7
 
 # Preload specific models
 ENV MODELS="embeddinggemma"

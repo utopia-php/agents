@@ -108,4 +108,31 @@ class AgentTest extends TestCase
         $this->assertArrayHasKey('load_duration', $result);
         $this->assertIsArray($result['embedding']);
     }
+
+    public function testEmbeddingDImensions(): void
+    {
+        $ollama = new Ollama();
+        $agent = new Agent($ollama);
+        $content = [
+            'hi',
+            'hello world',
+            'this is a short sentence for testing',
+            'In the midst of chaos, there is also opportunity — this simple truth often reveals itself when we least expect it.',
+            'Artificial intelligence models like Ollama generate embeddings that map words, phrases, and even full documents into high-dimensional vector spaces where semantic similarity can be computed efficiently.', // long paragraph (~35 words)
+            str_repeat('This is a repeated pattern. ', 100),
+        ];
+        foreach ($content as $text) {
+            $result = $agent->embed($text);
+            $this->assertIsArray($result);
+            $this->assertArrayHasKey('embedding', $result);
+            $this->assertArrayHasKey('total_duration', $result);
+            $this->assertArrayHasKey('load_duration', $result);
+            $this->assertIsArray($result['embedding']);
+
+            $embedding = $result['embedding'];
+            $dimension = count($embedding);
+
+            $this->assertEquals($ollama->getEmbeddingDimension(), $dimension);
+        }
+    }
 }

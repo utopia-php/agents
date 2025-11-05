@@ -28,6 +28,13 @@ class Ollama extends Adapter
     public const MODELS = [self::MODEL_EMBEDDING_GEMMA];
 
     /**
+     * Embedding dimensions of specific embedding model
+     */
+    protected const DIMENSIONS = [
+        self::MODEL_EMBEDDING_GEMMA => 768,
+    ];
+
+    /**
      * Create a new Ollama adapter (no API key required for local call)
      *
      * @param  string  $model
@@ -99,6 +106,14 @@ class Ollama extends Adapter
     public function getModel(): string
     {
         return $this->model;
+    }
+
+    /**
+     * get embedding dimenion of the current model
+     */
+    public function getEmbeddingDimension(): int
+    {
+        return self::DIMENSIONS[$this->model];
     }
 
     /**

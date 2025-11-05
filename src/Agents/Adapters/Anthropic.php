@@ -467,4 +467,9 @@ class Anthropic extends Adapter
     {
         throw new \Exception('Embeddings are not supported for this adapter.');
     }
+
+    public function getEmbeddingDimension(): int
+    {
+        throw new \Exception('Embeddings are not supported for this adapter.');
+    }
 }

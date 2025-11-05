@@ -109,6 +109,11 @@ abstract class Adapter
     abstract public function embed(string $text): array;
 
     /**
+     * get embedding dimenion of the current model
+     */
+    abstract public function getEmbeddingDimension(): int;
+
+    /**
      * Format error message
      *
      * @param  mixed  $json
