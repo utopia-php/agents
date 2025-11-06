@@ -1,7 +1,7 @@
 FROM ollama/ollama:0.12.7
 
 # Preload specific models
-ENV MODELS="embeddinggemma"
+ARG MODELS="embeddinggemma"
 ENV OLLAMA_KEEP_ALIVE=24h
 
 # Pre-pull models at build time for Docker layer caching

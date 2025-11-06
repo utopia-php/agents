@@ -28,6 +28,8 @@ services:
     build:
       context: .
       dockerfile: ollama.dockerfile
+      args:
+        - MODELS: "embeddinggemma mistral"
     container_name: ollama
     ports:
       - "11434:11434"
@@ -35,10 +37,6 @@ services:
     # persistent for caching models across restarts and preloading
     volumes:
       - ollama_models:/root/.ollama
-    environment:
-      - MODELS=embeddinggemma
-      # duration to keep model in memory
-      - OLLAMA_KEEP_ALIVE=24h
     networks:
       - utopia
 
