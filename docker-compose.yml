@@ -29,7 +29,7 @@ services:
       context: .
       dockerfile: ollama.dockerfile
       args:
-        - MODELS: "embeddinggemma mistral"
+        MODELS: "embeddinggemma"
     container_name: ollama
     ports:
       - "11434:11434"
