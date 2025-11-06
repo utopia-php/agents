@@ -109,7 +109,7 @@ class AgentTest extends TestCase
         $this->assertIsArray($result['embedding']);
     }
 
-    public function testEmbeddingDImensions(): void
+    public function testEmbeddingDimensions(): void
     {
         $ollama = new Ollama();
         $agent = new Agent($ollama);

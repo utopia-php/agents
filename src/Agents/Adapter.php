@@ -104,7 +104,11 @@ abstract class Adapter
      * Generate embedding for input text (must be implemented if getSupportForEmbeddings is true)
      *
      * @param  string  $text
-     * @return array
+     * @return array{
+     *     embedding: array<int, float>,
+     *     total_duration: int|null,
+     *     load_duration: int|null
+     * }
      */
     abstract public function embed(string $text): array;
 

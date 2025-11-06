@@ -52,12 +52,11 @@ class Ollama extends Adapter
      * Embedding generation (Ollama only supports embeddings, not chat)
      *
      * @param  string  $text
-     * @return array
-     *  [
-     *    'embedding' => array<float>,
-     *    'total_duration' => int,
-     *    'load_duration' => int
-     *  ]
+     * @return array{
+     *     embedding: array<int, float>,
+     *     total_duration: int|null,
+     *     load_duration: int|null
+     * }
      *
      * @throws \Exception
      */
@@ -132,7 +131,7 @@ class Ollama extends Adapter
     /**
      * Not applicable for embedding-only adapters.
      *
-     * @param  array  $messages
+     * @param  array<\Utopia\Agents\Message>  $messages
      * @param  callable|null  $listener
      *
      * @throws \Exception

@@ -141,7 +141,11 @@ class Agent
      * Get embedding for input text using underlying adapter (if supported)
      *
      * @param  string  $text
-     * @return array
+     * @return array{
+     *     embedding: array<int, float>,
+     *     total_duration: int|null,
+     *     load_duration: int|null
+     * }
      *
      * @throws \Exception
      */
@@ -150,8 +154,7 @@ class Agent
         if (! $this->adapter->getSupportForEmbeddings()) {
             throw new \Exception('This adapter does not support embedding/embedding API.');
         }
-        // Delegates to adapter embed; guaranteed to exist for supporting adapters.
-        // @phpstan-ignore-next-line: mixed adapter return
+
         return $this->adapter->embed($text);
     }
 }

@@ -354,6 +354,14 @@ class Gemini extends Adapter
         return false;
     }
 
+    /**
+     * @param  string  $text
+     * @return array{
+     *     embedding: array<int, float>,
+     *     total_duration: int|null,
+     *     load_duration: int|null
+     * }
+     */
     public function embed(string $text): array
     {
         throw new \Exception('Embeddings are not supported for this adapter.');
