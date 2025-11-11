@@ -70,22 +70,18 @@ class Ollama extends Adapter
             $payload
         );
         $body = $response->getBody();
-        /**
-         * @var array{
-         *   error?: string,
-         *   embeddings: array<int, array<int, float>>,
-         *   total_duration: int,
-         *   load_duration: int
-         * }|null $json
-         */
         $json = is_string($body) ? json_decode($body, true) : null;
+
+        if (! is_array($json)) {
+            throw new \Exception('Invalid response format received from the API');
+        }
 
         if (isset($json['error'])) {
             throw new \Exception($json['error'], $response->getStatusCode());
         }
 
         return [
-            'embedding' => $json['embeddings'] ? $json['embeddings'][0] : [],
+            'embedding' => $json['embeddings'][0] ?? [],
             'total_duration' => $json['total_duration'] ?? null,
             'load_duration' => $json['load_duration'] ?? null,
         ];
