@@ -18,11 +18,6 @@ class Ollama extends Adapter
      */
     protected string $model;
 
-    /**
-     * @var int
-     */
-    protected int $timeout;
-
     private string $endpoint = 'http://ollama:11434/api/embed';
 
     public const MODELS = [self::MODEL_EMBEDDING_GEMMA];
@@ -45,7 +40,7 @@ class Ollama extends Adapter
         int $timeout = 90
     ) {
         $this->model = $model;
-        $this->timeout = $timeout;
+        $this->setTimeout($timeout);
     }
 
     /**
@@ -76,8 +71,8 @@ class Ollama extends Adapter
         );
         $body = $response->getBody();
         $json = is_string($body) ? json_decode($body, true) : null;
-        if (! is_array($json) || ! isset($json['embeddings'][0])) {
-            throw new \Exception('Invalid response from Ollama embed API');
+        if (isset($json['error'])) {
+            throw new \Exception($json['error']);
         }
 
         return [
@@ -172,9 +167,7 @@ class Ollama extends Adapter
         if (! is_array($json)) {
             return '(unknown_error) Unknown error';
         }
-        $msg = $json['error'] ?? ($json['message'] ?? 'Unknown error');
-
-        return '(ollama_error) '.$msg;
+        return $json['error'] ?? ($json['message'] ?? 'Unknown error');
     }
 
     /**
