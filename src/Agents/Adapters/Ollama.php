@@ -173,7 +173,7 @@ class Ollama extends Adapter
      */
     protected function formatErrorMessage($json): string
     {
-        if (! is_array($json)) {
+        if (!is_array($json)) {
             return '(unknown_error) Unknown error';
         }
 
