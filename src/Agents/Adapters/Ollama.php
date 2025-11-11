@@ -70,9 +70,18 @@ class Ollama extends Adapter
             $payload
         );
         $body = $response->getBody();
+        /**
+         * @var array{
+         *   error?: string,
+         *   embeddings?: array<int, array<int, float>>,
+         *   total_duration?: int,
+         *   load_duration?: int
+         * }|null $json
+         */
         $json = is_string($body) ? json_decode($body, true) : null;
+
         if (isset($json['error'])) {
-            throw new \Exception($json['error']);
+            throw new \Exception($json['error'], $response->getStatusCode());
         }
 
         return [
@@ -167,6 +176,7 @@ class Ollama extends Adapter
         if (! is_array($json)) {
             return '(unknown_error) Unknown error';
         }
+
         return $json['error'] ?? ($json['message'] ?? 'Unknown error');
     }
 
