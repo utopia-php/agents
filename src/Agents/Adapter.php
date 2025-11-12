@@ -94,6 +94,30 @@ abstract class Adapter
     abstract public function isSchemaSupported(): bool;
 
     /**
+     * Does this adapter support embeddings?
+     *
+     * @return bool
+     */
+    abstract public function getSupportForEmbeddings(): bool;
+
+    /**
+     * Generate embedding for input text (must be implemented if getSupportForEmbeddings is true)
+     *
+     * @param  string  $text
+     * @return array{
+     *     embedding: array<int, float>,
+     *     total_duration: int|null,
+     *     load_duration: int|null
+     * }
+     */
+    abstract public function embed(string $text): array;
+
+    /**
+     * get embedding dimenion of the current model
+     */
+    abstract public function getEmbeddingDimension(): int;
+
+    /**
      * Format error message
      *
      * @param  mixed  $json

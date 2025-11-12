@@ -85,6 +85,16 @@ class XAI extends OpenAI
     }
 
     /**
+     * Get support for embeddings
+     *
+     * @return bool
+     */
+    public function getSupportForEmbeddings(): bool
+    {
+        return false;
+    }
+
+    /**
      * Process a stream chunk from the OpenAI API
      *
      * @param  \Utopia\Fetch\Chunk  $chunk
@@ -152,5 +162,18 @@ class XAI extends OpenAI
         $errorMessage = isset($json['error']) ? (string) $json['error'] : 'Unknown error';
 
         return '('.$errorType.') '.$errorMessage;
+    }
+
+    /**
+     * @param  string  $text
+     * @return array{
+     *     embedding: array<int, float>,
+     *     total_duration: int|null,
+     *     load_duration: int|null
+     * }
+     */
+    public function embed(string $text): array
+    {
+        throw new \Exception('Embeddings are not supported for this adapter.');
     }
 }

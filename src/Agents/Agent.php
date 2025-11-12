@@ -136,4 +136,25 @@ class Agent
 
         return $this;
     }
+
+    /**
+     * Get embedding for input text using underlying adapter (if supported)
+     *
+     * @param  string  $text
+     * @return array{
+     *     embedding: array<int, float>,
+     *     total_duration: int|null,
+     *     load_duration: int|null
+     * }
+     *
+     * @throws \Exception
+     */
+    public function embed(string $text): array
+    {
+        if (! $this->adapter->getSupportForEmbeddings()) {
+            throw new \Exception('This adapter does not support embedding/embedding API.');
+        }
+
+        return $this->adapter->embed($text);
+    }
 }

@@ -16,8 +16,29 @@ services:
       - LLM_KEY_XAI=${LLM_KEY_XAI}
       - LLM_KEY_PERPLEXITY=${LLM_KEY_PERPLEXITY}
       - LLM_KEY_GEMINI=${LLM_KEY_GEMINI}
+    depends_on:
+      - ollama
     networks:
       - utopia
+
+  ollama:
+    build:
+      context: .
+      dockerfile: ollama.dockerfile
+      args:
+        MODELS: "embeddinggemma"
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    # persistent for caching models across restarts and preloading
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - utopia
+
+volumes:
+  ollama_models:
 
 networks:
   utopia:
