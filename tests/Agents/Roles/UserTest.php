@@ -15,8 +15,8 @@ class UserTest extends TestCase
 
         $user = new User($id, $name);
 
-        $this->assertEquals($id, $user->getId());
-        $this->assertEquals($name, $user->getName());
+        $this->assertSame($id, $user->getId());
+        $this->assertSame($name, $user->getName());
     }
 
     public function testConstructorWithoutName(): void
@@ -25,14 +25,14 @@ class UserTest extends TestCase
 
         $user = new User($id);
 
-        $this->assertEquals($id, $user->getId());
-        $this->assertEquals('', $user->getName());
+        $this->assertSame($id, $user->getId());
+        $this->assertSame('', $user->getName());
     }
 
     public function testGetIdentifier(): void
     {
         $user = new User('test-id');
 
-        $this->assertEquals(Role::ROLE_USER, $user->getIdentifier());
+        $this->assertSame(Role::ROLE_USER, $user->getIdentifier());
     }
 }

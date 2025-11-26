@@ -24,8 +24,8 @@ class AgentTest extends TestCase
     public function testConstructor(): void
     {
         $this->assertSame($this->mockAdapter, $this->agent->getAdapter());
-        $this->assertEquals('', $this->agent->getDescription());
-        $this->assertEquals([], $this->agent->getInstructions());
+        $this->assertSame('', $this->agent->getDescription());
+        $this->assertSame([], $this->agent->getInstructions());
     }
 
     public function testSetDescription(): void
@@ -35,7 +35,7 @@ class AgentTest extends TestCase
         $result = $this->agent->setDescription($description);
 
         $this->assertSame($this->agent, $result);
-        $this->assertEquals($description, $this->agent->getDescription());
+        $this->assertSame($description, $this->agent->getDescription());
     }
 
     public function testSetInstructions(): void
@@ -48,7 +48,7 @@ class AgentTest extends TestCase
         $result = $this->agent->setInstructions($instructions);
 
         $this->assertSame($this->agent, $result);
-        $this->assertEquals($instructions, $this->agent->getInstructions());
+        $this->assertSame($instructions, $this->agent->getInstructions());
     }
 
     public function testAddInstruction(): void
@@ -56,19 +56,19 @@ class AgentTest extends TestCase
         // Test adding a single instruction
         $result = $this->agent->addInstruction('Instruction 1', 'This is instruction 1');
         $this->assertSame($this->agent, $result);
-        $this->assertEquals([
+        $this->assertSame([
             'Instruction 1' => 'This is instruction 1',
         ], $this->agent->getInstructions());
 
         // Test adding a duplicate instruction (should update the content)
         $this->agent->addInstruction('Instruction 1', 'Updated content');
-        $this->assertEquals([
+        $this->assertSame([
             'Instruction 1' => 'Updated content',
         ], $this->agent->getInstructions());
 
         // Test adding a second instruction
         $this->agent->addInstruction('Instruction 2', 'This is instruction 2');
-        $this->assertEquals([
+        $this->assertSame([
             'Instruction 1' => 'Updated content',
             'Instruction 2' => 'This is instruction 2',
         ], $this->agent->getInstructions());
@@ -88,8 +88,8 @@ class AgentTest extends TestCase
             ->addInstruction('Instruction 3', 'Content 3');
 
         $this->assertSame($this->agent, $result);
-        $this->assertEquals($description, $this->agent->getDescription());
-        $this->assertEquals([
+        $this->assertSame($description, $this->agent->getDescription());
+        $this->assertSame([
             'Instruction 1' => 'Content 1',
             'Instruction 2' => 'Content 2',
             'Instruction 3' => 'Content 3',
@@ -132,7 +132,7 @@ class AgentTest extends TestCase
             $embedding = $result['embedding'];
             $dimension = count($embedding);
 
-            $this->assertEquals($ollama->getEmbeddingDimension(), $dimension);
+            $this->assertSame($ollama->getEmbeddingDimension(), $dimension);
         }
     }
 }
