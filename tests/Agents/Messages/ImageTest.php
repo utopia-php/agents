@@ -38,7 +38,7 @@ class ImageTest extends TestCase
     {
         $message = new Image($this->pngImageData);
 
-        $this->assertEquals($this->pngImageData, $message->getContent());
+        $this->assertSame($this->pngImageData, $message->getContent());
         $this->assertIsString($message->getContent());
     }
 
@@ -46,28 +46,28 @@ class ImageTest extends TestCase
     {
         $message = new Image($this->pngImageData);
 
-        $this->assertEquals('image/png', $message->getMimeType());
+        $this->assertSame('image/png', $message->getMimeType());
     }
 
     public function testGetMimeTypeJPEG(): void
     {
         $message = new Image($this->jpegImageData);
 
-        $this->assertEquals('image/jpeg', $message->getMimeType());
+        $this->assertSame('image/jpeg', $message->getMimeType());
     }
 
     public function testGetMimeTypeGIF(): void
     {
         $message = new Image($this->gifImageData);
 
-        $this->assertEquals('image/gif', $message->getMimeType());
+        $this->assertSame('image/gif', $message->getMimeType());
     }
 
     public function testEmptyContent(): void
     {
         $message = new Image('');
 
-        $this->assertEquals('', $message->getContent());
+        $this->assertSame('', $message->getContent());
         $this->assertNull($message->getMimeType());
     }
 
@@ -75,7 +75,7 @@ class ImageTest extends TestCase
     {
         $message = new Image('not an image');
 
-        $this->assertEquals('not an image', $message->getContent());
+        $this->assertSame('not an image', $message->getContent());
         $this->assertNotNull($message->getMimeType());
         $this->assertNotEquals('image/png', $message->getMimeType());
         $this->assertNotEquals('image/jpeg', $message->getMimeType());

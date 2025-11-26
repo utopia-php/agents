@@ -22,7 +22,7 @@ class TextTest extends TestCase
         $content = 'Test message content';
         $message = new Text($content);
 
-        $this->assertEquals($content, $message->getContent());
+        $this->assertSame($content, $message->getContent());
         $this->assertIsString($message->getContent());
     }
 
@@ -30,7 +30,7 @@ class TextTest extends TestCase
     {
         $message = new Text('');
 
-        $this->assertEquals('', $message->getContent());
+        $this->assertSame('', $message->getContent());
         $this->assertIsString($message->getContent());
     }
 
@@ -39,7 +39,7 @@ class TextTest extends TestCase
         $content = "Line 1\nLine 2\nLine 3";
         $message = new Text($content);
 
-        $this->assertEquals($content, $message->getContent());
+        $this->assertSame($content, $message->getContent());
         $this->assertStringContainsString("\n", $message->getContent());
     }
 
@@ -48,6 +48,6 @@ class TextTest extends TestCase
         $content = 'Special chars: !@#$%^&*()_+ 😀 🌟';
         $message = new Text($content);
 
-        $this->assertEquals($content, $message->getContent());
+        $this->assertSame($content, $message->getContent());
     }
 }

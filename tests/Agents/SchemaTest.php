@@ -47,10 +47,10 @@ class SchemaTest extends TestCase
 
     public function testConstructorAndGetters(): void
     {
-        $this->assertEquals($this->name, $this->schema->getName());
-        $this->assertEquals($this->description, $this->schema->getDescription());
+        $this->assertSame($this->name, $this->schema->getName());
+        $this->assertSame($this->description, $this->schema->getDescription());
         $this->assertSame($this->object, $this->schema->getObject());
-        $this->assertEquals($this->required, $this->schema->getRequired());
+        $this->assertSame($this->required, $this->schema->getRequired());
     }
 
     public function testToJson(): void
@@ -63,8 +63,8 @@ class SchemaTest extends TestCase
         $this->assertArrayHasKey('id', $jsonArray);
         $this->assertArrayHasKey('name', $jsonArray);
         $this->assertArrayHasKey('age', $jsonArray);
-        $this->assertEquals('The ID of the user (string)', $jsonArray['id']);
-        $this->assertEquals('The name of the user (string)', $jsonArray['name']);
-        $this->assertEquals('The age of the user (integer)', $jsonArray['age']);
+        $this->assertSame('The ID of the user (string)', $jsonArray['id']);
+        $this->assertSame('The name of the user (string)', $jsonArray['name']);
+        $this->assertSame('The age of the user (integer)', $jsonArray['age']);
     }
 }

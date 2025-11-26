@@ -14,7 +14,7 @@ class SchemaObjectTest extends TestCase
             'age' => ['type' => SchemaObject::TYPE_INTEGER],
         ];
         $object = new SchemaObject($properties);
-        $this->assertEquals($properties, $object->getProperties());
+        $this->assertSame($properties, $object->getProperties());
     }
 
     public function testGetProperty(): void
@@ -22,7 +22,7 @@ class SchemaObjectTest extends TestCase
         $object = new SchemaObject([
             'id' => ['type' => SchemaObject::TYPE_STRING],
         ]);
-        $this->assertEquals(['type' => SchemaObject::TYPE_STRING], $object->getProperty('id'));
+        $this->assertSame(['type' => SchemaObject::TYPE_STRING], $object->getProperty('id'));
         $this->assertNull($object->getProperty('nonexistent'));
     }
 
@@ -30,9 +30,9 @@ class SchemaObjectTest extends TestCase
     {
         $object = new SchemaObject();
         $object->addProperty('id', ['type' => SchemaObject::TYPE_STRING]);
-        $this->assertEquals(['id' => ['type' => SchemaObject::TYPE_STRING]], $object->getProperties());
+        $this->assertSame(['id' => ['type' => SchemaObject::TYPE_STRING]], $object->getProperties());
         $object->removeProperty('id');
-        $this->assertEquals([], $object->getProperties());
+        $this->assertSame([], $object->getProperties());
     }
 
     public function testAddPropertyInvalidType(): void
@@ -48,7 +48,7 @@ class SchemaObjectTest extends TestCase
             'id' => ['type' => SchemaObject::TYPE_STRING],
             'age' => ['type' => SchemaObject::TYPE_INTEGER],
         ]);
-        $this->assertEquals(['id', 'age'], $object->getNames());
+        $this->assertSame(['id', 'age'], $object->getNames());
     }
 
     public function testGetValidTypes(): void
@@ -62,6 +62,6 @@ class SchemaObjectTest extends TestCase
             SchemaObject::TYPE_OBJECT,
             SchemaObject::TYPE_NULL,
         ];
-        $this->assertEquals($expected, SchemaObject::getValidTypes());
+        $this->assertSame($expected, SchemaObject::getValidTypes());
     }
 }

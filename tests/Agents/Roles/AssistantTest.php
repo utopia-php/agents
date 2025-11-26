@@ -15,8 +15,8 @@ class AssistantTest extends TestCase
 
         $assistant = new Assistant($id, $name);
 
-        $this->assertEquals($id, $assistant->getId());
-        $this->assertEquals($name, $assistant->getName());
+        $this->assertSame($id, $assistant->getId());
+        $this->assertSame($name, $assistant->getName());
     }
 
     public function testConstructorWithoutName(): void
@@ -25,14 +25,14 @@ class AssistantTest extends TestCase
 
         $assistant = new Assistant($id);
 
-        $this->assertEquals($id, $assistant->getId());
-        $this->assertEquals('', $assistant->getName());
+        $this->assertSame($id, $assistant->getId());
+        $this->assertSame('', $assistant->getName());
     }
 
     public function testGetIdentifier(): void
     {
         $assistant = new Assistant('test-id');
 
-        $this->assertEquals(Role::ROLE_ASSISTANT, $assistant->getIdentifier());
+        $this->assertSame(Role::ROLE_ASSISTANT, $assistant->getIdentifier());
     }
 }
