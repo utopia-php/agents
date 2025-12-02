@@ -358,8 +358,9 @@ class Gemini extends Adapter
      * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
-     *     total_duration: int|null,
-     *     load_duration: int|null
+     *     tokensProcessed: int|null,
+     *     totalDuration: int|null ,
+     *     modelLoadingDuration: int|null
      * }
      */
     public function embed(string $text): array

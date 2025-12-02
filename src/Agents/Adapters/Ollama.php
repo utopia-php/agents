@@ -53,8 +53,9 @@ class Ollama extends Adapter
      * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
-     *     total_duration: int|null,
-     *     load_duration: int|null
+     *     tokensProcessed: int|null,
+     *     totalDuration: int|null ,
+     *     modelLoadingDuration: int|null
      * }
      *
      * @throws \Exception
@@ -84,10 +85,12 @@ class Ollama extends Adapter
             throw new \Exception($json['error'], $response->getStatusCode());
         }
 
+        // totalDuration is entire duration including the modelLoadingDuration
         return [
             'embedding' => $json['embeddings'][0] ?? [],
-            'total_duration' => $json['total_duration'] ?? null,
-            'load_duration' => $json['load_duration'] ?? null,
+            'tokensProcessed' => $json['prompt_eval_count'] ?? null,
+            'totalDuration' => $json['total_duration'] ?? null,
+            'modelLoadingDuration' => $json['load_duration'] ?? null,
         ];
     }
 
