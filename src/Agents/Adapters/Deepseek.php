@@ -61,7 +61,7 @@ class Deepseek extends Adapter
         string $model = self::MODEL_DEEPSEEK_CHAT,
         int $maxTokens = 1024,
         float $temperature = 1.0,
-        int $timeout = 90
+        int $timeout = 90000 // 90 seconds
     ) {
         $this->apiKey = $apiKey;
         $this->maxTokens = $maxTokens;

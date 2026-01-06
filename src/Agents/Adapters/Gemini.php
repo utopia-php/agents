@@ -83,7 +83,7 @@ class Gemini extends Adapter
         int $maxTokens = 1024,
         float $temperature = 1.0,
         ?string $endpoint = null,
-        int $timeout = 90
+        int $timeout = 90000 // 90 seconds
     ) {
         $this->apiKey = $apiKey;
         $this->maxTokens = $maxTokens;
