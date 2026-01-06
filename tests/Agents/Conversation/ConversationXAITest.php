@@ -12,7 +12,7 @@ class ConversationXAITest extends ConversationBase
         $apiKey = getenv('LLM_KEY_XAI');
 
         if ($apiKey === false || empty($apiKey)) {
-            throw new \RuntimeException('LLM_KEY_XAI environment variable is not set');
+            throw new \RuntimeException('LLM_KEY_XAI environment variable is not set - test');
         }
 
         return new XAI(
