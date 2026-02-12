@@ -92,7 +92,7 @@ class Anthropic extends Adapter
         string $model = self::MODEL_CLAUDE_3_HAIKU,
         int $maxTokens = 1024,
         float $temperature = 1.0,
-        int $timeout = 90
+        int $timeout = 90000
     ) {
         $this->apiKey = $apiKey;
         $this->maxTokens = $maxTokens;
