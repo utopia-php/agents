@@ -37,7 +37,7 @@ class Ollama extends Adapter
      */
     public function __construct(
         string $model = self::MODEL_EMBEDDING_GEMMA,
-        int $timeout = 90
+        int $timeout = 90000
     ) {
         if (! in_array($model, self::MODELS, true)) {
             throw new \InvalidArgumentException("Invalid model: {$model}. Supported models: ".implode(', ', self::MODELS));

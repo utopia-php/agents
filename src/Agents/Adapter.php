@@ -40,11 +40,11 @@ abstract class Adapter
     protected int $cacheReadInputTokens = 0;
 
     /**
-     * Request timeout in seconds
+     * Request timeout in milliseconds
      *
      * @var int
      */
-    protected int $timeout = 90;
+    protected int $timeout = 90000;
 
     /**
      * Get the adapter name
@@ -252,7 +252,7 @@ abstract class Adapter
     }
 
     /**
-     * Set timeout in seconds
+     * Set timeout in milliseconds
      *
      * @param  int  $timeout
      * @return self
@@ -265,7 +265,7 @@ abstract class Adapter
     }
 
     /**
-     * Get timeout in seconds
+     * Get timeout in milliseconds
      *
      * @return int
      */

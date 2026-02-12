@@ -39,7 +39,7 @@ class XAI extends OpenAI
         int $maxTokens = 1024,
         float $temperature = 1.0,
         ?string $endpoint = null,
-        int $timeout = 90
+        int $timeout = 90000
     ) {
         parent::__construct(
             $apiKey,
