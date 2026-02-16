@@ -144,14 +144,15 @@ use Utopia\Agents\Adapters\XAI;
 
 $xai = new XAI(
     apiKey: 'your-api-key',
-    model: XAI::MODEL_GROK_2_LATEST,
+    model: XAI::MODEL_GROK_3_MINI,
     maxTokens: 2048,
     temperature: 0.7
 );
 ```
 
 Available XAI Models:
-- `MODEL_GROK_2_LATEST`: Latest Grok model
+- `MODEL_GROK_3`: Latest Grok model
+- `MODEL_GROK_3_MINI`: Mini version of Grok model
 - `MODEL_GROK_2_IMAGE`: Latest Grok model with image support
 
 ### Managing Conversations
