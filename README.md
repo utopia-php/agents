@@ -70,6 +70,7 @@ $openai = new OpenAI(
 ```
 
 Available OpenAI Models:
+- `MODEL_GPT_5_NANO`: GPT-5 Nano - Small GPT-5 variant optimized for low latency and cost-sensitive workloads
 - `MODEL_GPT_4_5_PREVIEW`: GPT-4.5 Preview - OpenAI's most advanced model with enhanced reasoning, broader knowledge, and improved instruction following
 - `MODEL_GPT_4_1`: GPT-4.1 - Advanced large language model with strong reasoning capabilities and improved context handling
 - `MODEL_GPT_4O`: GPT-4o - Multimodal model optimized for both text and image processing with faster response times
