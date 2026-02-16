@@ -70,6 +70,7 @@ $openai = new OpenAI(
 ```
 
 Available OpenAI Models:
+- `MODEL_GPT_5_NANO`: GPT-5 Nano - Small GPT-5 variant optimized for low latency and cost-sensitive workloads
 - `MODEL_GPT_4_5_PREVIEW`: GPT-4.5 Preview - OpenAI's most advanced model with enhanced reasoning, broader knowledge, and improved instruction following
 - `MODEL_GPT_4_1`: GPT-4.1 - Advanced large language model with strong reasoning capabilities and improved context handling
 - `MODEL_GPT_4O`: GPT-4o - Multimodal model optimized for both text and image processing with faster response times
@@ -143,14 +144,15 @@ use Utopia\Agents\Adapters\XAI;
 
 $xai = new XAI(
     apiKey: 'your-api-key',
-    model: XAI::MODEL_GROK_2_LATEST,
+    model: XAI::MODEL_GROK_3_MINI,
     maxTokens: 2048,
     temperature: 0.7
 );
 ```
 
 Available XAI Models:
-- `MODEL_GROK_2_LATEST`: Latest Grok model
+- `MODEL_GROK_3`: Latest Grok model
+- `MODEL_GROK_3_MINI`: Mini version of Grok model
 - `MODEL_GROK_2_IMAGE`: Latest Grok model with image support
 
 ### Managing Conversations

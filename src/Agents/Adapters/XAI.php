@@ -12,14 +12,19 @@ class XAI extends OpenAI
     protected const ENDPOINT = 'https://api.x.ai/v1/chat/completions';
 
     /**
-     * Grok 2 Latest - Latest Grok model
+     * Grok 3 - Latest Grok model
      */
-    public const MODEL_GROK_2_LATEST = 'grok-2-latest';
+    public const MODEL_GROK_3 = 'grok-3';
+
+    /**
+     * Grok 3 Mini - Mini version of grok 3
+     */
+    public const MODEL_GROK_3_MINI = 'grok-3-mini';
 
     /**
      * Grok 2 Image - Latest Grok model with image support
      */
-    public const MODEL_GROK_2_IMAGE = 'grok-2-image';
+    public const MODEL_GROK_2_IMAGE = 'grok-2-image-1212';
 
     /**
      * Create a new XAI adapter
@@ -35,7 +40,7 @@ class XAI extends OpenAI
      */
     public function __construct(
         string $apiKey,
-        string $model = self::MODEL_GROK_2_LATEST,
+        string $model = self::MODEL_GROK_3_MINI,
         int $maxTokens = 1024,
         float $temperature = 1.0,
         ?string $endpoint = null,
@@ -69,7 +74,8 @@ class XAI extends OpenAI
     public function getModels(): array
     {
         return [
-            self::MODEL_GROK_2_LATEST,
+            self::MODEL_GROK_3,
+            self::MODEL_GROK_3_MINI,
             self::MODEL_GROK_2_IMAGE,
         ];
     }

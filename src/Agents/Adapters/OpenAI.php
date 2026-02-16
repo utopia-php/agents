@@ -12,6 +12,11 @@ use Utopia\Fetch\Client;
 class OpenAI extends Adapter
 {
     /**
+     * GPT-5 Nano - Small GPT-5 variant optimized for low latency and cost-sensitive workloads
+     */
+    public const MODEL_GPT_5_NANO = 'gpt-5-nano';
+
+    /**
      * GPT-4.5 Preview - OpenAI's most advanced model with enhanced reasoning, broader knowledge, and improved instruction following
      */
     public const MODEL_GPT_4_5_PREVIEW = 'gpt-4.5-preview';
@@ -77,6 +82,11 @@ class OpenAI extends Adapter
     protected int $timeout;
 
     /**
+     * @var bool
+     */
+    protected bool $hasWarnedTemperatureOverride = false;
+
+    /**
      * Create a new OpenAI adapter
      *
      * @param  string  $apiKey
@@ -125,7 +135,8 @@ class OpenAI extends Adapter
      */
     public function send(array $messages, ?callable $listener = null): Message
     {
-        if ($this->getAgent() === null) {
+        $agent = $this->getAgent();
+        if ($agent === null) {
             throw new \Exception('Agent not set');
         }
 
@@ -147,11 +158,11 @@ class OpenAI extends Adapter
         }
 
         $instructions = [];
-        foreach ($this->getAgent()->getInstructions() as $name => $content) {
+        foreach ($agent->getInstructions() as $name => $content) {
             $instructions[] = '# '.$name."\n\n".$content;
         }
 
-        $systemMessage = $this->getAgent()->getDescription().
+        $systemMessage = $agent->getDescription().
             (empty($instructions) ? '' : "\n\n".implode("\n\n", $instructions));
 
         if (! empty($systemMessage)) {
@@ -164,10 +175,14 @@ class OpenAI extends Adapter
         $payload = [
             'model' => $this->model,
             'messages' => $formattedMessages,
-            'temperature' => $this->temperature,
         ];
+        $temperature = $this->temperature;
+        if ($this->usesDefaultTemperatureOnly()) {
+            $temperature = 1.0;
+        }
+        $payload['temperature'] = $temperature;
 
-        $schema = $this->getAgent()->getSchema();
+        $schema = $agent->getSchema();
         if ($schema !== null) {
             $payload['response_format'] = [
                 'type' => 'json_schema',
@@ -187,13 +202,7 @@ class OpenAI extends Adapter
             $payload['stream'] = true;
         }
 
-        // Use 'max_completion_tokens' for o-series models, else 'max_tokens'
-        $oSeriesModels = [
-            self::MODEL_O3,
-            self::MODEL_O3_MINI,
-            self::MODEL_O4_MINI,
-        ];
-        if (in_array($this->model, $oSeriesModels)) {
+        if ($this->usesMaxCompletionTokens()) {
             $payload['max_completion_tokens'] = $this->maxTokens;
         } else {
             $payload['max_tokens'] = $this->maxTokens;
@@ -306,6 +315,7 @@ class OpenAI extends Adapter
     public function getModels(): array
     {
         return [
+            self::MODEL_GPT_5_NANO,
             self::MODEL_GPT_4_5_PREVIEW,
             self::MODEL_GPT_4_1,
             self::MODEL_GPT_4O,
@@ -313,6 +323,40 @@ class OpenAI extends Adapter
             self::MODEL_O3,
             self::MODEL_O3_MINI,
         ];
+    }
+
+    /**
+     * OpenAI expects max_completion_tokens for these models.
+     */
+    protected function usesMaxCompletionTokens(): bool
+    {
+        return in_array($this->model, [
+            self::MODEL_GPT_5_NANO,
+            self::MODEL_O4_MINI,
+            self::MODEL_O3,
+            self::MODEL_O3_MINI,
+        ], true);
+    }
+
+    /**
+     * Some models only accept the default temperature (1).
+     */
+    protected function usesDefaultTemperatureOnly(): bool
+    {
+        $usesDefaultTemperatureOnly = in_array($this->model, [
+            self::MODEL_GPT_5_NANO,
+        ], true);
+
+        if ($usesDefaultTemperatureOnly && $this->temperature !== 1.0 && ! $this->hasWarnedTemperatureOverride) {
+            $this->hasWarnedTemperatureOverride = true;
+            error_log(
+                "OpenAI adapter warning: model '{$this->model}' only supports temperature=1.0. "
+                ."Overriding provided value {$this->temperature}. "
+                .'Set temperature to 1.0 to remove this warning.'
+            );
+        }
+
+        return $usesDefaultTemperatureOnly;
     }
 
     /**

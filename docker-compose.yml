@@ -10,12 +10,12 @@ services:
       - ./phpunit.xml:/usr/src/code/phpunit.xml
     environment:
       - TESTING=true
-      - LLM_KEY_ANTHROPIC=${LLM_KEY_ANTHROPIC}
-      - LLM_KEY_OPENAI=${LLM_KEY_OPENAI}
-      - LLM_KEY_DEEPSEEK=${LLM_KEY_DEEPSEEK}
-      - LLM_KEY_XAI=${LLM_KEY_XAI}
-      - LLM_KEY_PERPLEXITY=${LLM_KEY_PERPLEXITY}
-      - LLM_KEY_GEMINI=${LLM_KEY_GEMINI}
+      - LLM_KEY_ANTHROPIC=${LLM_KEY_ANTHROPIC:-}
+      - LLM_KEY_OPENAI=${LLM_KEY_OPENAI:-}
+      - LLM_KEY_DEEPSEEK=${LLM_KEY_DEEPSEEK:-}
+      - LLM_KEY_XAI=${LLM_KEY_XAI:-}
+      - LLM_KEY_PERPLEXITY=${LLM_KEY_PERPLEXITY:-}
+      - LLM_KEY_GEMINI=${LLM_KEY_GEMINI:-}
     depends_on:
       - ollama
     networks:
