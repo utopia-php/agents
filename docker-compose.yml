@@ -9,7 +9,6 @@ services:
       - ./tests:/usr/src/code/tests
       - ./phpunit.xml:/usr/src/code/phpunit.xml
     environment:
-      - TESTING=true
       - LLM_KEY_ANTHROPIC=${LLM_KEY_ANTHROPIC:-}
       - LLM_KEY_OPENAI=${LLM_KEY_OPENAI:-}
       - LLM_KEY_DEEPSEEK=${LLM_KEY_DEEPSEEK:-}
