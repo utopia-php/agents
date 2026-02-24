@@ -62,12 +62,10 @@ class SchemaObject
     /**
      * Add a property to the object
      *
-     * @param  string  $name - name of the property
-     * @param  array<string, mixed>  $property - property definition (must be defined in JSON Schema format)
+     * @param  string  $name  - name of the property
+     * @param  array<string, mixed>  $property  - property definition (must be defined in JSON Schema format)
      *
      * @link https://json-schema.org/understanding-json-schema/reference/object#properties
-     *
-     * @return self
      */
     public function addProperty(string $name, array $property): self
     {
@@ -99,9 +97,8 @@ class SchemaObject
     /**
      * Validate a property
      *
-     * @param  string  $name - name of the property
-     * @param  array<string, mixed>  $property - property definition (must be defined in JSON Schema format)
-     * @return bool
+     * @param  string  $name  - name of the property
+     * @param  array<string, mixed>  $property  - property definition (must be defined in JSON Schema format)
      */
     public function validateProperty(string $name, array $property): bool
     {

@@ -29,12 +29,6 @@ class XAI extends OpenAI
     /**
      * Create a new XAI adapter
      *
-     * @param  string  $apiKey
-     * @param  string  $model
-     * @param  int  $maxTokens
-     * @param  float  $temperature
-     * @param  string|null  $endpoint
-     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -58,8 +52,6 @@ class XAI extends OpenAI
 
     /**
      * Check if the model supports JSON schema
-     *
-     * @return bool
      */
     public function isSchemaSupported(): bool
     {
@@ -82,8 +74,6 @@ class XAI extends OpenAI
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -92,8 +82,6 @@ class XAI extends OpenAI
 
     /**
      * Get support for embeddings
-     *
-     * @return bool
      */
     public function getSupportForEmbeddings(): bool
     {
@@ -103,9 +91,6 @@ class XAI extends OpenAI
     /**
      * Process a stream chunk from the OpenAI API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
-     * @param  callable|null  $listener
-     * @return string
      *
      * @throws \Exception
      */
@@ -140,8 +125,11 @@ class XAI extends OpenAI
             }
 
             // Extract content from the choices array
-            if (isset($json['choices'][0]['delta']['content'])) {
-                $block = $json['choices'][0]['delta']['content'];
+            $choices = isset($json['choices']) && is_array($json['choices']) ? $json['choices'] : [];
+            $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
+            $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
+            if (isset($delta['content']) && is_string($delta['content'])) {
+                $block = $delta['content'];
 
                 if (! empty($block) && $listener !== null) {
                     $listener($block);
@@ -156,7 +144,6 @@ class XAI extends OpenAI
      * Extract and format error information from API response
      *
      * @param  mixed  $json
-     * @return string
      */
     protected function formatErrorMessage($json): string
     {
@@ -164,14 +151,14 @@ class XAI extends OpenAI
             return '(unknown_error) Unknown error';
         }
 
-        $errorType = isset($json['code']) ? (string) $json['code'] : 'unknown_error';
-        $errorMessage = isset($json['error']) ? (string) $json['error'] : 'Unknown error';
+        /** @var array<string, mixed> $json */
+        $errorType = isset($json['code']) && is_scalar($json['code']) ? (string) $json['code'] : 'unknown_error';
+        $errorMessage = isset($json['error']) && is_string($json['error']) ? $json['error'] : 'Unknown error';
 
         return '('.$errorType.') '.$errorMessage;
     }
 
     /**
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,

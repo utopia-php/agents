@@ -56,7 +56,6 @@ class SchemaTest extends TestCase
     public function testToJson(): void
     {
         $json = $this->schema->toJson();
-        $this->assertIsString($json);
 
         $jsonArray = json_decode($json, true);
         $this->assertIsArray($jsonArray);

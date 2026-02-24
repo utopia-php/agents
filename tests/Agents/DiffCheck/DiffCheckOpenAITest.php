@@ -52,7 +52,7 @@ class DiffCheckOpenAITest extends TestCase
         $adapter = new OpenAI(
             apiKey: $apiKey,
             model: OpenAI::MODEL_GPT_5_NANO,
-            maxTokens: 1024,
+            maxTokens: 2048,
             temperature: 1.0
         );
 
@@ -68,12 +68,12 @@ class DiffCheckOpenAITest extends TestCase
             required: $schemaObject->getNames()
         );
 
-        $options = (new Options())
+        $options = (new Options)
             ->setSchema($schema)
             ->setExcludePaths(['.github'])
             ->setDescription('You analyze code diffs and return concise structured output.');
 
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $adapter,
             base: $base,
             target: $target,
@@ -82,8 +82,7 @@ class DiffCheckOpenAITest extends TestCase
         );
 
         $this->assertTrue($result['hasChanges']);
-        $this->assertIsString($result['response']);
-        $this->assertNotSame('', trim($result['response']));
+        $this->assertNotSame('', trim($result['response']), 'Response was empty. Raw response: '.var_export($result['response'], true));
 
         $decoded = json_decode($result['response'], true);
         $this->assertIsArray($decoded);

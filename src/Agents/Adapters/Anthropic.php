@@ -5,7 +5,6 @@ namespace Utopia\Agents\Adapters;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
 use Utopia\Agents\Messages\Text;
-use Utopia\Agents\Schema;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
@@ -56,34 +55,17 @@ class Anthropic extends Adapter
      */
     private const CACHE_LIMIT = 4;
 
-    /**
-     * @var string
-     */
     protected string $apiKey;
 
-    /**
-     * @var string
-     */
     protected string $model;
 
-    /**
-     * @var int
-     */
     protected int $maxTokens;
 
-    /**
-     * @var float
-     */
     protected float $temperature;
 
     /**
      * Create a new Anthropic adapter
      *
-     * @param  string  $apiKey
-     * @param  string  $model
-     * @param  int  $maxTokens
-     * @param  float  $temperature
-     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -103,8 +85,6 @@ class Anthropic extends Adapter
 
     /**
      * Check if the model supports JSON schema
-     *
-     * @return bool
      */
     public function isSchemaSupported(): bool
     {
@@ -115,8 +95,6 @@ class Anthropic extends Adapter
      * Send a message to the Anthropic API
      *
      * @param  array<Message>  $messages
-     * @param  callable|null  $listener
-     * @return Message
      *
      * @throws \Exception
      */
@@ -146,9 +124,10 @@ class Anthropic extends Adapter
 
         $cacheControlCount = ! empty($this->getAgent()->getDescription()) ? 1 : 0;
         foreach ($this->getAgent()->getInstructions() as $name => $content) {
+            $text = is_array($content) ? implode("\n", $content) : $content;
             $message = [
                 'type' => 'text',
-                'text' => '# '.$name."\n\n".$content,
+                'text' => '# '.$name."\n\n".$text,
             ];
 
             if ($cacheControlCount < self::CACHE_LIMIT) {
@@ -207,6 +186,7 @@ class Anthropic extends Adapter
                 $payload,
                 [],
                 function ($chunk) use (&$content, $listener) {
+                    /** @var Chunk $chunk */
                     $content .= $this->process($chunk, $listener);
                 }
             );
@@ -239,24 +219,20 @@ class Anthropic extends Adapter
         $json = is_string($body) ? json_decode($body, true) : null;
 
         $text = '';
-        if (is_array($json) && $schema !== null) {
+        if (is_array($json)) {
             $content = $json['content'] ?? null;
             if (is_array($content) && isset($content[0])) {
                 $item = $content[0];
                 if (is_array($item) &&
                     isset($item['type']) && $item['type'] === 'tool_use' &&
                     isset($item['name']) && $item['name'] === $schema->getName()) {
-                    $text = $item['input'];
+                    $text = is_string($item['input']) ? $item['input'] : (json_encode($item['input']) ?: '');
                 }
             }
         }
 
         if ($text === '') {
-            $text = is_string($body) ? $body : (is_array($json) ? json_encode($json) : '');
-        }
-
-        if (is_array($text)) {
-            $text = json_encode($text);
+            $text = is_string($body) ? $body : (is_array($json) ? (json_encode($json) ?: '') : '');
         }
 
         return new Text($text);
@@ -265,9 +241,6 @@ class Anthropic extends Adapter
     /**
      * Process a stream chunk from the Anthropic API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
-     * @param  callable|null  $listener
-     * @return string
      *
      * @throws \Exception
      */
@@ -297,7 +270,7 @@ class Anthropic extends Adapter
 
             switch ($type) {
                 case 'message_start':
-                    if (isset($json['message']['usage'])) {
+                    if (isset($json['message']) && is_array($json['message']) && isset($json['message']['usage']) && is_array($json['message']['usage'])) {
                         $usage = $json['message']['usage'];
                         if (isset($usage['input_tokens']) && is_int($usage['input_tokens'])) {
                             $this->countInputTokens($usage['input_tokens']);
@@ -319,7 +292,7 @@ class Anthropic extends Adapter
                     break;
 
                 case 'content_block_delta':
-                    if (! isset($json['delta']['type'])) {
+                    if (! isset($json['delta']) || ! is_array($json['delta']) || ! isset($json['delta']['type'])) {
                         break;
                     }
 
@@ -341,7 +314,7 @@ class Anthropic extends Adapter
                     break;
 
                 case 'message_delta':
-                    if (isset($json['usage'])) {
+                    if (isset($json['usage']) && is_array($json['usage'])) {
                         $usage = $json['usage'];
                         if (isset($usage['input_tokens']) && is_int($usage['input_tokens'])) {
                             $this->countInputTokens($usage['input_tokens']);
@@ -383,8 +356,6 @@ class Anthropic extends Adapter
 
     /**
      * Get current model
-     *
-     * @return string
      */
     public function getModel(): string
     {
@@ -393,9 +364,6 @@ class Anthropic extends Adapter
 
     /**
      * Set model to use
-     *
-     * @param  string  $model
-     * @return self
      */
     public function setModel(string $model): self
     {
@@ -406,9 +374,6 @@ class Anthropic extends Adapter
 
     /**
      * Set max tokens
-     *
-     * @param  int  $maxTokens
-     * @return self
      */
     public function setMaxTokens(int $maxTokens): self
     {
@@ -419,9 +384,6 @@ class Anthropic extends Adapter
 
     /**
      * Set temperature
-     *
-     * @param  float  $temperature
-     * @return self
      */
     public function setTemperature(float $temperature): self
     {
@@ -432,8 +394,6 @@ class Anthropic extends Adapter
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -444,7 +404,6 @@ class Anthropic extends Adapter
      * Extract and format error information from API response
      *
      * @param  mixed  $json
-     * @return string
      */
     protected function formatErrorMessage($json): string
     {
@@ -452,8 +411,9 @@ class Anthropic extends Adapter
             return '(unknown_error) Unknown error';
         }
 
-        $errorType = isset($json['error']['type']) ? (string) $json['error']['type'] : 'unknown_error';
-        $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
+        $error = isset($json['error']) && is_array($json['error']) ? $json['error'] : [];
+        $errorType = isset($error['type']) && \is_string($error['type']) ? $error['type'] : 'unknown_error';
+        $errorMessage = isset($error['message']) && \is_string($error['message']) ? $error['message'] : 'Unknown error';
 
         return '('.$errorType.') '.$errorMessage;
     }
@@ -464,7 +424,6 @@ class Anthropic extends Adapter
     }
 
     /**
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,

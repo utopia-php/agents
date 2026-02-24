@@ -21,10 +21,10 @@ class Schema
     protected array $required;
 
     /**
-     * @param  string  $name - name of the schema
-     * @param  string  $description - description of the schema
-     * @param  SchemaObject  $object a Schema object
-     * @param  array<int, string>  $required - array of required properties
+     * @param  string  $name  - name of the schema
+     * @param  string  $description  - description of the schema
+     * @param  SchemaObject  $object  a Schema object
+     * @param  array<int, string>  $required  - array of required properties
      */
     public function __construct(
         string $name,
@@ -48,9 +48,6 @@ class Schema
         return $this->description;
     }
 
-    /**
-     * @return SchemaObject
-     */
     public function getObject(): SchemaObject
     {
         return $this->object;
@@ -74,15 +71,13 @@ class Schema
 
     /**
      * Convert the schema parameters to a simple JSON string
-     *
-     * @return string
      */
     public function toJson(): string
     {
         $json = [];
         foreach ($this->object->getProperties() as $property => $value) {
-            $description = $value['description'] ?? '';
-            $type = $value['type'] ?? '';
+            $description = isset($value['description']) && \is_string($value['description']) ? $value['description'] : '';
+            $type = isset($value['type']) && \is_string($value['type']) ? $value['type'] : '';
             $json[$property] = $description.' ('.$type.')';
         }
 

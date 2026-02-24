@@ -24,15 +24,11 @@ abstract class ConversationBase extends TestCase
     /**
      * Abstract method to be implemented by child classes
      * to specify the specific Adapter
-     *
-     * @return Adapter
      */
     abstract protected function createAdapter(): Adapter;
 
     /**
      * Optional method to customize agent description
-     *
-     * @return string
      */
     protected function getAgentDescription(): string
     {
@@ -59,7 +55,6 @@ abstract class ConversationBase extends TestCase
         $this->assertSame(0, $this->conversation->getInputTokens());
         $this->assertSame(0, $this->conversation->getOutputTokens());
         $this->assertSame(0, $this->conversation->getTotalTokens());
-        $this->assertIsCallable($this->conversation->getListener());
     }
 
     public function testMessage(): void
@@ -106,7 +101,6 @@ abstract class ConversationBase extends TestCase
             ->message(new User('user-1', 'Test User'), new Text('Hello'))
             ->send();
 
-        $this->assertNotEmpty($messages);
         $this->assertInstanceOf(Text::class, $messages);
 
         // Verify the response was added to conversation
@@ -151,7 +145,6 @@ abstract class ConversationBase extends TestCase
             ->send();
 
         $content = $messages->getContent();
-        $this->assertIsString($content, 'Message content must be a string');
 
         $json = json_decode($content, true);
         $this->assertNotNull($json, 'JSON decoding failed');

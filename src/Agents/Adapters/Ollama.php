@@ -13,9 +13,6 @@ class Ollama extends Adapter
      */
     public const MODEL_EMBEDDING_GEMMA = 'embeddinggemma';
 
-    /**
-     * @var string
-     */
     protected string $model;
 
     private string $endpoint = 'http://ollama:11434/api/embed';
@@ -31,9 +28,6 @@ class Ollama extends Adapter
 
     /**
      * Create a new Ollama adapter (no API key required for local call)
-     *
-     * @param  string  $model
-     * @param  int  $timeout
      */
     public function __construct(
         string $model = self::MODEL_EMBEDDING_GEMMA,
@@ -50,7 +44,6 @@ class Ollama extends Adapter
     /**
      * Embedding generation (Ollama only supports embeddings, not chat)
      *
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,
@@ -82,15 +75,19 @@ class Ollama extends Adapter
         }
 
         if (isset($json['error'])) {
-            throw new \Exception($json['error'], $response->getStatusCode());
+            throw new \Exception(is_string($json['error']) ? $json['error'] : 'Unknown error', $response->getStatusCode());
         }
 
         // totalDuration is entire duration including the modelLoadingDuration
+        $embeddings = isset($json['embeddings']) && is_array($json['embeddings']) ? $json['embeddings'] : [];
+        /** @var array<int, float> $firstEmbedding */
+        $firstEmbedding = isset($embeddings[0]) && is_array($embeddings[0]) ? $embeddings[0] : [];
+
         return [
-            'embedding' => $json['embeddings'][0] ?? [],
-            'tokensProcessed' => $json['prompt_eval_count'] ?? null,
-            'totalDuration' => $json['total_duration'] ?? null,
-            'modelLoadingDuration' => $json['load_duration'] ?? null,
+            'embedding' => $firstEmbedding,
+            'tokensProcessed' => isset($json['prompt_eval_count']) && is_int($json['prompt_eval_count']) ? $json['prompt_eval_count'] : null,
+            'totalDuration' => isset($json['total_duration']) && is_int($json['total_duration']) ? $json['total_duration'] : null,
+            'modelLoadingDuration' => isset($json['load_duration']) && is_int($json['load_duration']) ? $json['load_duration'] : null,
         ];
     }
 
@@ -106,8 +103,6 @@ class Ollama extends Adapter
 
     /**
      * Get currently selected embedding model
-     *
-     * @return string
      */
     public function getModel(): string
     {
@@ -124,9 +119,6 @@ class Ollama extends Adapter
 
     /**
      * Set model to use for embedding
-     *
-     * @param  string  $model
-     * @return self
      */
     public function setModel(string $model): self
     {
@@ -142,7 +134,6 @@ class Ollama extends Adapter
      * Not applicable for embedding-only adapters.
      *
      * @param  array<\Utopia\Agents\Message>  $messages
-     * @param  callable|null  $listener
      *
      * @throws \Exception
      */
@@ -153,8 +144,6 @@ class Ollama extends Adapter
 
     /**
      * Embeddings do not support schema.
-     *
-     * @return bool
      */
     public function isSchemaSupported(): bool
     {
@@ -163,8 +152,6 @@ class Ollama extends Adapter
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -175,7 +162,6 @@ class Ollama extends Adapter
      * Error formatter (minimal)
      *
      * @param  mixed  $json
-     * @return string
      */
     protected function formatErrorMessage($json): string
     {
@@ -183,13 +169,13 @@ class Ollama extends Adapter
             return '(unknown_error) Unknown error';
         }
 
-        return $json['error'] ?? ($json['message'] ?? 'Unknown error');
+        $errorValue = $json['error'] ?? ($json['message'] ?? 'Unknown error');
+
+        return is_string($errorValue) ? $errorValue : 'Unknown error';
     }
 
     /**
      * Get the API endpoint
-     *
-     * @return string
      */
     public function getEndpoint(): string
     {
@@ -198,9 +184,6 @@ class Ollama extends Adapter
 
     /**
      * Set the API endpoint
-     *
-     * @param  string  $endpoint
-     * @return self
      */
     public function setEndpoint(string $endpoint): self
     {

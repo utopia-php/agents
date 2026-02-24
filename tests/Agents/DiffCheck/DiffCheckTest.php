@@ -40,12 +40,12 @@ class DiffCheckTest extends TestCase
         ]);
 
         $adapter = new FakeAdapter('should-not-be-called');
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $adapter,
             base: $base,
             target: $target,
             prompt: 'Analyze this diff: {{diff}}',
-            options: new Options()
+            options: new Options
         );
 
         $this->assertFalse($result['hasChanges']);
@@ -63,12 +63,12 @@ class DiffCheckTest extends TestCase
         ]);
 
         $adapter = new FakeAdapter('{"version":"1.2.3"}');
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $adapter,
             base: $base,
             target: $target,
             prompt: 'Please inspect:\n{{diff}}',
-            options: new Options()
+            options: new Options
         );
 
         $this->assertTrue($result['hasChanges']);
@@ -93,12 +93,12 @@ class DiffCheckTest extends TestCase
             'description' => 'Return the raw result',
         ]);
 
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $agent,
             base: $base,
             target: $target,
             prompt: 'Analyze: {{diff}}',
-            options: new Options()
+            options: new Options
         );
 
         $this->assertTrue($result['hasChanges']);
@@ -123,10 +123,10 @@ class DiffCheckTest extends TestCase
         ]);
 
         $adapter = new FakeAdapter('ok');
-        $options = (new Options())
+        $options = (new Options)
             ->setMaxDiffLines(8);
 
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $adapter,
             base: $base,
             target: $target,
@@ -152,10 +152,10 @@ class DiffCheckTest extends TestCase
         ]);
 
         $adapter = new FakeAdapter('should-not-run');
-        $options = (new Options())
+        $options = (new Options)
             ->setExcludePaths(['.github']);
 
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $adapter,
             base: $base,
             target: $target,

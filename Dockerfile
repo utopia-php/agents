@@ -1,10 +1,10 @@
-FROM composer:2.0 AS composer
+FROM composer:2 AS composer
 
 WORKDIR /usr/local/src/
 COPY composer.lock /usr/local/src/
 COPY composer.json /usr/local/src/
 
-RUN composer update \
+RUN composer install \
     --ignore-platform-reqs \
     --optimize-autoloader \
     --no-plugins \
