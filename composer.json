@@ -33,6 +33,6 @@
     "require-dev": {
         "laravel/pint": "^1.18",
         "phpstan/phpstan": "^2.0",
-        "phpunit/phpunit": "^9.3"
+        "phpunit/phpunit": "^12.0"
     }
 }
