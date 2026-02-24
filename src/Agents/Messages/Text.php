@@ -8,9 +8,6 @@ class Text extends Message
 {
     /**
      * Create a new text message
-     *
-     * @param  string  $content
-     * @param  string|null  $role
      */
     public function __construct(string $content, ?string $role = null)
     {
@@ -19,8 +16,6 @@ class Text extends Message
 
     /**
      * Get the message content
-     *
-     * @return string
      */
     public function getContent(): string
     {

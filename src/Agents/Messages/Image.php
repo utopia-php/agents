@@ -9,8 +9,7 @@ class Image extends Message
     /**
      * Create a new image message
      *
-     * @param  string  $content Binary content of the image
-     * @param  string|null  $role
+     * @param  string  $content  Binary content of the image
      */
     public function __construct(string $content, ?string $role = null)
     {
@@ -29,8 +28,6 @@ class Image extends Message
 
     /**
      * Get the MIME type of the image
-     *
-     * @return string|null
      */
     public function getMimeType(): ?string
     {

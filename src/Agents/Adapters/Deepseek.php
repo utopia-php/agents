@@ -20,39 +20,19 @@ class Deepseek extends Adapter
      */
     public const MODEL_DEEPSEEK_CODER = 'deepseek-coder';
 
-    /**
-     * @var string
-     */
     protected string $apiKey;
 
-    /**
-     * @var string
-     */
     protected string $model;
 
-    /**
-     * @var int
-     */
     protected int $maxTokens;
 
-    /**
-     * @var float
-     */
     protected float $temperature;
 
-    /**
-     * @var int
-     */
     protected int $timeout;
 
     /**
      * Create a new Deepseek adapter
      *
-     * @param  string  $apiKey
-     * @param  string  $model
-     * @param  int  $maxTokens
-     * @param  float  $temperature
-     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -72,8 +52,6 @@ class Deepseek extends Adapter
 
     /**
      * Check if the model supports JSON schema
-     *
-     * @return bool
      */
     public function isSchemaSupported(): bool
     {
@@ -84,8 +62,6 @@ class Deepseek extends Adapter
      * Send a message to the Deepseek API
      *
      * @param  array<Message>  $messages
-     * @param  callable|null  $listener
-     * @return Message
      *
      * @throws \Exception
      */
@@ -95,7 +71,7 @@ class Deepseek extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new Client();
+        $client = new Client;
         $client
             ->setTimeout($this->timeout)
             ->addHeader('authorization', 'Bearer '.$this->apiKey)
@@ -113,7 +89,8 @@ class Deepseek extends Adapter
 
         $instructions = [];
         foreach ($this->getAgent()->getInstructions() as $name => $content) {
-            $instructions[] = '# '.$name."\n\n".$content;
+            $text = is_array($content) ? implode("\n", $content) : $content;
+            $instructions[] = '# '.$name."\n\n".$text;
         }
 
         $systemMessage = $this->getAgent()->getDescription().
@@ -152,6 +129,7 @@ class Deepseek extends Adapter
             $payload,
             [],
             function ($chunk) use (&$content, $listener) {
+                /** @var Chunk $chunk */
                 $content .= $this->process($chunk, $listener);
             }
         );
@@ -169,9 +147,6 @@ class Deepseek extends Adapter
     /**
      * Process a stream chunk from the Deepseek API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
-     * @param  callable|null  $listener
-     * @return string
      *
      * @throws \Exception
      */
@@ -205,22 +180,26 @@ class Deepseek extends Adapter
                 continue;
             }
 
-            if (isset($json['choices'][0]['delta']['content'])) {
-                $delta = $json['choices'][0]['delta']['content'];
-                if (! empty($delta)) {
-                    $block .= $delta;
+            $choices = isset($json['choices']) && is_array($json['choices']) ? $json['choices'] : [];
+            $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
+            $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
+            if (isset($delta['content']) && is_string($delta['content'])) {
+                $deltaContent = $delta['content'];
+                if (! empty($deltaContent)) {
+                    $block .= $deltaContent;
                     if ($listener !== null) {
-                        $listener($delta);
+                        $listener($deltaContent);
                     }
                 }
             }
 
-            if (isset($json['usage'])) {
-                if (isset($json['usage']['prompt_tokens'])) {
-                    $this->countInputTokens($json['usage']['prompt_tokens']);
+            if (isset($json['usage']) && is_array($json['usage'])) {
+                $usage = $json['usage'];
+                if (isset($usage['prompt_tokens']) && is_int($usage['prompt_tokens'])) {
+                    $this->countInputTokens($usage['prompt_tokens']);
                 }
-                if (isset($json['usage']['completion_tokens'])) {
-                    $this->countOutputTokens($json['usage']['completion_tokens']);
+                if (isset($usage['completion_tokens']) && is_int($usage['completion_tokens'])) {
+                    $this->countOutputTokens($usage['completion_tokens']);
                 }
             }
         }
@@ -243,8 +222,6 @@ class Deepseek extends Adapter
 
     /**
      * Get current model
-     *
-     * @return string
      */
     public function getModel(): string
     {
@@ -253,9 +230,6 @@ class Deepseek extends Adapter
 
     /**
      * Set model to use
-     *
-     * @param  string  $model
-     * @return self
      */
     public function setModel(string $model): self
     {
@@ -266,9 +240,6 @@ class Deepseek extends Adapter
 
     /**
      * Set max tokens
-     *
-     * @param  int  $maxTokens
-     * @return self
      */
     public function setMaxTokens(int $maxTokens): self
     {
@@ -279,9 +250,6 @@ class Deepseek extends Adapter
 
     /**
      * Set temperature
-     *
-     * @param  float  $temperature
-     * @return self
      */
     public function setTemperature(float $temperature): self
     {
@@ -292,8 +260,6 @@ class Deepseek extends Adapter
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -304,7 +270,6 @@ class Deepseek extends Adapter
      * Extract and format error information from API response
      *
      * @param  mixed  $json
-     * @return string
      */
     protected function formatErrorMessage($json): string
     {
@@ -312,8 +277,9 @@ class Deepseek extends Adapter
             return '(unknown_error) Unknown error';
         }
 
-        $errorType = isset($json['error']['type']) ? (string) $json['error']['type'] : 'unknown_error';
-        $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
+        $error = isset($json['error']) && is_array($json['error']) ? $json['error'] : [];
+        $errorType = isset($error['type']) && is_string($error['type']) ? $error['type'] : 'unknown_error';
+        $errorMessage = isset($error['message']) && is_string($error['message']) ? $error['message'] : 'Unknown error';
 
         return '('.$errorType.') '.$errorMessage;
     }
@@ -324,7 +290,6 @@ class Deepseek extends Adapter
     }
 
     /**
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,

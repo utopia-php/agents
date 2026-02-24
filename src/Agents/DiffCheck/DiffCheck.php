@@ -11,11 +11,10 @@ use Utopia\Agents\Roles\User;
 class DiffCheck
 {
     /**
-     * @param  Agent|Adapter  $runner Agent (preconfigured) or Adapter (wrapped into a new Agent)
-     * @param  Repository|string  $base Local path or remote URL
-     * @param  Repository|string  $target Local path or remote URL
-     * @param  string  $prompt User prompt. Supports placeholders: {{diff}}, {{base}}, {{target}}, {{diff_stats}}
-     * @param  Options|null  $options
+     * @param  Agent|Adapter  $runner  Agent (preconfigured) or Adapter (wrapped into a new Agent)
+     * @param  Repository|string  $base  Local path or remote URL
+     * @param  Repository|string  $target  Local path or remote URL
+     * @param  string  $prompt  User prompt. Supports placeholders: {{diff}}, {{base}}, {{target}}, {{diff_stats}}
      * @return array{hasChanges: bool, response: string}
      */
     public function run(
@@ -25,7 +24,7 @@ class DiffCheck
         string $prompt,
         ?Options $options = null
     ): array {
-        $options ??= new Options();
+        $options ??= new Options;
         $baseRepo = Repository::from($base);
         $targetRepo = Repository::from($target);
 

@@ -26,7 +26,7 @@ class ImageTest extends TestCase
         $this->gifImageData = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
     }
 
-    public function testConstructor(): void
+    public function test_constructor(): void
     {
         $message = new Image($this->pngImageData);
 
@@ -34,7 +34,7 @@ class ImageTest extends TestCase
         $this->assertInstanceOf(Image::class, $message);
     }
 
-    public function testGetContent(): void
+    public function test_get_content(): void
     {
         $message = new Image($this->pngImageData);
 
@@ -42,28 +42,28 @@ class ImageTest extends TestCase
         $this->assertIsString($message->getContent());
     }
 
-    public function testGetMimeTypePNG(): void
+    public function test_get_mime_type_png(): void
     {
         $message = new Image($this->pngImageData);
 
         $this->assertSame('image/png', $message->getMimeType());
     }
 
-    public function testGetMimeTypeJPEG(): void
+    public function test_get_mime_type_jpeg(): void
     {
         $message = new Image($this->jpegImageData);
 
         $this->assertSame('image/jpeg', $message->getMimeType());
     }
 
-    public function testGetMimeTypeGIF(): void
+    public function test_get_mime_type_gif(): void
     {
         $message = new Image($this->gifImageData);
 
         $this->assertSame('image/gif', $message->getMimeType());
     }
 
-    public function testEmptyContent(): void
+    public function test_empty_content(): void
     {
         $message = new Image('');
 
@@ -71,7 +71,7 @@ class ImageTest extends TestCase
         $this->assertNull($message->getMimeType());
     }
 
-    public function testInvalidImageData(): void
+    public function test_invalid_image_data(): void
     {
         $message = new Image('not an image');
 

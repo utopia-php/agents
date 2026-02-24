@@ -35,45 +35,21 @@ class Gemini extends Adapter
      */
     public const MODEL_GEMINI_1_5_PRO = 'gemini-1.5-pro';
 
-    /**
-     * @var string
-     */
     protected string $apiKey;
 
-    /**
-     * @var string
-     */
     protected string $model;
 
-    /**
-     * @var int
-     */
     protected int $maxTokens;
 
-    /**
-     * @var float
-     */
     protected float $temperature;
 
-    /**
-     * @var string
-     */
     protected string $endpoint;
 
-    /**
-     * @var int
-     */
     protected int $timeout;
 
     /**
      * Create a new Gemini adapter
      *
-     * @param  string  $apiKey
-     * @param  string  $model
-     * @param  int  $maxTokens
-     * @param  float  $temperature
-     * @param  string|null  $endpoint
-     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -95,8 +71,6 @@ class Gemini extends Adapter
 
     /**
      * Check if the model supports JSON schema
-     *
-     * @return bool
      */
     public function isSchemaSupported(): bool
     {
@@ -107,8 +81,6 @@ class Gemini extends Adapter
      * Send a message to the API
      *
      * @param  array<Message>  $messages
-     * @param  callable|null  $listener
-     * @return Message
      *
      * @throws \Exception
      */
@@ -118,7 +90,7 @@ class Gemini extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new Client();
+        $client = new Client;
         $client
             ->setTimeout($this->timeout)
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
@@ -129,8 +101,9 @@ class Gemini extends Adapter
         ];
 
         foreach ($this->getAgent()->getInstructions() as $name => $content) {
+            $text = is_array($content) ? implode("\n", $content) : $content;
             $systemParts[] = [
-                'text' => '# '.$name."\n\n".$content,
+                'text' => '# '.$name."\n\n".$text,
             ];
         }
 
@@ -164,6 +137,7 @@ class Gemini extends Adapter
             $payload,
             [],
             function ($chunk) use (&$content, $listener) {
+                /** @var Chunk $chunk */
                 $content .= $this->process($chunk, $listener);
             }
         );
@@ -183,9 +157,6 @@ class Gemini extends Adapter
     /**
      * Process a stream chunk from the Gemini API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
-     * @param  callable|null  $listener
-     * @return string
      *
      * @throws \Exception
      */
@@ -220,8 +191,13 @@ class Gemini extends Adapter
             }
 
             // Extract content from Gemini response format
-            if (isset($json['candidates'][0]['content']['parts'][0]['text'])) {
-                $block = $json['candidates'][0]['content']['parts'][0]['text'];
+            $candidates = isset($json['candidates']) && is_array($json['candidates']) ? $json['candidates'] : [];
+            $firstCandidate = isset($candidates[0]) && is_array($candidates[0]) ? $candidates[0] : [];
+            $content = isset($firstCandidate['content']) && is_array($firstCandidate['content']) ? $firstCandidate['content'] : [];
+            $parts = isset($content['parts']) && is_array($content['parts']) ? $content['parts'] : [];
+            $firstPart = isset($parts[0]) && is_array($parts[0]) ? $parts[0] : [];
+            if (isset($firstPart['text']) && is_string($firstPart['text'])) {
+                $block = $firstPart['text'];
 
                 if (! empty($block) && $listener !== null) {
                     $listener($block);
@@ -250,8 +226,6 @@ class Gemini extends Adapter
 
     /**
      * Get current model
-     *
-     * @return string
      */
     public function getModel(): string
     {
@@ -260,9 +234,6 @@ class Gemini extends Adapter
 
     /**
      * Set model to use
-     *
-     * @param  string  $model
-     * @return self
      */
     public function setModel(string $model): self
     {
@@ -273,9 +244,6 @@ class Gemini extends Adapter
 
     /**
      * Set max tokens
-     *
-     * @param  int  $maxTokens
-     * @return self
      */
     public function setMaxTokens(int $maxTokens): self
     {
@@ -286,9 +254,6 @@ class Gemini extends Adapter
 
     /**
      * Set temperature
-     *
-     * @param  float  $temperature
-     * @return self
      */
     public function setTemperature(float $temperature): self
     {
@@ -299,8 +264,6 @@ class Gemini extends Adapter
 
     /**
      * Get the API endpoint
-     *
-     * @return string
      */
     public function getEndpoint(): string
     {
@@ -309,9 +272,6 @@ class Gemini extends Adapter
 
     /**
      * Set the API endpoint
-     *
-     * @param  string  $endpoint
-     * @return self
      */
     public function setEndpoint(string $endpoint): self
     {
@@ -322,8 +282,6 @@ class Gemini extends Adapter
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -334,7 +292,6 @@ class Gemini extends Adapter
      * Extract and format error information from API response
      *
      * @param  mixed  $json
-     * @return string
      */
     protected function formatErrorMessage($json): string
     {
@@ -342,9 +299,10 @@ class Gemini extends Adapter
             return '(unknown_error) Unknown error';
         }
 
-        $errorType = isset($json['error']['status']) ? (string) $json['error']['status'] : 'unknown_error';
-        $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
-        $errorDetails = isset($json['error']['details']) ? json_encode($json['error']['details'], JSON_PRETTY_PRINT) : '';
+        $error = isset($json['error']) && is_array($json['error']) ? $json['error'] : [];
+        $errorType = isset($error['status']) && is_string($error['status']) ? $error['status'] : 'unknown_error';
+        $errorMessage = isset($error['message']) && is_string($error['message']) ? $error['message'] : 'Unknown error';
+        $errorDetails = isset($error['details']) ? (string) json_encode($error['details'], JSON_PRETTY_PRINT) : '';
 
         return '('.$errorType.') '.$errorMessage.PHP_EOL.$errorDetails;
     }
@@ -355,7 +313,6 @@ class Gemini extends Adapter
     }
 
     /**
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,

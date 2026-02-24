@@ -6,58 +6,44 @@ abstract class Adapter
 {
     /**
      * The agent instance
-     *
-     * @var ?Agent
      */
     protected ?Agent $agent = null;
 
     /**
      * Input tokens count
-     *
-     * @var int
      */
     protected int $inputTokens = 0;
 
     /**
      * Output tokens count
-     *
-     * @var int
      */
     protected int $outputTokens = 0;
 
     /**
      * Cache creation input tokens count
-     *
-     * @var int
      */
     protected int $cacheCreationInputTokens = 0;
 
     /**
      * Cache read input tokens count
-     *
-     * @var int
      */
     protected int $cacheReadInputTokens = 0;
 
     /**
      * Request timeout in milliseconds
-     *
-     * @var int
      */
     protected int $timeout = 90000;
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     abstract public function getName(): string;
 
     /**
      * Send a message to the AI model
      *
-     * @param  array<Message>  $messages The messages to send to the AI model
-     * @param  callable|null  $listener The listener to call when the message is sent
+     * @param  array<Message>  $messages  The messages to send to the AI model
+     * @param  callable|null  $listener  The listener to call when the message is sent
      * @return Message Response from the AI model
      *
      * @throws \Exception
@@ -73,37 +59,27 @@ abstract class Adapter
 
     /**
      * Get the currently selected model
-     *
-     * @return string
      */
     abstract public function getModel(): string;
 
     /**
      * Set the model to use
-     *
-     * @param  string  $model
-     * @return self
      */
     abstract public function setModel(string $model): self;
 
     /**
      * Check if the model supports JSON schema
-     *
-     * @return bool
      */
     abstract public function isSchemaSupported(): bool;
 
     /**
      * Does this adapter support embeddings?
-     *
-     * @return bool
      */
     abstract public function getSupportForEmbeddings(): bool;
 
     /**
      * Generate embedding for input text (must be implemented if getSupportForEmbeddings is true)
      *
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,
@@ -122,14 +98,11 @@ abstract class Adapter
      * Format error message
      *
      * @param  mixed  $json
-     * @return string
      */
     abstract protected function formatErrorMessage($json): string;
 
     /**
      * Get the current agent
-     *
-     * @return ?Agent
      */
     public function getAgent(): ?Agent
     {
@@ -138,9 +111,6 @@ abstract class Adapter
 
     /**
      * Set the agent
-     *
-     * @param  Agent  $agent
-     * @return self
      */
     public function setAgent(Agent $agent): self
     {
@@ -151,8 +121,6 @@ abstract class Adapter
 
     /**
      * Get input tokens count
-     *
-     * @return int
      */
     public function getInputTokens(): int
     {
@@ -161,8 +129,6 @@ abstract class Adapter
 
     /**
      * Get output tokens count
-     *
-     * @return int
      */
     public function getOutputTokens(): int
     {
@@ -171,8 +137,6 @@ abstract class Adapter
 
     /**
      * Get cache creation input tokens count
-     *
-     * @return int
      */
     public function getCacheCreationInputTokens(): int
     {
@@ -181,8 +145,6 @@ abstract class Adapter
 
     /**
      * Get cache read input tokens count
-     *
-     * @return int
      */
     public function getCacheReadInputTokens(): int
     {
@@ -191,9 +153,6 @@ abstract class Adapter
 
     /**
      * Add to input tokens count
-     *
-     * @param  int  $tokens
-     * @return self
      */
     public function countInputTokens(int $tokens): self
     {
@@ -204,9 +163,6 @@ abstract class Adapter
 
     /**
      * Add to output tokens count
-     *
-     * @param  int  $tokens
-     * @return self
      */
     public function countOutputTokens(int $tokens): self
     {
@@ -217,9 +173,6 @@ abstract class Adapter
 
     /**
      * Add to cache creation input tokens count
-     *
-     * @param  int  $tokens
-     * @return self
      */
     public function countCacheCreationInputTokens(int $tokens): self
     {
@@ -230,9 +183,6 @@ abstract class Adapter
 
     /**
      * Add to cache read input tokens count
-     *
-     * @param  int  $tokens
-     * @return self
      */
     public function countCacheReadInputTokens(int $tokens): self
     {
@@ -243,8 +193,6 @@ abstract class Adapter
 
     /**
      * Get total tokens count
-     *
-     * @return int
      */
     public function getTotalTokens(): int
     {
@@ -253,9 +201,6 @@ abstract class Adapter
 
     /**
      * Set timeout in milliseconds
-     *
-     * @param  int  $timeout
-     * @return self
      */
     public function setTimeout(int $timeout): self
     {
@@ -266,8 +211,6 @@ abstract class Adapter
 
     /**
      * Get timeout in milliseconds
-     *
-     * @return int
      */
     public function getTimeout(): int
     {

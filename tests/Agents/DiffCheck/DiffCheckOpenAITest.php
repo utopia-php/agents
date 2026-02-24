@@ -33,7 +33,7 @@ class DiffCheckOpenAITest extends TestCase
     /**
      * @group integration
      */
-    public function testRunWithOpenAIGpt5Nano(): void
+    public function test_run_with_open_ai_gpt5_nano(): void
     {
         $apiKey = getenv('LLM_KEY_OPENAI');
         if ($apiKey === false || trim($apiKey) === '') {
@@ -56,7 +56,7 @@ class DiffCheckOpenAITest extends TestCase
             temperature: 1.0
         );
 
-        $schemaObject = new SchemaObject();
+        $schemaObject = new SchemaObject;
         $schemaObject->addProperty('summary', [
             'type' => SchemaObject::TYPE_STRING,
             'description' => 'One concise sentence about user-facing diff changes.',
@@ -68,12 +68,12 @@ class DiffCheckOpenAITest extends TestCase
             required: $schemaObject->getNames()
         );
 
-        $options = (new Options())
+        $options = (new Options)
             ->setSchema($schema)
             ->setExcludePaths(['.github'])
             ->setDescription('You analyze code diffs and return concise structured output.');
 
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $adapter,
             base: $base,
             target: $target,
@@ -82,7 +82,6 @@ class DiffCheckOpenAITest extends TestCase
         );
 
         $this->assertTrue($result['hasChanges']);
-        $this->assertIsString($result['response']);
         $this->assertNotSame('', trim($result['response']));
 
         $decoded = json_decode($result['response'], true);

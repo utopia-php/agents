@@ -8,7 +8,7 @@ use Utopia\Agents\Roles\User;
 
 class UserTest extends TestCase
 {
-    public function testConstructor(): void
+    public function test_constructor(): void
     {
         $id = 'test-id';
         $name = 'Test User';
@@ -19,7 +19,7 @@ class UserTest extends TestCase
         $this->assertSame($name, $user->getName());
     }
 
-    public function testConstructorWithoutName(): void
+    public function test_constructor_without_name(): void
     {
         $id = 'test-id';
 
@@ -29,7 +29,7 @@ class UserTest extends TestCase
         $this->assertSame('', $user->getName());
     }
 
-    public function testGetIdentifier(): void
+    public function test_get_identifier(): void
     {
         $user = new User('test-id');
 

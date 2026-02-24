@@ -30,7 +30,7 @@ class DiffCheckTest extends TestCase
         parent::tearDown();
     }
 
-    public function testRunSkipsAiWhenThereIsNoDiff(): void
+    public function test_run_skips_ai_when_there_is_no_diff(): void
     {
         $base = $this->createFixtureDirectory('base-no-diff', [
             'README.md' => "Hello\n",
@@ -40,12 +40,12 @@ class DiffCheckTest extends TestCase
         ]);
 
         $adapter = new FakeAdapter('should-not-be-called');
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $adapter,
             base: $base,
             target: $target,
             prompt: 'Analyze this diff: {{diff}}',
-            options: new Options()
+            options: new Options
         );
 
         $this->assertFalse($result['hasChanges']);
@@ -53,7 +53,7 @@ class DiffCheckTest extends TestCase
         $this->assertSame(0, $adapter->sendCalls);
     }
 
-    public function testRunReturnsResponseWhenDiffExists(): void
+    public function test_run_returns_response_when_diff_exists(): void
     {
         $base = $this->createFixtureDirectory('base-diff', [
             'README.md' => "Hello\n",
@@ -63,12 +63,12 @@ class DiffCheckTest extends TestCase
         ]);
 
         $adapter = new FakeAdapter('{"version":"1.2.3"}');
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $adapter,
             base: $base,
             target: $target,
             prompt: 'Please inspect:\n{{diff}}',
-            options: new Options()
+            options: new Options
         );
 
         $this->assertTrue($result['hasChanges']);
@@ -78,7 +78,7 @@ class DiffCheckTest extends TestCase
         $this->assertStringContainsString('Hello world', $adapter->lastUserPrompt ?? '');
     }
 
-    public function testRunSupportsAgentRunner(): void
+    public function test_run_supports_agent_runner(): void
     {
         $base = $this->createFixtureDirectory('base-agent', [
             'a.txt' => "one\n",
@@ -93,12 +93,12 @@ class DiffCheckTest extends TestCase
             'description' => 'Return the raw result',
         ]);
 
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $agent,
             base: $base,
             target: $target,
             prompt: 'Analyze: {{diff}}',
-            options: new Options()
+            options: new Options
         );
 
         $this->assertTrue($result['hasChanges']);
@@ -106,7 +106,7 @@ class DiffCheckTest extends TestCase
         $this->assertSame(1, $adapter->sendCalls);
     }
 
-    public function testRunTruncatesDiffByLineCount(): void
+    public function test_run_truncates_diff_by_line_count(): void
     {
         $baseLines = [];
         $targetLines = [];
@@ -123,10 +123,10 @@ class DiffCheckTest extends TestCase
         ]);
 
         $adapter = new FakeAdapter('ok');
-        $options = (new Options())
+        $options = (new Options)
             ->setMaxDiffLines(8);
 
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $adapter,
             base: $base,
             target: $target,
@@ -140,7 +140,7 @@ class DiffCheckTest extends TestCase
         $this->assertStringContainsString('[Diff truncated to 8 lines.]', $adapter->lastUserPrompt ?? '');
     }
 
-    public function testRunCanExcludePathsFromDiff(): void
+    public function test_run_can_exclude_paths_from_diff(): void
     {
         $base = $this->createFixtureDirectory('base-exclude', [
             '.github/workflows/build.yml' => "name: build\n",
@@ -152,10 +152,10 @@ class DiffCheckTest extends TestCase
         ]);
 
         $adapter = new FakeAdapter('should-not-run');
-        $options = (new Options())
+        $options = (new Options)
             ->setExcludePaths(['.github']);
 
-        $result = (new DiffCheck())->run(
+        $result = (new DiffCheck)->run(
             runner: $adapter,
             base: $base,
             target: $target,

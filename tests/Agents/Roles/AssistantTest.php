@@ -8,7 +8,7 @@ use Utopia\Agents\Roles\Assistant;
 
 class AssistantTest extends TestCase
 {
-    public function testConstructor(): void
+    public function test_constructor(): void
     {
         $id = 'test-id';
         $name = 'Test Assistant';
@@ -19,7 +19,7 @@ class AssistantTest extends TestCase
         $this->assertSame($name, $assistant->getName());
     }
 
-    public function testConstructorWithoutName(): void
+    public function test_constructor_without_name(): void
     {
         $id = 'test-id';
 
@@ -29,7 +29,7 @@ class AssistantTest extends TestCase
         $this->assertSame('', $assistant->getName());
     }
 
-    public function testGetIdentifier(): void
+    public function test_get_identifier(): void
     {
         $assistant = new Assistant('test-id');
 

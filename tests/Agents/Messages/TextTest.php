@@ -8,7 +8,7 @@ use Utopia\Agents\Messages\Text;
 
 class TextTest extends TestCase
 {
-    public function testConstructor(): void
+    public function test_constructor(): void
     {
         $content = 'Hello, world!';
         $message = new Text($content);
@@ -17,7 +17,7 @@ class TextTest extends TestCase
         $this->assertInstanceOf(Text::class, $message);
     }
 
-    public function testGetContent(): void
+    public function test_get_content(): void
     {
         $content = 'Test message content';
         $message = new Text($content);
@@ -26,7 +26,7 @@ class TextTest extends TestCase
         $this->assertIsString($message->getContent());
     }
 
-    public function testEmptyContent(): void
+    public function test_empty_content(): void
     {
         $message = new Text('');
 
@@ -34,7 +34,7 @@ class TextTest extends TestCase
         $this->assertIsString($message->getContent());
     }
 
-    public function testMultilineContent(): void
+    public function test_multiline_content(): void
     {
         $content = "Line 1\nLine 2\nLine 3";
         $message = new Text($content);
@@ -43,7 +43,7 @@ class TextTest extends TestCase
         $this->assertStringContainsString("\n", $message->getContent());
     }
 
-    public function testSpecialCharacters(): void
+    public function test_special_characters(): void
     {
         $content = 'Special chars: !@#$%^&*()_+ 😀 🌟';
         $message = new Text($content);

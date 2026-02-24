@@ -12,34 +12,16 @@ class Conversation
      */
     protected array $messages = [];
 
-    /**
-     * @var Agent
-     */
     protected Agent $agent;
 
-    /**
-     * @var int
-     */
     protected int $inputTokens = 0;
 
-    /**
-     * @var int
-     */
     protected int $outputTokens = 0;
 
-    /**
-     * @var int
-     */
     protected int $cacheCreationInputTokens = 0;
 
-    /**
-     * @var int
-     */
     protected int $cacheReadInputTokens = 0;
 
-    /**
-     * @var int
-     */
     protected int $totalTokens = 0;
 
     /**
@@ -47,21 +29,14 @@ class Conversation
      */
     protected $listener;
 
-    /**
-     * @param  Agent  $agent
-     */
     public function __construct(Agent $agent)
     {
         $this->agent = $agent;
-        $this->listener = function () {
-        };
+        $this->listener = function () {};
     }
 
     /**
      * Set a callback to handle chunks
-     *
-     * @param  callable  $listener
-     * @return self
      */
     public function listen(callable $listener): self
     {
@@ -72,10 +47,6 @@ class Conversation
 
     /**
      * Add a message to the conversation
-     *
-     * @param  Message  $message
-     * @param  Role  $from
-     * @return self
      */
     public function message(Role $from, Message $message): self
     {
@@ -87,7 +58,6 @@ class Conversation
     /**
      * Send the conversation to the agent and get response
      *
-     * @return Message
      *
      * @throws \Exception
      */
@@ -118,8 +88,6 @@ class Conversation
 
     /**
      * Get the agent in the conversation
-     *
-     * @return Agent
      */
     public function getAgent(): Agent
     {
@@ -128,8 +96,6 @@ class Conversation
 
     /**
      * Get the current listener callback
-     *
-     * @return callable
      */
     public function getListener(): callable
     {
@@ -138,8 +104,6 @@ class Conversation
 
     /**
      * Get input tokens count
-     *
-     * @return int
      */
     public function getInputTokens(): int
     {
@@ -148,9 +112,6 @@ class Conversation
 
     /**
      * Add to input tokens count
-     *
-     * @param  int  $tokens
-     * @return self
      */
     public function countInputTokens(int $tokens): self
     {
@@ -161,8 +122,6 @@ class Conversation
 
     /**
      * Get output tokens count
-     *
-     * @return int
      */
     public function getOutputTokens(): int
     {
@@ -171,9 +130,6 @@ class Conversation
 
     /**
      * Add to output tokens count
-     *
-     * @param  int  $tokens
-     * @return self
      */
     public function countOutputTokens(int $tokens): self
     {
@@ -192,9 +148,6 @@ class Conversation
 
     /**
      * Add to cache creation input tokens count
-     *
-     * @param  int  $tokens
-     * @return self
      */
     public function countCacheCreationInputTokens(int $tokens): self
     {
@@ -205,8 +158,6 @@ class Conversation
 
     /**
      * Get cache read input tokens count
-     *
-     * @return int
      */
     public function getCacheReadInputTokens(): int
     {
@@ -215,9 +166,6 @@ class Conversation
 
     /**
      * Add to cache read input tokens count
-     *
-     * @param  int  $tokens
-     * @return self
      */
     public function countCacheReadInputTokens(int $tokens): self
     {
@@ -228,8 +176,6 @@ class Conversation
 
     /**
      * Get total tokens count
-     *
-     * @return int
      */
     public function getTotalTokens(): int
     {

@@ -51,50 +51,23 @@ class OpenAI extends Adapter
      */
     protected const ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 
-    /**
-     * @var string
-     */
     protected string $apiKey;
 
-    /**
-     * @var string
-     */
     protected string $model;
 
-    /**
-     * @var int
-     */
     protected int $maxTokens;
 
-    /**
-     * @var float
-     */
     protected float $temperature;
 
-    /**
-     * @var string
-     */
     protected string $endpoint;
 
-    /**
-     * @var int
-     */
     protected int $timeout;
 
-    /**
-     * @var bool
-     */
     protected bool $hasWarnedTemperatureOverride = false;
 
     /**
      * Create a new OpenAI adapter
      *
-     * @param  string  $apiKey
-     * @param  string  $model
-     * @param  int  $maxTokens
-     * @param  float  $temperature
-     * @param  string|null  $endpoint
-     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -116,8 +89,6 @@ class OpenAI extends Adapter
 
     /**
      * Check if the model supports JSON schema
-     *
-     * @return bool
      */
     public function isSchemaSupported(): bool
     {
@@ -128,8 +99,6 @@ class OpenAI extends Adapter
      * Send a message to the API
      *
      * @param  array<Message>  $messages
-     * @param  callable|null  $listener
-     * @return Message
      *
      * @throws \Exception
      */
@@ -140,7 +109,7 @@ class OpenAI extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new Client();
+        $client = new Client;
         $client
             ->setTimeout($this->timeout)
             ->addHeader('authorization', 'Bearer '.$this->apiKey)
@@ -159,7 +128,8 @@ class OpenAI extends Adapter
 
         $instructions = [];
         foreach ($agent->getInstructions() as $name => $content) {
-            $instructions[] = '# '.$name."\n\n".$content;
+            $text = is_array($content) ? implode("\n", $content) : $content;
+            $instructions[] = '# '.$name."\n\n".$text;
         }
 
         $systemMessage = $agent->getDescription().
@@ -217,6 +187,7 @@ class OpenAI extends Adapter
                 $payload,
                 [],
                 function ($chunk) use (&$content, $listener) {
+                    /** @var Chunk $chunk */
                     $content .= $this->process($chunk, $listener);
                 }
             );
@@ -245,8 +216,11 @@ class OpenAI extends Adapter
             }
 
             $json = is_string($body) ? json_decode($body, true) : null;
-            if (is_array($json) && isset($json['choices'][0]['message']['content'])) {
-                $content = $json['choices'][0]['message']['content'];
+            $choices = is_array($json) && isset($json['choices']) && is_array($json['choices']) ? $json['choices'] : [];
+            $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
+            $message = isset($firstChoice['message']) && is_array($firstChoice['message']) ? $firstChoice['message'] : [];
+            if (isset($message['content']) && is_string($message['content'])) {
+                $content = $message['content'];
             } else {
                 throw new \Exception('Invalid response format received from the API');
             }
@@ -258,9 +232,6 @@ class OpenAI extends Adapter
     /**
      * Process a stream chunk from the OpenAI API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
-     * @param  callable|null  $listener
-     * @return string
      *
      * @throws \Exception
      */
@@ -295,8 +266,11 @@ class OpenAI extends Adapter
             }
 
             // Extract content from the choices array
-            if (isset($json['choices'][0]['delta']['content'])) {
-                $block = $json['choices'][0]['delta']['content'];
+            $choices = isset($json['choices']) && is_array($json['choices']) ? $json['choices'] : [];
+            $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
+            $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
+            if (isset($delta['content']) && is_string($delta['content'])) {
+                $block = $delta['content'];
 
                 if (! empty($block) && $listener !== null) {
                     $listener($block);
@@ -361,8 +335,6 @@ class OpenAI extends Adapter
 
     /**
      * Get current model
-     *
-     * @return string
      */
     public function getModel(): string
     {
@@ -371,9 +343,6 @@ class OpenAI extends Adapter
 
     /**
      * Set model to use
-     *
-     * @param  string  $model
-     * @return self
      */
     public function setModel(string $model): self
     {
@@ -384,9 +353,6 @@ class OpenAI extends Adapter
 
     /**
      * Set max tokens
-     *
-     * @param  int  $maxTokens
-     * @return self
      */
     public function setMaxTokens(int $maxTokens): self
     {
@@ -397,9 +363,6 @@ class OpenAI extends Adapter
 
     /**
      * Set temperature
-     *
-     * @param  float  $temperature
-     * @return self
      */
     public function setTemperature(float $temperature): self
     {
@@ -410,8 +373,6 @@ class OpenAI extends Adapter
 
     /**
      * Get the API endpoint
-     *
-     * @return string
      */
     public function getEndpoint(): string
     {
@@ -420,9 +381,6 @@ class OpenAI extends Adapter
 
     /**
      * Set the API endpoint
-     *
-     * @param  string  $endpoint
-     * @return self
      */
     public function setEndpoint(string $endpoint): self
     {
@@ -433,8 +391,6 @@ class OpenAI extends Adapter
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -445,7 +401,6 @@ class OpenAI extends Adapter
      * Extract and format error information from API response
      *
      * @param  mixed  $json
-     * @return string
      */
     protected function formatErrorMessage($json): string
     {
@@ -453,8 +408,9 @@ class OpenAI extends Adapter
             return '(unknown_error) Unknown error';
         }
 
-        $errorType = isset($json['error']['code']) ? (string) $json['error']['code'] : 'unknown_error';
-        $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
+        $error = isset($json['error']) && is_array($json['error']) ? $json['error'] : [];
+        $errorType = isset($error['code']) && is_scalar($error['code']) ? (string) $error['code'] : 'unknown_error';
+        $errorMessage = isset($error['message']) && is_string($error['message']) ? $error['message'] : 'Unknown error';
 
         return '('.$errorType.') '.$errorMessage;
     }
@@ -465,7 +421,6 @@ class OpenAI extends Adapter
     }
 
     /**
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,

@@ -11,21 +11,12 @@ abstract class Role
 
     public const ROLE_USER = 'user';
 
-    /**
-     * @var string
-     */
     protected string $id;
 
-    /**
-     * @var string
-     */
     protected string $name;
 
     /**
      * Create a new role
-     *
-     * @param  string  $id
-     * @param  string  $name
      */
     public function __construct(string $id, string $name = '')
     {
@@ -35,8 +26,6 @@ abstract class Role
 
     /**
      * Get the role's ID
-     *
-     * @return string
      */
     public function getId(): string
     {
@@ -45,8 +34,6 @@ abstract class Role
 
     /**
      * Get the role's name
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -55,9 +42,6 @@ abstract class Role
 
     /**
      * Set the role's name
-     *
-     * @param  string  $name
-     * @return self
      */
     public function setName(string $name): self
     {
@@ -68,8 +52,6 @@ abstract class Role
 
     /**
      * Get the role identifier
-     *
-     * @return string
      */
     abstract public function getIdentifier(): string;
 }

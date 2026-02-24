@@ -39,12 +39,6 @@ class Perplexity extends OpenAI
     /**
      * Create a new Perplexity adapter
      *
-     * @param  string  $apiKey
-     * @param  string  $model
-     * @param  int  $maxTokens
-     * @param  float  $temperature
-     * @param  string|null  $endpoint
-     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -68,8 +62,6 @@ class Perplexity extends OpenAI
 
     /**
      * Check if the model supports JSON schema
-     *
-     * @return bool
      */
     public function isSchemaSupported(): bool
     {
@@ -94,8 +86,6 @@ class Perplexity extends OpenAI
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -104,8 +94,6 @@ class Perplexity extends OpenAI
 
     /**
      * Get support for embeddings
-     *
-     * @return bool
      */
     public function getSupportForEmbeddings(): bool
     {
@@ -115,9 +103,6 @@ class Perplexity extends OpenAI
     /**
      * Process a stream chunk from the Perplexity API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
-     * @param  callable|null  $listener
-     * @return string
      *
      * @throws \Exception
      */
@@ -161,8 +146,11 @@ class Perplexity extends OpenAI
             }
 
             // Extract content from the choices array
-            if (isset($json['choices'][0]['delta']['content'])) {
-                $block = $json['choices'][0]['delta']['content'];
+            $choices = isset($json['choices']) && is_array($json['choices']) ? $json['choices'] : [];
+            $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
+            $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
+            if (isset($delta['content']) && is_string($delta['content'])) {
+                $block = $delta['content'];
 
                 if (! empty($block) && $listener !== null) {
                     $listener($block);
@@ -175,9 +163,6 @@ class Perplexity extends OpenAI
 
     /**
      * Sanitize HTML error responses into readable error messages
-     *
-     * @param  string  $html
-     * @return string
      */
     protected function sanitizeHtmlError(string $html): string
     {
@@ -215,7 +200,6 @@ class Perplexity extends OpenAI
     }
 
     /**
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,
