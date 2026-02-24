@@ -45,7 +45,7 @@ class SchemaTest extends TestCase
         );
     }
 
-    public function test_constructor_and_getters(): void
+    public function testConstructorAndGetters(): void
     {
         $this->assertSame($this->name, $this->schema->getName());
         $this->assertSame($this->description, $this->schema->getDescription());
@@ -53,7 +53,7 @@ class SchemaTest extends TestCase
         $this->assertSame($this->required, $this->schema->getRequired());
     }
 
-    public function test_to_json(): void
+    public function testToJson(): void
     {
         $json = $this->schema->toJson();
 

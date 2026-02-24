@@ -21,14 +21,14 @@ class AgentTest extends TestCase
         $this->agent = new Agent($this->mockAdapter);
     }
 
-    public function test_constructor(): void
+    public function testConstructor(): void
     {
         $this->assertSame($this->mockAdapter, $this->agent->getAdapter());
         $this->assertSame('', $this->agent->getDescription());
         $this->assertSame([], $this->agent->getInstructions());
     }
 
-    public function test_set_description(): void
+    public function testSetDescription(): void
     {
         $description = 'Test agent description';
 
@@ -38,7 +38,7 @@ class AgentTest extends TestCase
         $this->assertSame($description, $this->agent->getDescription());
     }
 
-    public function test_set_instructions(): void
+    public function testSetInstructions(): void
     {
         $instructions = [
             'Instruction 1' => 'This is instruction 1',
@@ -51,7 +51,7 @@ class AgentTest extends TestCase
         $this->assertSame($instructions, $this->agent->getInstructions());
     }
 
-    public function test_add_instruction(): void
+    public function testAddInstruction(): void
     {
         // Test adding a single instruction
         $result = $this->agent->addInstruction('Instruction 1', 'This is instruction 1');
@@ -74,7 +74,7 @@ class AgentTest extends TestCase
         ], $this->agent->getInstructions());
     }
 
-    public function test_fluent_interface(): void
+    public function testFluentInterface(): void
     {
         $description = 'Test Description';
         $instructions = [
@@ -96,7 +96,7 @@ class AgentTest extends TestCase
         ], $this->agent->getInstructions());
     }
 
-    public function test_embed_returns_array_with_embedding_adapter(): void
+    public function testEmbedReturnsArrayWithEmbeddingAdapter(): void
     {
         $ollama = new Ollama;
         $ollama->setTimeout(180004);
@@ -111,7 +111,7 @@ class AgentTest extends TestCase
         $this->assertGreaterThan(0, $result['tokensProcessed']);
     }
 
-    public function test_embedding_dimensions(): void
+    public function testEmbeddingDimensions(): void
     {
         $ollama = new Ollama;
         $agent = new Agent($ollama);
@@ -134,7 +134,7 @@ class AgentTest extends TestCase
             $this->assertGreaterThan(0, $result['tokensProcessed']);
 
             $embedding = $result['embedding'];
-            $dimension = \count($embedding);
+            $dimension = count($embedding);
 
             $this->assertSame($ollama->getEmbeddingDimension(), $dimension);
         }

@@ -33,7 +33,7 @@ class DiffCheckOpenAITest extends TestCase
     /**
      * @group integration
      */
-    public function test_run_with_open_ai_gpt5_nano(): void
+    public function testRunWithOpenAIGpt5Nano(): void
     {
         $apiKey = getenv('LLM_KEY_OPENAI');
         if ($apiKey === false || trim($apiKey) === '') {

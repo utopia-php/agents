@@ -1,0 +1,5 @@
+{
+    "rules": {
+        "php_unit_method_casing": false
+    }
+}

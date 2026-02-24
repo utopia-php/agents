@@ -48,7 +48,7 @@ abstract class ConversationBase extends TestCase
         $this->conversation = new Conversation($this->agent);
     }
 
-    public function test_constructor(): void
+    public function testConstructor(): void
     {
         $this->assertSame($this->agent, $this->conversation->getAgent());
         $this->assertEmpty($this->conversation->getMessages());
@@ -57,7 +57,7 @@ abstract class ConversationBase extends TestCase
         $this->assertSame(0, $this->conversation->getTotalTokens());
     }
 
-    public function test_message(): void
+    public function testMessage(): void
     {
         $user = new User('user-1', 'Test User');
         $message = new Text('Hello, AI!');
@@ -72,7 +72,7 @@ abstract class ConversationBase extends TestCase
         $this->assertSame('Hello, AI!', $firstMessage->getContent());
     }
 
-    public function test_multiple_messages(): void
+    public function testMultipleMessages(): void
     {
         $user = new User('user-1', 'Test User');
         $assistant = new Assistant('assistant-1', 'Test Assistant');
@@ -95,7 +95,7 @@ abstract class ConversationBase extends TestCase
         $this->assertSame('How are you?', $messages[2]->getContent());
     }
 
-    public function test_send(): void
+    public function testSend(): void
     {
         $messages = $this->conversation
             ->message(new User('user-1', 'Test User'), new Text('Hello'))
@@ -114,7 +114,7 @@ abstract class ConversationBase extends TestCase
         $this->assertNotEmpty($conversationMessages[1]->getContent());
     }
 
-    public function test_schema(): void
+    public function testSchema(): void
     {
         if (! $this->adapter->isSchemaSupported()) {
             $this->markTestSkipped('Structured output hasn\'t been implemented for this model');
@@ -160,7 +160,7 @@ abstract class ConversationBase extends TestCase
         $this->assertSame('celsius', $json['unit']);
     }
 
-    public function test_token_counting(): void
+    public function testTokenCounting(): void
     {
         $this->conversation->countInputTokens(10);
         $this->assertSame(10, $this->conversation->getInputTokens());
@@ -177,7 +177,7 @@ abstract class ConversationBase extends TestCase
         $this->assertSame(45, $this->conversation->getTotalTokens());
     }
 
-    public function test_listener(): void
+    public function testListener(): void
     {
         $called = false;
         $testListener = function () use (&$called) {

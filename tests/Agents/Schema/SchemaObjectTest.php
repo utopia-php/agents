@@ -7,7 +7,7 @@ use Utopia\Agents\Schema\SchemaObject;
 
 class SchemaObjectTest extends TestCase
 {
-    public function test_constructor_and_get_properties(): void
+    public function testConstructorAndGetProperties(): void
     {
         $properties = [
             'id' => ['type' => SchemaObject::TYPE_STRING],
@@ -17,7 +17,7 @@ class SchemaObjectTest extends TestCase
         $this->assertSame($properties, $object->getProperties());
     }
 
-    public function test_get_property(): void
+    public function testGetProperty(): void
     {
         $object = new SchemaObject([
             'id' => ['type' => SchemaObject::TYPE_STRING],
@@ -26,23 +26,23 @@ class SchemaObjectTest extends TestCase
         $this->assertNull($object->getProperty('nonexistent'));
     }
 
-    public function test_add_property_and_remove_property(): void
+    public function testAddPropertyAndRemoveProperty(): void
     {
-        $object = new SchemaObject;
+        $object = new SchemaObject();
         $object->addProperty('id', ['type' => SchemaObject::TYPE_STRING]);
         $this->assertSame(['id' => ['type' => SchemaObject::TYPE_STRING]], $object->getProperties());
         $object->removeProperty('id');
         $this->assertSame([], $object->getProperties());
     }
 
-    public function test_add_property_invalid_type(): void
+    public function testAddPropertyInvalidType(): void
     {
-        $object = new SchemaObject;
+        $object = new SchemaObject();
         $this->expectException(\InvalidArgumentException::class);
         $object->addProperty('bad', ['type' => 'invalid_type']);
     }
 
-    public function test_get_names(): void
+    public function testGetNames(): void
     {
         $object = new SchemaObject([
             'id' => ['type' => SchemaObject::TYPE_STRING],
@@ -51,7 +51,7 @@ class SchemaObjectTest extends TestCase
         $this->assertSame(['id', 'age'], $object->getNames());
     }
 
-    public function test_get_valid_types(): void
+    public function testGetValidTypes(): void
     {
         $expected = [
             SchemaObject::TYPE_STRING,
