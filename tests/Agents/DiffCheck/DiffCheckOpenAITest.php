@@ -56,7 +56,7 @@ class DiffCheckOpenAITest extends TestCase
             temperature: 1.0
         );
 
-        $schemaObject = new SchemaObject;
+        $schemaObject = new SchemaObject();
         $schemaObject->addProperty('summary', [
             'type' => SchemaObject::TYPE_STRING,
             'description' => 'One concise sentence about user-facing diff changes.',

@@ -109,7 +109,7 @@ class OpenAI extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new Client;
+        $client = new Client();
         $client
             ->setTimeout($this->timeout)
             ->addHeader('authorization', 'Bearer '.$this->apiKey)

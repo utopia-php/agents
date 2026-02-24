@@ -104,7 +104,7 @@ class Anthropic extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new Client;
+        $client = new Client();
         $client
             ->setTimeout($this->timeout)
             ->addHeader('x-api-key', $this->apiKey)

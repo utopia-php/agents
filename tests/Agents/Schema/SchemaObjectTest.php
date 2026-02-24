@@ -28,7 +28,7 @@ class SchemaObjectTest extends TestCase
 
     public function testAddPropertyAndRemoveProperty(): void
     {
-        $object = new SchemaObject;
+        $object = new SchemaObject();
         $object->addProperty('id', ['type' => SchemaObject::TYPE_STRING]);
         $this->assertSame(['id' => ['type' => SchemaObject::TYPE_STRING]], $object->getProperties());
         $object->removeProperty('id');
@@ -37,7 +37,7 @@ class SchemaObjectTest extends TestCase
 
     public function testAddPropertyInvalidType(): void
     {
-        $object = new SchemaObject;
+        $object = new SchemaObject();
         $this->expectException(\InvalidArgumentException::class);
         $object->addProperty('bad', ['type' => 'invalid_type']);
     }

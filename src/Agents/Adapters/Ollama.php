@@ -55,7 +55,7 @@ class Ollama extends Adapter
      */
     public function embed(string $text): array
     {
-        $client = new Client;
+        $client = new Client();
         $client->setTimeout($this->timeout);
         $client->addHeader('Content-Type', 'application/json');
         $payload = [

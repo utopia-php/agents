@@ -90,7 +90,7 @@ class Gemini extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new Client;
+        $client = new Client();
         $client
             ->setTimeout($this->timeout)
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);

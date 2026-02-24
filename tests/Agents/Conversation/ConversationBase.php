@@ -120,7 +120,7 @@ abstract class ConversationBase extends TestCase
             $this->markTestSkipped('Structured output hasn\'t been implemented for this model');
         }
 
-        $object = new SchemaObject;
+        $object = new SchemaObject();
         $object->addProperty('location', [
             'type' => SchemaObject::TYPE_STRING,
             'description' => 'The city and state, e.g. San Francisco, CA',

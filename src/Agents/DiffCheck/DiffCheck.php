@@ -24,7 +24,7 @@ class DiffCheck
         string $prompt,
         ?Options $options = null
     ): array {
-        $options ??= new Options;
+        $options ??= new Options();
         $baseRepo = Repository::from($base);
         $targetRepo = Repository::from($target);
 
