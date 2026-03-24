@@ -21,7 +21,7 @@ Utopia Framework requires PHP 8.0 or later. We recommend using the latest PHP ve
 
 ## Features
 
-- **Multiple AI Providers** - Support for OpenAI, Anthropic, Deepseek, Perplexity, and XAI APIs
+- **Multiple AI Providers** - Support for OpenAI, Anthropic, Deepseek, Moonshot, Perplexity, and XAI APIs
 - **Flexible Message Types** - Support for text and structured content in messages
 - **Conversation Management** - Easy-to-use conversation handling between agents and users
 - **Model Selection** - Choose from various AI models (GPT-4, Claude 3, Deepseek Chat, Sonar, Grok, etc.)
@@ -116,6 +116,27 @@ $deepseek = new Deepseek(
 Available Deepseek Models:
 - `MODEL_DEEPSEEK_CHAT`: General-purpose chat model
 - `MODEL_DEEPSEEK_CODER`: Specialized for code-related tasks
+
+#### Moonshot
+
+```php
+use Utopia\Agents\Adapters\Moonshot;
+
+$moonshot = new Moonshot(
+    apiKey: 'your-api-key',
+    model: Moonshot::MODEL_KIMI_K2_5,
+    maxTokens: 2048,
+    temperature: 1.0
+);
+```
+
+Available Moonshot Models:
+- `MODEL_KIMI_K2_5`: General-purpose Kimi model for long-context chat and coding workflows
+
+Moonshot notes:
+- The current adapter is text-only and follows the library's existing string-based message abstraction
+- Structured output uses JSON mode with schema guidance in the prompt, not strict provider-side JSON Schema validation
+- `kimi-k2.5` expects the default temperature of `1.0`
 
 #### Perplexity
 
