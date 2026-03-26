@@ -340,19 +340,15 @@ abstract class Adapter
     protected function decodeJsonObject(string $jsonString): ?array
     {
         $decoded = json_decode($jsonString, true);
-        if (! is_array($decoded)) {
+        if (! is_array($decoded) || array_is_list($decoded)) {
             return null;
         }
 
-        // Reject bare JSON arrays (not objects).
-        if (array_is_list($decoded) && ! empty($decoded)) {
-            return null;
+        foreach (array_keys($decoded) as $key) {
+            if (! is_string($key)) {
+                return null;
+            }
         }
-            return null;
-        }
-
-        /** @var array<string, mixed> $decoded */
-        return $decoded;
 
         /** @var array<string, mixed> $decoded */
         return $decoded;
