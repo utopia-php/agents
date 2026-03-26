@@ -335,11 +335,8 @@ abstract class Adapter
             return null;
         }
 
-        foreach (array_keys($decoded) as $key) {
-            if (! is_string($key)) {
-                return null;
-            }
-        }
+        /** @var array<string, mixed> $decoded */
+        return $decoded;
 
         /** @var array<string, mixed> $decoded */
         return $decoded;
