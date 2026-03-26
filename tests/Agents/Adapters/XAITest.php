@@ -3,41 +3,37 @@
 namespace Utopia\Tests\Agents\Adapters;
 
 use Utopia\Agents\Adapter as AgentAdapter;
-use Utopia\Agents\Adapters\OpenAI;
+use Utopia\Agents\Adapters\XAI;
 
-class OpenAIAdapterTest extends StreamingAdapterSseContract
+class XAITest extends Adapter
 {
     protected function createAdapter(): AgentAdapter
     {
-        return new OpenAI('test-api-key');
+        return new XAI('test-api-key');
     }
 
     protected function expectedName(): string
     {
-        return 'openai';
+        return 'xai';
     }
 
     protected function expectedDefaultModel(): string
     {
-        return OpenAI::MODEL_O3_MINI;
+        return XAI::MODEL_GROK_3_MINI;
     }
 
     protected function expectedModels(): array
     {
         return [
-            OpenAI::MODEL_GPT_5_NANO,
-            OpenAI::MODEL_GPT_4_5_PREVIEW,
-            OpenAI::MODEL_GPT_4_1,
-            OpenAI::MODEL_GPT_4O,
-            OpenAI::MODEL_O4_MINI,
-            OpenAI::MODEL_O3,
-            OpenAI::MODEL_O3_MINI,
+            XAI::MODEL_GROK_3,
+            XAI::MODEL_GROK_3_MINI,
+            XAI::MODEL_GROK_2_IMAGE,
         ];
     }
 
     protected function expectsSchemaSupport(): bool
     {
-        return true;
+        return false;
     }
 
     protected function expectsEmbeddingSupport(): bool
@@ -52,19 +48,14 @@ class OpenAIAdapterTest extends StreamingAdapterSseContract
 
     protected function expectedDefaultEndpoint(): ?string
     {
-        return 'https://api.openai.com/v1/chat/completions';
+        return 'https://api.x.ai/v1/chat/completions';
     }
 
-    protected function streamChunks(): array
+    public function testSseStreamProcessing(): void
     {
-        return [
+        $this->assertSseStreamingBehavior($this->createAdapter(), [
             'data: {"choices":[{"delta":{"content":"Hel',
             'lo"}}]}'."\n",
-        ];
-    }
-
-    protected function expectedStreamedContent(): string
-    {
-        return 'Hello';
+        ], 'Hello');
     }
 }

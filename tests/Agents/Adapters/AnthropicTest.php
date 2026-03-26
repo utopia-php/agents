@@ -5,7 +5,7 @@ namespace Utopia\Tests\Agents\Adapters;
 use Utopia\Agents\Adapter as AgentAdapter;
 use Utopia\Agents\Adapters\Anthropic;
 
-class AnthropicAdapterTest extends StreamingAdapterSseContract
+class AnthropicTest extends Adapter
 {
     protected function createAdapter(): AgentAdapter
     {
@@ -45,17 +45,12 @@ class AnthropicAdapterTest extends StreamingAdapterSseContract
         return false;
     }
 
-    protected function streamChunks(): array
+    public function testSseStreamProcessing(): void
     {
-        return [
+        $this->assertSseStreamingBehavior($this->createAdapter(), [
             '{"type":"content_block_delta","delta":{"type":"text_delta","text":"Hel',
             'lo"}}'."\n",
-        ];
-    }
-
-    protected function expectedStreamedContent(): string
-    {
-        return 'Hello';
+        ], 'Hello');
     }
 
     public function testSseUsageTokensAreCountedAcrossEvents(): void

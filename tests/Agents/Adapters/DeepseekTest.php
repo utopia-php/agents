@@ -5,7 +5,7 @@ namespace Utopia\Tests\Agents\Adapters;
 use Utopia\Agents\Adapter as AgentAdapter;
 use Utopia\Agents\Adapters\Deepseek;
 
-class DeepseekAdapterTest extends StreamingAdapterSseContract
+class DeepseekTest extends Adapter
 {
     protected function createAdapter(): AgentAdapter
     {
@@ -40,17 +40,12 @@ class DeepseekAdapterTest extends StreamingAdapterSseContract
         return false;
     }
 
-    protected function streamChunks(): array
+    public function testSseStreamProcessing(): void
     {
-        return [
+        $this->assertSseStreamingBehavior($this->createAdapter(), [
             'data: {"choices":[{"delta":{"content":"Hel',
             'lo"}}]}'."\n",
-        ];
-    }
-
-    protected function expectedStreamedContent(): string
-    {
-        return 'Hello';
+        ], 'Hello');
     }
 
     public function testSseUsageTokensAreCounted(): void

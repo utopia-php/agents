@@ -5,7 +5,7 @@ namespace Utopia\Tests\Agents\Adapters;
 use Utopia\Agents\Adapter as AgentAdapter;
 use Utopia\Agents\Adapters\Perplexity;
 
-class PerplexityAdapterTest extends StreamingAdapterSseContract
+class PerplexityTest extends Adapter
 {
     protected function createAdapter(): AgentAdapter
     {
@@ -53,17 +53,12 @@ class PerplexityAdapterTest extends StreamingAdapterSseContract
         return 'https://api.perplexity.ai/chat/completions';
     }
 
-    protected function streamChunks(): array
+    public function testSseStreamProcessing(): void
     {
-        return [
+        $this->assertSseStreamingBehavior($this->createAdapter(), [
             'data: {"choices":[{"delta":{"content":"Hel',
             'lo"}}]}'."\n",
-        ];
-    }
-
-    protected function expectedStreamedContent(): string
-    {
-        return 'Hello';
+        ], 'Hello');
     }
 
     public function testHtmlErrorResponseIsSanitized(): void

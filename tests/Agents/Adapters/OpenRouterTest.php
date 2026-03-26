@@ -6,7 +6,7 @@ use Utopia\Agents\Adapter as AgentAdapter;
 use Utopia\Agents\Adapters\OpenRouter;
 use Utopia\Agents\Adapters\OpenRouter\Models as OpenRouterModels;
 
-class OpenRouterAdapterTest extends StreamingAdapterSseContract
+class OpenRouterTest extends Adapter
 {
     protected function createAdapter(): AgentAdapter
     {
@@ -48,17 +48,12 @@ class OpenRouterAdapterTest extends StreamingAdapterSseContract
         return 'https://openrouter.ai/api/v1/chat/completions';
     }
 
-    protected function streamChunks(): array
+    public function testSseStreamProcessing(): void
     {
-        return [
+        $this->assertSseStreamingBehavior($this->createAdapter(), [
             'data: {"choices":[{"delta":{"content":"Hel',
             'lo"}}]}'."\n",
-        ];
-    }
-
-    protected function expectedStreamedContent(): string
-    {
-        return 'Hello';
+        ], 'Hello');
     }
 
     public function testModelSetterAcceptsArbitraryRoutedModel(): void

@@ -5,7 +5,7 @@ namespace Utopia\Tests\Agents\Adapters;
 use Utopia\Agents\Adapter as AgentAdapter;
 use Utopia\Agents\Adapters\Gemini;
 
-class GeminiAdapterTest extends StreamingAdapterSseContract
+class GeminiTest extends Adapter
 {
     protected function createAdapter(): AgentAdapter
     {
@@ -55,16 +55,11 @@ class GeminiAdapterTest extends StreamingAdapterSseContract
             .':streamGenerateContent?alt=sse&key=test-api-key';
     }
 
-    protected function streamChunks(): array
+    public function testSseStreamProcessing(): void
     {
-        return [
+        $this->assertSseStreamingBehavior($this->createAdapter(), [
             'data: {"candidates":[{"content":{"parts":[{"text":"Hel',
             'lo"}]}}]}'."\n",
-        ];
-    }
-
-    protected function expectedStreamedContent(): string
-    {
-        return 'Hello';
+        ], 'Hello');
     }
 }

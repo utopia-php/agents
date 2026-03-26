@@ -5,7 +5,7 @@ namespace Utopia\Tests\Agents\Adapters;
 use Utopia\Agents\Adapter as AgentAdapter;
 use Utopia\Agents\Adapters\Ollama;
 
-class OllamaAdapterTest extends Adapter
+class OllamaTest extends Adapter
 {
     protected function createAdapter(): AgentAdapter
     {
