@@ -21,7 +21,7 @@ Utopia Framework requires PHP 8.0 or later. We recommend using the latest PHP ve
 
 ## Features
 
-- **Multiple AI Providers** - Support for OpenAI, Anthropic, Deepseek, Perplexity, and XAI APIs
+- **Multiple AI Providers** - Support for OpenAI, Anthropic, Deepseek, Perplexity, XAI, Gemini, and OpenRouter APIs
 - **Flexible Message Types** - Support for text and structured content in messages
 - **Conversation Management** - Easy-to-use conversation handling between agents and users
 - **Model Selection** - Choose from various AI models (GPT-4, Claude 3, Deepseek Chat, Sonar, Grok, etc.)
@@ -154,6 +154,28 @@ Available XAI Models:
 - `MODEL_GROK_3`: Latest Grok model
 - `MODEL_GROK_3_MINI`: Mini version of Grok model
 - `MODEL_GROK_2_IMAGE`: Latest Grok model with image support
+
+#### OpenRouter
+
+```php
+use Utopia\Agents\Adapters\OpenRouter;
+use Utopia\Agents\Adapters\OpenRouter\Models as OpenRouterModels;
+
+$openrouter = new OpenRouter(
+    apiKey: 'your-api-key',
+    model: OpenRouterModels::MODEL_OPENAI_GPT_4O,
+    maxTokens: 2048,
+    temperature: 0.7,
+    httpReferer: 'https://your-app.example',
+    xTitle: 'Your App Name'
+);
+```
+
+- Named constants are provided for popular models from major providers (OpenAI, Anthropic, Google, Meta, DeepSeek, Mistral, xAI)
+- `Models::MODELS` contains the full model catalog; the adapter defaults to `openai/gpt-4o`
+- Arbitrary model IDs like `'openai/gpt-5-nano'` or `'anthropic/claude-sonnet-4'` are also accepted directly
+- `httpReferer` and `xTitle` are optional and enable OpenRouter app attribution headers
+- To re-sync constants from the live OpenRouter API, run `php scripts/sync-openrouter-models.php`
 
 ### Managing Conversations
 

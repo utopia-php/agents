@@ -109,11 +109,7 @@ class OpenAI extends Adapter
             throw new \Exception('Agent not set');
         }
 
-        $client = new Client();
-        $client
-            ->setTimeout($this->timeout)
-            ->addHeader('authorization', 'Bearer '.$this->apiKey)
-            ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
+        $client = $this->createClient();
 
         $formattedMessages = [];
         foreach ($messages as $message) {
@@ -304,7 +300,7 @@ class OpenAI extends Adapter
      */
     protected function usesMaxCompletionTokens(): bool
     {
-        return in_array($this->model, [
+        return in_array($this->getModel(), [
             self::MODEL_GPT_5_NANO,
             self::MODEL_O4_MINI,
             self::MODEL_O3,
@@ -317,7 +313,7 @@ class OpenAI extends Adapter
      */
     protected function usesDefaultTemperatureOnly(): bool
     {
-        $usesDefaultTemperatureOnly = in_array($this->model, [
+        $usesDefaultTemperatureOnly = in_array($this->getModel(), [
             self::MODEL_GPT_5_NANO,
         ], true);
 
@@ -331,6 +327,20 @@ class OpenAI extends Adapter
         }
 
         return $usesDefaultTemperatureOnly;
+    }
+
+    /**
+     * Create a configured HTTP client for API requests.
+     */
+    protected function createClient(): Client
+    {
+        $client = new Client();
+        $client
+            ->setTimeout($this->timeout)
+            ->addHeader('authorization', 'Bearer '.$this->apiKey)
+            ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
+
+        return $client;
     }
 
     /**
