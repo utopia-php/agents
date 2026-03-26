@@ -179,9 +179,9 @@ abstract class ConversationBase extends TestCase
 
     public function testListener(): void
     {
-        $called = false;
-        $testListener = function () use (&$called) {
-            $called = true;
+        $streamed = '';
+        $testListener = function (string $token) use (&$streamed): void {
+            $streamed .= $token;
         };
 
         $result = $this->conversation->listen($testListener);
@@ -189,9 +189,11 @@ abstract class ConversationBase extends TestCase
         $this->assertSame($this->conversation, $result);
         $this->assertSame($testListener, $this->conversation->getListener());
 
-        // Call the listener to verify it works
-        $listener = $this->conversation->getListener();
-        $listener();
-        $this->assertTrue($called);
+        $response = $this->conversation
+            ->message(new User('user-listen-1', 'Test User'), new Text('Please say hello'))
+            ->send();
+
+        $this->assertNotSame('', $streamed, 'Expected listener to receive streamed output');
+        $this->assertSame($response->getContent(), $streamed, 'Listener stream must match full response content');
     }
 }

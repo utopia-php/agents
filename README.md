@@ -26,6 +26,7 @@ Utopia Framework requires PHP 8.0 or later. We recommend using the latest PHP ve
 - **Conversation Management** - Easy-to-use conversation handling between agents and users
 - **Model Selection** - Choose from various AI models (GPT-4, Claude 3, Deepseek Chat, Sonar, Grok, etc.)
 - **Parameter Control** - Fine-tune model behavior with temperature and token controls
+- **Streaming Output** - Consume incremental model output through callback-driven Server-Sent Events (SSE) streams
 
 ## Usage
 
@@ -204,6 +205,79 @@ $conversation
 // Send and get response
 $response = $conversation->send();
 ```
+
+### Streaming Responses (SSE)
+
+The conversation layer supports incremental output streaming through `Conversation::listen(callable $listener)`.  
+The callback receives each text delta as it arrives from the provider's SSE stream, while `send()` still returns the final aggregated `Message`.
+
+#### Streaming in CLI / Worker Contexts
+
+```php
+use Utopia\Agents\Agent;
+use Utopia\Agents\Conversation;
+use Utopia\Agents\Adapters\OpenAI;
+use Utopia\Agents\Roles\User;
+use Utopia\Agents\Messages\Text;
+
+$agent = new Agent(new OpenAI('your-api-key', OpenAI::MODEL_GPT_4O));
+$conversation = new Conversation($agent);
+$user = new User('user-1', 'John');
+
+$conversation
+    ->listen(function (string $chunk): void {
+        echo $chunk; // render partial output as soon as it is received
+    })
+    ->message($user, new Text('Explain vector databases in one paragraph.'));
+
+$final = $conversation->send(); // final, complete assistant message
+```
+
+#### Exposing Model Output as HTTP SSE
+
+```php
+use Utopia\Agents\Agent;
+use Utopia\Agents\Conversation;
+use Utopia\Agents\Adapters\OpenAI;
+use Utopia\Agents\Roles\User;
+use Utopia\Agents\Messages\Text;
+
+header('Content-Type: text/event-stream');
+header('Cache-Control: no-cache');
+header('Connection: keep-alive');
+
+$agent = new Agent(new OpenAI('your-api-key', OpenAI::MODEL_GPT_4O));
+$conversation = new Conversation($agent);
+$user = new User('user-1', 'John');
+
+$conversation
+    ->listen(function (string $chunk): void {
+        // Send each token delta as an SSE frame
+        echo 'data: '.json_encode(['delta' => $chunk], JSON_UNESCAPED_UNICODE)."\n\n";
+
+        if (function_exists('ob_flush')) {
+            @ob_flush();
+        }
+        flush();
+    })
+    ->message($user, new Text('Write a short release note for today''s deployment.'));
+
+$final = $conversation->send();
+
+// Optional terminal event with complete text
+echo 'event: done'."\n";
+echo 'data: '.json_encode(['message' => $final->getContent()], JSON_UNESCAPED_UNICODE)."\n\n";
+echo 'data: [DONE]'."\n\n";
+flush();
+```
+
+#### Operational Notes
+
+- Streaming is adapter-dependent and available for chat-capable providers that expose incremental output.
+- The listener is optional; if omitted, responses are still collected and returned as a single final message.
+- Keep callbacks non-blocking and lightweight to avoid slowing downstream token delivery.
+- When serving SSE over HTTP, send `Content-Type: text/event-stream`, flush frequently, and disable intermediary buffering where applicable.
+- Usage metrics (input/output tokens and cache counters, where supported) remain available after `send()` completes.
 
 ### Working with Messages
 

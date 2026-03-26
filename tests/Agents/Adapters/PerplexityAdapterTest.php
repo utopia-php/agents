@@ -1,0 +1,81 @@
+<?php
+
+namespace Utopia\Tests\Agents\Adapters;
+
+use Utopia\Agents\Adapter as AgentAdapter;
+use Utopia\Agents\Adapters\Perplexity;
+
+class PerplexityAdapterTest extends StreamingAdapterSseContract
+{
+    protected function createAdapter(): AgentAdapter
+    {
+        return new Perplexity('test-api-key');
+    }
+
+    protected function expectedName(): string
+    {
+        return 'perplexity';
+    }
+
+    protected function expectedDefaultModel(): string
+    {
+        return Perplexity::MODEL_SONAR;
+    }
+
+    protected function expectedModels(): array
+    {
+        return [
+            Perplexity::MODEL_SONAR,
+            Perplexity::MODEL_SONAR_PRO,
+            Perplexity::MODEL_SONAR_DEEP_RESEARCH,
+            Perplexity::MODEL_SONAR_REASONING,
+            Perplexity::MODEL_SONAR_REASONING_PRO,
+        ];
+    }
+
+    protected function expectsSchemaSupport(): bool
+    {
+        return true;
+    }
+
+    protected function expectsEmbeddingSupport(): bool
+    {
+        return false;
+    }
+
+    protected function supportsEndpointMutator(): bool
+    {
+        return true;
+    }
+
+    protected function expectedDefaultEndpoint(): ?string
+    {
+        return 'https://api.perplexity.ai/chat/completions';
+    }
+
+    protected function streamChunks(): array
+    {
+        return [
+            'data: {"choices":[{"delta":{"content":"Hel',
+            'lo"}}]}'."\n",
+        ];
+    }
+
+    protected function expectedStreamedContent(): string
+    {
+        return 'Hello';
+    }
+
+    public function testHtmlErrorResponseIsSanitized(): void
+    {
+        $adapter = $this->createAdapter();
+
+        $this->beginStream($adapter);
+        $result = $this->processStreamChunk($adapter, $this->createChunk(
+            '<html><head><title>401 Authorization Required</title></head><body></body></html>'
+        ));
+        $this->endStream($adapter);
+
+        $this->assertSame('(http_401) Authorization Required', $result);
+    }
+}
