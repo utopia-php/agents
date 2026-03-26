@@ -254,7 +254,7 @@ abstract class Adapter
         $lines = explode("\n", $data);
 
         if ($data !== '' && ! str_ends_with($data, "\n")) {
-            $this->streamBuffer = array_pop($lines) ?? '';
+            $this->streamBuffer = (string) array_pop($lines);
             if (strlen($this->streamBuffer) > self::STREAM_BUFFER_MAX_BYTES) {
                 $this->streamBuffer = substr($this->streamBuffer, -self::STREAM_BUFFER_MAX_BYTES);
             }
@@ -285,9 +285,9 @@ abstract class Adapter
             return null;
         }
 
-        $json = json_decode($payload, true);
+        $json = $this->decodeJsonObject($payload);
 
-        return is_array($json) ? $json : null;
+        return $json;
     }
 
     /**
@@ -306,9 +306,9 @@ abstract class Adapter
             return null;
         }
 
-        $json = json_decode($payload, true);
+        $json = $this->decodeJsonObject($payload);
 
-        return is_array($json) ? $json : null;
+        return $json;
     }
 
     protected function appendStreamToken(string &$block, string $token, ?callable $listener): void
@@ -321,5 +321,27 @@ abstract class Adapter
         if ($listener !== null) {
             $listener($token);
         }
+    }
+
+    /**
+     * Decode only JSON objects (associative arrays with string keys).
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function decodeJsonObject(string $jsonString): ?array
+    {
+        $decoded = json_decode($jsonString, true);
+        if (! is_array($decoded) || array_is_list($decoded)) {
+            return null;
+        }
+
+        foreach (array_keys($decoded) as $key) {
+            if (! is_string($key)) {
+                return null;
+            }
+        }
+
+        /** @var array<string, mixed> $decoded */
+        return $decoded;
     }
 }
