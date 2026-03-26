@@ -300,7 +300,7 @@ class OpenAI extends Adapter
      */
     protected function usesMaxCompletionTokens(): bool
     {
-        return in_array($this->normalizeModelForCompatibilityChecks(), [
+        return in_array($this->getModel(), [
             self::MODEL_GPT_5_NANO,
             self::MODEL_O4_MINI,
             self::MODEL_O3,
@@ -313,7 +313,7 @@ class OpenAI extends Adapter
      */
     protected function usesDefaultTemperatureOnly(): bool
     {
-        $usesDefaultTemperatureOnly = in_array($this->normalizeModelForCompatibilityChecks(), [
+        $usesDefaultTemperatureOnly = in_array($this->getModel(), [
             self::MODEL_GPT_5_NANO,
         ], true);
 
@@ -341,14 +341,6 @@ class OpenAI extends Adapter
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
 
         return $client;
-    }
-
-    /**
-     * Normalize the current model name for provider compatibility checks.
-     */
-    protected function normalizeModelForCompatibilityChecks(): string
-    {
-        return $this->model;
     }
 
     /**
