@@ -2,10 +2,9 @@ name: "Tests"
 
 on: [ pull_request ]
 jobs:
-  lint:
-    name: Tests
+  setup:
+    name: Build
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -14,7 +13,101 @@ jobs:
 
       - run: git checkout HEAD^2
 
-      - name: Build
+      - name: Build Docker image
+        run: docker compose build
+
+      - name: Save Docker image
+        run: docker compose config --images | xargs -I{} docker save {} -o /tmp/test-image.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/test-image.tar
+          retention-days: 1
+
+  unit:
+    name: Unit Tests
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - run: git checkout HEAD^2
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load -i /tmp/test-image.tar
+
+      - name: Start services
+        run: |
+          docker compose up -d
+          sleep 10
+
+      - name: Run Unit Tests
+        run: |
+          docker compose exec tests vendor/bin/phpunit --configuration phpunit.xml \
+            tests/Agents/AgentTest.php \
+            tests/Agents/SchemaTest.php \
+            tests/Agents/Messages \
+            tests/Agents/Roles \
+            tests/Agents/Schema
+
+  conversation:
+    name: "${{ matrix.provider }} Tests"
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - provider: OpenAI
+            test: tests/Agents/Conversation/ConversationOpenAITest.php
+            env_key: LLM_KEY_OPENAI
+          - provider: Anthropic
+            test: tests/Agents/Conversation/ConversationAnthropicTest.php
+            env_key: LLM_KEY_ANTHROPIC
+          - provider: Deepseek
+            test: tests/Agents/Conversation/ConversationDeepseekTest.php
+            env_key: LLM_KEY_DEEPSEEK
+          - provider: XAI
+            test: tests/Agents/Conversation/ConversationXAITest.php
+            env_key: LLM_KEY_XAI
+          - provider: Perplexity
+            test: tests/Agents/Conversation/ConversationPerplexityTest.php
+            env_key: LLM_KEY_PERPLEXITY
+          - provider: Gemini
+            test: tests/Agents/Conversation/ConversationGeminiTest.php
+            env_key: LLM_KEY_GEMINI
+          - provider: OpenRouter
+            test: tests/Agents/Conversation/ConversationOpenRouterTest.php
+            env_key: LLM_KEY_OPENROUTER
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - run: git checkout HEAD^2
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load -i /tmp/test-image.tar
+
+      - name: Start services
         env:
           LLM_KEY_ANTHROPIC: ${{ secrets.LLM_KEY_ANTHROPIC }}
           LLM_KEY_OPENAI: ${{ secrets.LLM_KEY_OPENAI }}
@@ -24,9 +117,41 @@ jobs:
           LLM_KEY_GEMINI: ${{ secrets.LLM_KEY_GEMINI }}
           LLM_KEY_OPENROUTER: ${{ secrets.LLM_KEY_OPENROUTER }}
         run: |
-          docker compose build
           docker compose up -d
           sleep 10
 
-      - name: Run Tests
-        run: docker compose exec tests vendor/bin/phpunit --configuration phpunit.xml tests
+      - name: Run ${{ matrix.provider }} Tests
+        run: |
+          docker compose exec tests vendor/bin/phpunit --configuration phpunit.xml ${{ matrix.test }}
+
+  diffcheck:
+    name: DiffCheck Tests
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - run: git checkout HEAD^2
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load -i /tmp/test-image.tar
+
+      - name: Start services
+        env:
+          LLM_KEY_OPENAI: ${{ secrets.LLM_KEY_OPENAI }}
+        run: |
+          docker compose up -d
+          sleep 10
+
+      - name: Run DiffCheck Tests
+        run: |
+          docker compose exec tests vendor/bin/phpunit --configuration phpunit.xml tests/Agents/DiffCheck

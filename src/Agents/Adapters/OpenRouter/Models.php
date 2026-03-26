@@ -13,133 +13,240 @@ final class Models
 {
     // anthropic
     public const MODEL_ANTHROPIC_CLAUDE_3_HAIKU = 'anthropic/claude-3-haiku';
+
     public const MODEL_ANTHROPIC_CLAUDE_3_5_HAIKU = 'anthropic/claude-3.5-haiku';
+
     public const MODEL_ANTHROPIC_CLAUDE_3_5_SONNET = 'anthropic/claude-3.5-sonnet';
+
     public const MODEL_ANTHROPIC_CLAUDE_3_7_SONNET = 'anthropic/claude-3.7-sonnet';
+
     public const MODEL_ANTHROPIC_CLAUDE_3_7_SONNET_THINKING = 'anthropic/claude-3.7-sonnet:thinking';
+
     public const MODEL_ANTHROPIC_CLAUDE_HAIKU_4_5 = 'anthropic/claude-haiku-4.5';
+
     public const MODEL_ANTHROPIC_CLAUDE_OPUS_4 = 'anthropic/claude-opus-4';
+
     public const MODEL_ANTHROPIC_CLAUDE_OPUS_4_1 = 'anthropic/claude-opus-4.1';
+
     public const MODEL_ANTHROPIC_CLAUDE_OPUS_4_5 = 'anthropic/claude-opus-4.5';
+
     public const MODEL_ANTHROPIC_CLAUDE_OPUS_4_6 = 'anthropic/claude-opus-4.6';
+
     public const MODEL_ANTHROPIC_CLAUDE_SONNET_4 = 'anthropic/claude-sonnet-4';
+
     public const MODEL_ANTHROPIC_CLAUDE_SONNET_4_5 = 'anthropic/claude-sonnet-4.5';
+
     public const MODEL_ANTHROPIC_CLAUDE_SONNET_4_6 = 'anthropic/claude-sonnet-4.6';
 
     // deepseek
     public const MODEL_DEEPSEEK_DEEPSEEK_CHAT = 'deepseek/deepseek-chat';
+
     public const MODEL_DEEPSEEK_DEEPSEEK_CHAT_V3_1 = 'deepseek/deepseek-chat-v3.1';
+
     public const MODEL_DEEPSEEK_DEEPSEEK_R1 = 'deepseek/deepseek-r1';
+
     public const MODEL_DEEPSEEK_DEEPSEEK_R1_DISTILL_LLAMA_70B = 'deepseek/deepseek-r1-distill-llama-70b';
+
     public const MODEL_DEEPSEEK_DEEPSEEK_R1_DISTILL_QWEN_32B = 'deepseek/deepseek-r1-distill-qwen-32b';
+
     public const MODEL_DEEPSEEK_DEEPSEEK_V3_1_TERMINUS = 'deepseek/deepseek-v3.1-terminus';
+
     public const MODEL_DEEPSEEK_DEEPSEEK_V3_2 = 'deepseek/deepseek-v3.2';
+
     public const MODEL_DEEPSEEK_DEEPSEEK_V3_2_EXP = 'deepseek/deepseek-v3.2-exp';
+
     public const MODEL_DEEPSEEK_DEEPSEEK_V3_2_SPECIALE = 'deepseek/deepseek-v3.2-speciale';
 
     // google
     public const MODEL_GOOGLE_GEMINI_2_0_FLASH_001 = 'google/gemini-2.0-flash-001';
+
     public const MODEL_GOOGLE_GEMINI_2_0_FLASH_LITE_001 = 'google/gemini-2.0-flash-lite-001';
+
     public const MODEL_GOOGLE_GEMINI_2_5_FLASH = 'google/gemini-2.5-flash';
+
     public const MODEL_GOOGLE_GEMINI_2_5_FLASH_IMAGE = 'google/gemini-2.5-flash-image';
+
     public const MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE = 'google/gemini-2.5-flash-lite';
+
     public const MODEL_GOOGLE_GEMINI_2_5_PRO = 'google/gemini-2.5-pro';
+
     public const MODEL_GOOGLE_GEMINI_2_5_PRO_PREVIEW_05_06 = 'google/gemini-2.5-pro-preview-05-06';
+
     public const MODEL_GOOGLE_GEMINI_3_1_PRO_PREVIEW_CUSTOMTOOLS = 'google/gemini-3.1-pro-preview-customtools';
+
     public const MODEL_GOOGLE_GEMMA_2_27B_IT = 'google/gemma-2-27b-it';
+
     public const MODEL_GOOGLE_GEMMA_2_9B_IT = 'google/gemma-2-9b-it';
+
     public const MODEL_GOOGLE_GEMMA_3_12B_IT = 'google/gemma-3-12b-it';
+
     public const MODEL_GOOGLE_GEMMA_3_27B_IT = 'google/gemma-3-27b-it';
+
     public const MODEL_GOOGLE_GEMMA_3_4B_IT = 'google/gemma-3-4b-it';
+
     public const MODEL_GOOGLE_GEMMA_3N_E4B_IT = 'google/gemma-3n-e4b-it';
 
     // meta-llama
     public const MODEL_META_LLAMA_LLAMA_3_70B_INSTRUCT = 'meta-llama/llama-3-70b-instruct';
+
     public const MODEL_META_LLAMA_LLAMA_3_8B_INSTRUCT = 'meta-llama/llama-3-8b-instruct';
+
     public const MODEL_META_LLAMA_LLAMA_3_1_70B_INSTRUCT = 'meta-llama/llama-3.1-70b-instruct';
+
     public const MODEL_META_LLAMA_LLAMA_3_1_8B_INSTRUCT = 'meta-llama/llama-3.1-8b-instruct';
+
     public const MODEL_META_LLAMA_LLAMA_3_2_11B_VISION_INSTRUCT = 'meta-llama/llama-3.2-11b-vision-instruct';
+
     public const MODEL_META_LLAMA_LLAMA_3_2_1B_INSTRUCT = 'meta-llama/llama-3.2-1b-instruct';
+
     public const MODEL_META_LLAMA_LLAMA_3_2_3B_INSTRUCT = 'meta-llama/llama-3.2-3b-instruct';
+
     public const MODEL_META_LLAMA_LLAMA_3_3_70B_INSTRUCT = 'meta-llama/llama-3.3-70b-instruct';
+
     public const MODEL_META_LLAMA_LLAMA_4_MAVERICK = 'meta-llama/llama-4-maverick';
+
     public const MODEL_META_LLAMA_LLAMA_4_SCOUT = 'meta-llama/llama-4-scout';
+
     public const MODEL_META_LLAMA_LLAMA_GUARD_3_8B = 'meta-llama/llama-guard-3-8b';
+
     public const MODEL_META_LLAMA_LLAMA_GUARD_4_12B = 'meta-llama/llama-guard-4-12b';
 
     // mistralai
     public const MODEL_MISTRALAI_DEVSTRAL_MEDIUM = 'mistralai/devstral-medium';
+
     public const MODEL_MISTRALAI_DEVSTRAL_SMALL = 'mistralai/devstral-small';
+
     public const MODEL_MISTRALAI_MISTRAL_7B_INSTRUCT_V0_1 = 'mistralai/mistral-7b-instruct-v0.1';
+
     public const MODEL_MISTRALAI_MISTRAL_LARGE = 'mistralai/mistral-large';
+
     public const MODEL_MISTRALAI_MISTRAL_MEDIUM_3 = 'mistralai/mistral-medium-3';
+
     public const MODEL_MISTRALAI_MISTRAL_MEDIUM_3_1 = 'mistralai/mistral-medium-3.1';
+
     public const MODEL_MISTRALAI_MISTRAL_NEMO = 'mistralai/mistral-nemo';
+
     public const MODEL_MISTRALAI_MISTRAL_SABA = 'mistralai/mistral-saba';
+
     public const MODEL_MISTRALAI_MISTRAL_SMALL_3_1_24B_INSTRUCT = 'mistralai/mistral-small-3.1-24b-instruct';
+
     public const MODEL_MISTRALAI_MISTRAL_SMALL_3_2_24B_INSTRUCT = 'mistralai/mistral-small-3.2-24b-instruct';
+
     public const MODEL_MISTRALAI_MISTRAL_SMALL_CREATIVE = 'mistralai/mistral-small-creative';
+
     public const MODEL_MISTRALAI_MIXTRAL_8X22B_INSTRUCT = 'mistralai/mixtral-8x22b-instruct';
+
     public const MODEL_MISTRALAI_MIXTRAL_8X7B_INSTRUCT = 'mistralai/mixtral-8x7b-instruct';
 
     // openai
     public const MODEL_OPENAI_GPT_4 = 'openai/gpt-4';
+
     public const MODEL_OPENAI_GPT_4_1 = 'openai/gpt-4.1';
+
     public const MODEL_OPENAI_GPT_4_1_MINI = 'openai/gpt-4.1-mini';
+
     public const MODEL_OPENAI_GPT_4_1_NANO = 'openai/gpt-4.1-nano';
+
     public const MODEL_OPENAI_GPT_4O = 'openai/gpt-4o';
+
     public const MODEL_OPENAI_GPT_4O_MINI = 'openai/gpt-4o-mini';
+
     public const MODEL_OPENAI_GPT_5 = 'openai/gpt-5';
+
     public const MODEL_OPENAI_GPT_5_CHAT = 'openai/gpt-5-chat';
+
     public const MODEL_OPENAI_GPT_5_CODEX = 'openai/gpt-5-codex';
+
     public const MODEL_OPENAI_GPT_5_IMAGE = 'openai/gpt-5-image';
+
     public const MODEL_OPENAI_GPT_5_IMAGE_MINI = 'openai/gpt-5-image-mini';
+
     public const MODEL_OPENAI_GPT_5_MINI = 'openai/gpt-5-mini';
+
     public const MODEL_OPENAI_GPT_5_NANO = 'openai/gpt-5-nano';
+
     public const MODEL_OPENAI_GPT_5_PRO = 'openai/gpt-5-pro';
+
     public const MODEL_OPENAI_GPT_5_1 = 'openai/gpt-5.1';
+
     public const MODEL_OPENAI_GPT_5_1_CHAT = 'openai/gpt-5.1-chat';
+
     public const MODEL_OPENAI_GPT_5_1_CODEX = 'openai/gpt-5.1-codex';
+
     public const MODEL_OPENAI_GPT_5_1_CODEX_MAX = 'openai/gpt-5.1-codex-max';
+
     public const MODEL_OPENAI_GPT_5_1_CODEX_MINI = 'openai/gpt-5.1-codex-mini';
+
     public const MODEL_OPENAI_GPT_5_2 = 'openai/gpt-5.2';
+
     public const MODEL_OPENAI_GPT_5_2_CHAT = 'openai/gpt-5.2-chat';
+
     public const MODEL_OPENAI_GPT_5_2_CODEX = 'openai/gpt-5.2-codex';
+
     public const MODEL_OPENAI_GPT_5_2_PRO = 'openai/gpt-5.2-pro';
+
     public const MODEL_OPENAI_GPT_5_3_CHAT = 'openai/gpt-5.3-chat';
+
     public const MODEL_OPENAI_GPT_5_3_CODEX = 'openai/gpt-5.3-codex';
+
     public const MODEL_OPENAI_GPT_5_4 = 'openai/gpt-5.4';
+
     public const MODEL_OPENAI_GPT_5_4_MINI = 'openai/gpt-5.4-mini';
+
     public const MODEL_OPENAI_GPT_5_4_NANO = 'openai/gpt-5.4-nano';
+
     public const MODEL_OPENAI_GPT_5_4_PRO = 'openai/gpt-5.4-pro';
+
     public const MODEL_OPENAI_GPT_AUDIO = 'openai/gpt-audio';
+
     public const MODEL_OPENAI_GPT_AUDIO_MINI = 'openai/gpt-audio-mini';
+
     public const MODEL_OPENAI_GPT_OSS_120B = 'openai/gpt-oss-120b';
+
     public const MODEL_OPENAI_GPT_OSS_20B = 'openai/gpt-oss-20b';
+
     public const MODEL_OPENAI_GPT_OSS_SAFEGUARD_20B = 'openai/gpt-oss-safeguard-20b';
+
     public const MODEL_OPENAI_O1 = 'openai/o1';
+
     public const MODEL_OPENAI_O1_PRO = 'openai/o1-pro';
+
     public const MODEL_OPENAI_O3 = 'openai/o3';
+
     public const MODEL_OPENAI_O3_DEEP_RESEARCH = 'openai/o3-deep-research';
+
     public const MODEL_OPENAI_O3_MINI = 'openai/o3-mini';
+
     public const MODEL_OPENAI_O3_MINI_HIGH = 'openai/o3-mini-high';
+
     public const MODEL_OPENAI_O3_PRO = 'openai/o3-pro';
+
     public const MODEL_OPENAI_O4_MINI = 'openai/o4-mini';
+
     public const MODEL_OPENAI_O4_MINI_DEEP_RESEARCH = 'openai/o4-mini-deep-research';
+
     public const MODEL_OPENAI_O4_MINI_HIGH = 'openai/o4-mini-high';
 
     // x-ai
     public const MODEL_X_AI_GROK_3 = 'x-ai/grok-3';
-    public const MODEL_X_AI_GROK_3_BETA = 'x-ai/grok-3-beta';
-    public const MODEL_X_AI_GROK_3_MINI = 'x-ai/grok-3-mini';
-    public const MODEL_X_AI_GROK_3_MINI_BETA = 'x-ai/grok-3-mini-beta';
-    public const MODEL_X_AI_GROK_4 = 'x-ai/grok-4';
-    public const MODEL_X_AI_GROK_4_FAST = 'x-ai/grok-4-fast';
-    public const MODEL_X_AI_GROK_4_1_FAST = 'x-ai/grok-4.1-fast';
-    public const MODEL_X_AI_GROK_4_20_BETA = 'x-ai/grok-4.20-beta';
-    public const MODEL_X_AI_GROK_4_20_MULTI_AGENT_BETA = 'x-ai/grok-4.20-multi-agent-beta';
-    public const MODEL_X_AI_GROK_CODE_FAST_1 = 'x-ai/grok-code-fast-1';
 
+    public const MODEL_X_AI_GROK_3_BETA = 'x-ai/grok-3-beta';
+
+    public const MODEL_X_AI_GROK_3_MINI = 'x-ai/grok-3-mini';
+
+    public const MODEL_X_AI_GROK_3_MINI_BETA = 'x-ai/grok-3-mini-beta';
+
+    public const MODEL_X_AI_GROK_4 = 'x-ai/grok-4';
+
+    public const MODEL_X_AI_GROK_4_FAST = 'x-ai/grok-4-fast';
+
+    public const MODEL_X_AI_GROK_4_1_FAST = 'x-ai/grok-4.1-fast';
+
+    public const MODEL_X_AI_GROK_4_20_BETA = 'x-ai/grok-4.20-beta';
+
+    public const MODEL_X_AI_GROK_4_20_MULTI_AGENT_BETA = 'x-ai/grok-4.20-multi-agent-beta';
+
+    public const MODEL_X_AI_GROK_CODE_FAST_1 = 'x-ai/grok-code-fast-1';
 
     /**
      * Full model catalog. Use model IDs directly or via named constants above.
