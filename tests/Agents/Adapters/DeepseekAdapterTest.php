@@ -66,5 +66,4 @@ class DeepseekAdapterTest extends StreamingAdapterSseContract
         $this->assertSame(12, $adapter->getInputTokens());
         $this->assertSame(7, $adapter->getOutputTokens());
     }
-
 }

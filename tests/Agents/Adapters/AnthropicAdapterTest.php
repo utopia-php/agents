@@ -76,5 +76,4 @@ class AnthropicAdapterTest extends StreamingAdapterSseContract
         $this->assertSame(2, $adapter->getCacheCreationInputTokens());
         $this->assertSame(1, $adapter->getCacheReadInputTokens());
     }
-
 }
