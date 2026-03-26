@@ -230,17 +230,25 @@ abstract class Adapter
     }
 
     /**
-     * Reset streaming buffer before/after stream lifecycle.
+     * Prepare stream state before processing a new stream.
      */
     protected function beginStreamProcessing(): void
     {
-        $this->streamBuffer = '';
+        $this->resetStreamBuffer();
     }
 
     /**
-     * Reset streaming buffer before/after stream lifecycle.
+     * Finalize stream state after stream processing ends.
      */
     protected function endStreamProcessing(): void
+    {
+        $this->resetStreamBuffer();
+    }
+
+    /**
+     * Clear retained partial stream fragments.
+     */
+    protected function resetStreamBuffer(): void
     {
         $this->streamBuffer = '';
     }
@@ -250,10 +258,10 @@ abstract class Adapter
      */
     protected function prepareStreamLines(Chunk $chunk): array
     {
-        $data = $this->streamBuffer.$chunk->getData();
-        $lines = explode("\n", $data);
+        $combined = $this->streamBuffer.$chunk->getData();
+        $lines = explode("\n", $combined);
 
-        if ($data !== '' && ! str_ends_with($data, "\n")) {
+        if ($combined !== '' && ! str_ends_with($combined, "\n")) {
             $this->streamBuffer = (string) array_pop($lines);
             if (strlen($this->streamBuffer) > self::STREAM_BUFFER_MAX_BYTES) {
                 $this->streamBuffer = substr($this->streamBuffer, -self::STREAM_BUFFER_MAX_BYTES);
@@ -262,7 +270,8 @@ abstract class Adapter
             $this->streamBuffer = '';
         }
 
-        return [$data, $lines];
+        // Return only complete lines data (excluding buffered trailing fragment).
+        return [implode("\n", $lines), $lines];
     }
 
     /**

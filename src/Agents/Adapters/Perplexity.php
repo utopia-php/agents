@@ -111,18 +111,19 @@ class Perplexity extends OpenAI
         $block = '';
         [$data, $lines] = $this->prepareStreamLines($chunk);
 
-        $json = json_decode($data, true);
+        $rawData = $chunk->getData();
+        $json = $this->decodeJsonObject(trim($rawData)) ?? $this->decodeJsonObject($data);
         if (is_array($json) && isset($json['error'])) {
             return $this->formatErrorMessage($json);
         }
 
         // Specifically for Authorization and similar errors that return HTML
-        $trimmed = ltrim($data);
+        $trimmed = ltrim($rawData);
         if (
             stripos($trimmed, '<html') === 0 ||
             stripos($trimmed, '<!DOCTYPE html') === 0
         ) {
-            return $this->sanitizeHtmlError($data);
+            return $this->sanitizeHtmlError($rawData);
         }
 
         foreach ($lines as $line) {
