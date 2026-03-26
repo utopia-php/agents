@@ -131,16 +131,21 @@ class Gemini extends Adapter
         ];
 
         $content = '';
-        $response = $client->fetch(
-            $this->endpoint,
-            Client::METHOD_POST,
-            $payload,
-            [],
-            function ($chunk) use (&$content, $listener) {
-                /** @var Chunk $chunk */
-                $content .= $this->process($chunk, $listener);
-            }
-        );
+        $this->beginStreamProcessing();
+        try {
+            $response = $client->fetch(
+                $this->endpoint,
+                Client::METHOD_POST,
+                $payload,
+                [],
+                function ($chunk) use (&$content, $listener) {
+                    /** @var Chunk $chunk */
+                    $content .= $this->process($chunk, $listener);
+                }
+            );
+        } finally {
+            $this->endStreamProcessing();
+        }
 
         if ($response->getStatusCode() >= 400) {
             throw new \Exception(
@@ -163,8 +168,7 @@ class Gemini extends Adapter
     protected function process(Chunk $chunk, ?callable $listener): string
     {
         $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
+        [$data, $lines] = $this->prepareStreamLines($chunk);
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
@@ -172,20 +176,7 @@ class Gemini extends Adapter
         }
 
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            if (! str_starts_with($line, 'data: ')) {
-                continue;
-            }
-
-            // Handle [DONE] message
-            if (trim($line) === 'data: [DONE]') {
-                continue;
-            }
-
-            $json = json_decode(substr($line, 6), true);
+            $json = $this->decodeSseJsonLine($line);
             if (! is_array($json)) {
                 continue;
             }
@@ -197,11 +188,7 @@ class Gemini extends Adapter
             $parts = isset($content['parts']) && is_array($content['parts']) ? $content['parts'] : [];
             $firstPart = isset($parts[0]) && is_array($parts[0]) ? $parts[0] : [];
             if (isset($firstPart['text']) && is_string($firstPart['text'])) {
-                $block = $firstPart['text'];
-
-                if (! empty($block) && $listener !== null) {
-                    $listener($block);
-                }
+                $this->appendStreamToken($block, $firstPart['text'], $listener);
             }
         }
 

@@ -2,8 +2,15 @@
 
 namespace Utopia\Agents;
 
+use Utopia\Fetch\Chunk;
+
 abstract class Adapter
 {
+    /**
+     * Upper bound for retained incomplete SSE fragments.
+     */
+    protected const STREAM_BUFFER_MAX_BYTES = 1048576;
+
     /**
      * The agent instance
      */
@@ -33,6 +40,11 @@ abstract class Adapter
      * Request timeout in milliseconds
      */
     protected int $timeout = 90000;
+
+    /**
+     * Carries incomplete SSE line fragments between chunks.
+     */
+    protected string $streamBuffer = '';
 
     /**
      * Get the adapter name
@@ -215,5 +227,99 @@ abstract class Adapter
     public function getTimeout(): int
     {
         return $this->timeout;
+    }
+
+    /**
+     * Reset streaming buffer before/after stream lifecycle.
+     */
+    protected function beginStreamProcessing(): void
+    {
+        $this->streamBuffer = '';
+    }
+
+    /**
+     * Reset streaming buffer before/after stream lifecycle.
+     */
+    protected function endStreamProcessing(): void
+    {
+        $this->streamBuffer = '';
+    }
+
+    /**
+     * @return array{0: string, 1: array<int, string>}
+     */
+    protected function prepareStreamLines(Chunk $chunk): array
+    {
+        $data = $this->streamBuffer.$chunk->getData();
+        $lines = explode("\n", $data);
+
+        if ($data !== '' && ! str_ends_with($data, "\n")) {
+            $this->streamBuffer = array_pop($lines) ?? '';
+            if (strlen($this->streamBuffer) > self::STREAM_BUFFER_MAX_BYTES) {
+                $this->streamBuffer = substr($this->streamBuffer, -self::STREAM_BUFFER_MAX_BYTES);
+            }
+        } else {
+            $this->streamBuffer = '';
+        }
+
+        return [$data, $lines];
+    }
+
+    /**
+     * Decode a standard SSE "data: {json}" line.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function decodeSseJsonLine(string $line): ?array
+    {
+        if (trim($line) === '') {
+            return null;
+        }
+
+        if (! str_starts_with($line, 'data: ')) {
+            return null;
+        }
+
+        $payload = substr($line, 6);
+        if (trim($payload) === '[DONE]') {
+            return null;
+        }
+
+        $json = json_decode($payload, true);
+
+        return is_array($json) ? $json : null;
+    }
+
+    /**
+     * Decode either raw JSON lines or SSE "data: {json}" lines.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function decodeJsonOrSseLine(string $line): ?array
+    {
+        if (trim($line) === '') {
+            return null;
+        }
+
+        $payload = str_starts_with($line, 'data: ') ? substr($line, 6) : $line;
+        if (trim($payload) === '[DONE]') {
+            return null;
+        }
+
+        $json = json_decode($payload, true);
+
+        return is_array($json) ? $json : null;
+    }
+
+    protected function appendStreamToken(string &$block, string $token, ?callable $listener): void
+    {
+        if ($token === '') {
+            return;
+        }
+
+        $block .= $token;
+        if ($listener !== null) {
+            $listener($token);
+        }
     }
 }

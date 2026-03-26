@@ -180,16 +180,21 @@ class Anthropic extends Adapter
 
         $content = '';
         if ($payload['stream']) {
-            $response = $client->fetch(
-                'https://api.anthropic.com/v1/messages',
-                Client::METHOD_POST,
-                $payload,
-                [],
-                function ($chunk) use (&$content, $listener) {
-                    /** @var Chunk $chunk */
-                    $content .= $this->process($chunk, $listener);
-                }
-            );
+            $this->beginStreamProcessing();
+            try {
+                $response = $client->fetch(
+                    'https://api.anthropic.com/v1/messages',
+                    Client::METHOD_POST,
+                    $payload,
+                    [],
+                    function ($chunk) use (&$content, $listener) {
+                        /** @var Chunk $chunk */
+                        $content .= $this->process($chunk, $listener);
+                    }
+                );
+            } finally {
+                $this->endStreamProcessing();
+            }
         } else {
             $response = $client->fetch(
                 'https://api.anthropic.com/v1/messages',
@@ -247,18 +252,10 @@ class Anthropic extends Adapter
     protected function process(Chunk $chunk, ?callable $listener): string
     {
         $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
+        [, $lines] = $this->prepareStreamLines($chunk);
 
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            // Check if line starts with "data: " prefix and remove it, otherwise use the line as-is
-            $jsonString = str_starts_with($line, 'data: ') ? substr($line, 6) : $line;
-            $json = json_decode($jsonString, true);
-
+            $json = $this->decodeJsonOrSseLine($line);
             if (! is_array($json)) {
                 continue;
             }
@@ -297,15 +294,8 @@ class Anthropic extends Adapter
                     }
 
                     $deltaType = $json['delta']['type'];
-
                     if ($deltaType === 'text_delta' && isset($json['delta']['text']) && is_string($json['delta']['text'])) {
-                        $block = $json['delta']['text'];
-                    }
-
-                    if (! empty($block)) {
-                        if ($listener !== null) {
-                            $listener($block);
-                        }
+                        $this->appendStreamToken($block, $json['delta']['text'], $listener);
                     }
                     break;
 

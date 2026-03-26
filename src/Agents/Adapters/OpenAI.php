@@ -177,22 +177,27 @@ class OpenAI extends Adapter
         $content = '';
 
         if ($payload['stream']) {
-            $response = $client->fetch(
-                $this->endpoint,
-                Client::METHOD_POST,
-                $payload,
-                [],
-                function ($chunk) use (&$content, $listener) {
-                    /** @var Chunk $chunk */
-                    $content .= $this->process($chunk, $listener);
-                }
-            );
-
-            if ($response->getStatusCode() >= 400) {
-                throw new \Exception(
-                    ucfirst($this->getName()).' API error: '.$content,
-                    $response->getStatusCode()
+            $this->beginStreamProcessing();
+            try {
+                $response = $client->fetch(
+                    $this->endpoint,
+                    Client::METHOD_POST,
+                    $payload,
+                    [],
+                    function ($chunk) use (&$content, $listener) {
+                        /** @var Chunk $chunk */
+                        $content .= $this->process($chunk, $listener);
+                    }
                 );
+
+                if ($response->getStatusCode() >= 400) {
+                    throw new \Exception(
+                        ucfirst($this->getName()).' API error: '.$content,
+                        $response->getStatusCode()
+                    );
+                }
+            } finally {
+                $this->endStreamProcessing();
             }
         } else {
             $response = $client->fetch(
@@ -234,8 +239,7 @@ class OpenAI extends Adapter
     protected function process(Chunk $chunk, ?callable $listener): string
     {
         $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
+        [$data, $lines] = $this->prepareStreamLines($chunk);
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
@@ -243,20 +247,7 @@ class OpenAI extends Adapter
         }
 
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            if (! str_starts_with($line, 'data: ')) {
-                continue;
-            }
-
-            // Handle [DONE] message
-            if (trim($line) === 'data: [DONE]') {
-                continue;
-            }
-
-            $json = json_decode(substr($line, 6), true);
+            $json = $this->decodeSseJsonLine($line);
             if (! is_array($json)) {
                 continue;
             }
@@ -266,11 +257,7 @@ class OpenAI extends Adapter
             $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
             $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
             if (isset($delta['content']) && is_string($delta['content'])) {
-                $block = $delta['content'];
-
-                if (! empty($block) && $listener !== null) {
-                    $listener($block);
-                }
+                $this->appendStreamToken($block, $delta['content'], $listener);
             }
         }
 
@@ -300,7 +287,9 @@ class OpenAI extends Adapter
      */
     protected function usesMaxCompletionTokens(): bool
     {
-        return in_array($this->getModel(), [
+        $model = $this->normalizeModelForCompatibilityChecks();
+
+        return in_array($model, [
             self::MODEL_GPT_5_NANO,
             self::MODEL_O4_MINI,
             self::MODEL_O3,
@@ -313,7 +302,8 @@ class OpenAI extends Adapter
      */
     protected function usesDefaultTemperatureOnly(): bool
     {
-        $usesDefaultTemperatureOnly = in_array($this->getModel(), [
+        $model = $this->normalizeModelForCompatibilityChecks();
+        $usesDefaultTemperatureOnly = in_array($model, [
             self::MODEL_GPT_5_NANO,
         ], true);
 
@@ -341,6 +331,14 @@ class OpenAI extends Adapter
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
 
         return $client;
+    }
+
+    /**
+     * Allow subclasses to normalize routed model IDs.
+     */
+    protected function normalizeModelForCompatibilityChecks(): string
+    {
+        return $this->model;
     }
 
     /**

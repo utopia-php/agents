@@ -123,16 +123,21 @@ class Deepseek extends Adapter
         }
 
         $content = '';
-        $response = $client->fetch(
-            'https://api.deepseek.com/chat/completions',
-            Client::METHOD_POST,
-            $payload,
-            [],
-            function ($chunk) use (&$content, $listener) {
-                /** @var Chunk $chunk */
-                $content .= $this->process($chunk, $listener);
-            }
-        );
+        $this->beginStreamProcessing();
+        try {
+            $response = $client->fetch(
+                'https://api.deepseek.com/chat/completions',
+                Client::METHOD_POST,
+                $payload,
+                [],
+                function ($chunk) use (&$content, $listener) {
+                    /** @var Chunk $chunk */
+                    $content .= $this->process($chunk, $listener);
+                }
+            );
+        } finally {
+            $this->endStreamProcessing();
+        }
 
         if ($response->getStatusCode() >= 400) {
             throw new \Exception(
@@ -153,8 +158,7 @@ class Deepseek extends Adapter
     protected function process(Chunk $chunk, ?callable $listener): string
     {
         $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
+        [$data, $lines] = $this->prepareStreamLines($chunk);
 
         $json = json_decode($data, true);
         if (is_array($json) && isset($json['error'])) {
@@ -162,20 +166,7 @@ class Deepseek extends Adapter
         }
 
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            if (! str_starts_with($line, 'data: ')) {
-                continue;
-            }
-
-            $line = substr($line, 6);
-            if ($line === '[DONE]') {
-                continue;
-            }
-
-            $json = json_decode($line, true);
+            $json = $this->decodeSseJsonLine($line);
             if (! is_array($json)) {
                 continue;
             }
@@ -184,13 +175,7 @@ class Deepseek extends Adapter
             $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
             $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
             if (isset($delta['content']) && is_string($delta['content'])) {
-                $deltaContent = $delta['content'];
-                if (! empty($deltaContent)) {
-                    $block .= $deltaContent;
-                    if ($listener !== null) {
-                        $listener($deltaContent);
-                    }
-                }
+                $this->appendStreamToken($block, $delta['content'], $listener);
             }
 
             if (isset($json['usage']) && is_array($json['usage'])) {
