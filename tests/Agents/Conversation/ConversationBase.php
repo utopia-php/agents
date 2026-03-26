@@ -190,10 +190,11 @@ abstract class ConversationBase extends TestCase
         $this->assertSame($testListener, $this->conversation->getListener());
 
         $response = $this->conversation
-            ->message(new User('user-listen-1', 'Test User'), new Text('Please say hello'))
+            ->message(new User('user-listen-1', 'Test User'), new Text('Write a detailed explanation of how rain forms in the atmosphere, and make it long: at least 1200 characters.'))
             ->send();
 
         $this->assertNotSame('', $streamed, 'Expected listener to receive streamed output');
         $this->assertSame($response->getContent(), $streamed, 'Listener stream must match full response content');
+        $this->assertGreaterThan(500, strlen($streamed), 'Expected a large streamed payload to validate chunked listener behavior');
     }
 }
