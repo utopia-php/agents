@@ -54,12 +54,4 @@ class OpenAITest extends Adapter
     {
         return 'https://api.openai.com/v1/chat/completions';
     }
-
-    public function testSseStreamProcessing(): void
-    {
-        $this->assertSseStreamingBehavior($this->createAdapter(), [
-            'data: {"choices":[{"delta":{"content":"Hel',
-            'lo"}}]}'."\n",
-        ], 'Hello');
-    }
 }

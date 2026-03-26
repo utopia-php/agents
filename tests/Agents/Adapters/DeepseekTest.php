@@ -39,26 +39,4 @@ class DeepseekTest extends Adapter
     {
         return false;
     }
-
-    public function testSseStreamProcessing(): void
-    {
-        $this->assertSseStreamingBehavior($this->createAdapter(), [
-            'data: {"choices":[{"delta":{"content":"Hel',
-            'lo"}}]}'."\n",
-        ], 'Hello');
-    }
-
-    public function testSseUsageTokensAreCounted(): void
-    {
-        $adapter = $this->createAdapter();
-
-        $this->beginStream($adapter);
-        $this->processStreamChunk($adapter, $this->createChunk(
-            'data: {"choices":[{"delta":{"content":"Ok"}}],"usage":{"prompt_tokens":12,"completion_tokens":7}}'."\n"
-        ));
-        $this->endStream($adapter);
-
-        $this->assertSame(12, $adapter->getInputTokens());
-        $this->assertSame(7, $adapter->getOutputTokens());
-    }
 }

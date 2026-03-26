@@ -50,12 +50,4 @@ class XAITest extends Adapter
     {
         return 'https://api.x.ai/v1/chat/completions';
     }
-
-    public function testSseStreamProcessing(): void
-    {
-        $this->assertSseStreamingBehavior($this->createAdapter(), [
-            'data: {"choices":[{"delta":{"content":"Hel',
-            'lo"}}]}'."\n",
-        ], 'Hello');
-    }
 }

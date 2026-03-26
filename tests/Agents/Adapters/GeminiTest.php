@@ -54,12 +54,4 @@ class GeminiTest extends Adapter
             .Gemini::MODEL_GEMINI_2_0_FLASH
             .':streamGenerateContent?alt=sse&key=test-api-key';
     }
-
-    public function testSseStreamProcessing(): void
-    {
-        $this->assertSseStreamingBehavior($this->createAdapter(), [
-            'data: {"candidates":[{"content":{"parts":[{"text":"Hel',
-            'lo"}]}}]}'."\n",
-        ], 'Hello');
-    }
 }

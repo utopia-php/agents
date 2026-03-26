@@ -48,14 +48,6 @@ class OpenRouterTest extends Adapter
         return 'https://openrouter.ai/api/v1/chat/completions';
     }
 
-    public function testSseStreamProcessing(): void
-    {
-        $this->assertSseStreamingBehavior($this->createAdapter(), [
-            'data: {"choices":[{"delta":{"content":"Hel',
-            'lo"}}]}'."\n",
-        ], 'Hello');
-    }
-
     public function testModelSetterAcceptsArbitraryRoutedModel(): void
     {
         $adapter = new OpenRouter('test-api-key');

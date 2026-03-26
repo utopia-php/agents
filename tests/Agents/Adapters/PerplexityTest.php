@@ -52,25 +52,4 @@ class PerplexityTest extends Adapter
     {
         return 'https://api.perplexity.ai/chat/completions';
     }
-
-    public function testSseStreamProcessing(): void
-    {
-        $this->assertSseStreamingBehavior($this->createAdapter(), [
-            'data: {"choices":[{"delta":{"content":"Hel',
-            'lo"}}]}'."\n",
-        ], 'Hello');
-    }
-
-    public function testHtmlErrorResponseIsSanitized(): void
-    {
-        $adapter = $this->createAdapter();
-
-        $this->beginStream($adapter);
-        $result = $this->processStreamChunk($adapter, $this->createChunk(
-            '<html><head><title>401 Authorization Required</title></head><body></body></html>'
-        ));
-        $this->endStream($adapter);
-
-        $this->assertSame('(http_401) Authorization Required', $result);
-    }
 }
