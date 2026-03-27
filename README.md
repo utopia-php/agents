@@ -23,6 +23,7 @@ Utopia Framework requires PHP 8.0 or later. We recommend using the latest PHP ve
 
 - **Multiple AI Providers** - Support for OpenAI, Anthropic, Deepseek, Perplexity, XAI, Gemini, and OpenRouter APIs
 - **Flexible Message Types** - Support for text and structured content in messages
+- **Message Attachments** - Attach files (for example images) directly to conversation turns
 - **Conversation Management** - Easy-to-use conversation handling between agents and users
 - **Model Selection** - Choose from various AI models (GPT-4, Claude 3, Deepseek Chat, Sonar, Grok, etc.)
 - **Parameter Control** - Fine-tune model behavior with temperature and token controls
@@ -38,6 +39,7 @@ Utopia Framework requires PHP 8.0 or later. We recommend using the latest PHP ve
 use Utopia\Agents\Agent;
 use Utopia\Agents\Roles\User;
 use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Messages\Image;
 use Utopia\Agents\Conversation;
 use Utopia\Agents\Adapters\OpenAI;
 
@@ -202,6 +204,13 @@ $conversation
     ->message($assistant, new Text('Hi! How can I help you today?'))
     ->message($user, new Text('What is the capital of France?'));
 
+// Add a user message with attachments
+$conversation->message(
+    $user,
+    new Text('Please summarize this screenshot'),
+    [new Image($imageBinaryContent)]
+);
+
 // Send and get response
 $response = $conversation->send();
 ```
@@ -291,6 +300,92 @@ $textMessage = new Text('Hello, how are you?');
 // Image message
 $imageMessage = new Image($imageBinaryContent);
 $mimeType = $imageMessage->getMimeType(); // Get the MIME type of the image
+
+// Attach image to a text prompt
+$message = (new Text('Describe this image'))->addAttachment($imageMessage);
+```
+
+### Attachment Examples
+
+```php
+use Utopia\Agents\Conversation;
+use Utopia\Agents\Messages\Image;
+use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Roles\User;
+
+$conversation = new Conversation($agent);
+$user = new User('user-1', 'John');
+
+// 1) Attach a single image in the same turn
+$conversation->message(
+    $user,
+    new Text('What is shown here?'),
+    [new Image(file_get_contents(__DIR__.'/images/screenshot.png'))]
+);
+
+// 2) Attach multiple images in one turn
+$conversation->message(
+    $user,
+    new Text('Compare these two images and list differences.'),
+    [
+        new Image(file_get_contents(__DIR__.'/images/before.png')),
+        new Image(file_get_contents(__DIR__.'/images/after.png')),
+    ]
+);
+
+// 3) Build and reuse a message object with attachments
+$prompt = (new Text('Extract visible text from this receipt'))
+    ->addAttachment(new Image(file_get_contents(__DIR__.'/images/receipt.jpg')));
+
+$conversation->message($user, $prompt);
+```
+
+### Attachment Limits and Validation
+
+Attachment validation is enforced by default in `Conversation::message(...)`.
+Guardrail values come from the selected adapter (not from conversation-level user configuration).
+
+Default adapter guardrails:
+
+- Max attachments per message: `10`
+- Max binary size per attachment: `5_000_000` bytes (~5 MB)
+- Max total attachment payload per turn: `20_000_000` bytes (~20 MB)
+- MIME allowlist: `image/png`, `image/jpeg`, `image/webp`, `image/gif`
+- Reject empty or unreadable payloads
+- Adapter compatibility checks (attachment type must be supported by the selected adapter)
+
+To customize limits, create an adapter subclass and override limit methods:
+
+```php
+<?php
+
+use Utopia\Agents\Adapters\OpenAI;
+
+class StrictOpenAI extends OpenAI
+{
+    public function getMaxAttachmentsPerMessage(): ?int
+    {
+        return 3;
+    }
+
+    public function getMaxAttachmentBytes(): ?int
+    {
+        return 2_000_000;
+    }
+
+    public function getMaxTotalAttachmentBytes(): ?int
+    {
+        return 6_000_000;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getAllowedAttachmentMimeTypes(): ?array
+    {
+        return ['image/png', 'image/jpeg'];
+    }
+}
 ```
 
 ## Schema and Schema Objects

@@ -11,9 +11,9 @@ class Image extends Message
      *
      * @param  string  $content  Binary content of the image
      */
-    public function __construct(string $content, ?string $role = null)
+    public function __construct(string $content, ?string $role = null, array $attachments = [])
     {
-        parent::__construct($content, $role);
+        parent::__construct($content, $role, $attachments);
     }
 
     /**

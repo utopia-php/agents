@@ -4,6 +4,7 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
+use Utopia\Agents\Messages\Image;
 use Utopia\Agents\Messages\Text;
 use Utopia\Agents\Schema;
 use Utopia\Fetch\Chunk;
@@ -11,6 +12,22 @@ use Utopia\Fetch\Client;
 
 class OpenAI extends Adapter
 {
+    protected const MAX_ATTACHMENTS_PER_MESSAGE = 10;
+
+    protected const MAX_ATTACHMENT_BYTES = 5000000;
+
+    protected const MAX_TOTAL_ATTACHMENT_BYTES = 20000000;
+
+    /**
+     * @var list<string>
+     */
+    protected const ALLOWED_ATTACHMENT_MIME_TYPES = [
+        'image/png',
+        'image/jpeg',
+        'image/webp',
+        'image/gif',
+    ];
+
     /**
      * GPT-5 Nano - Small GPT-5 variant optimized for low latency and cost-sensitive workloads
      */
@@ -113,12 +130,12 @@ class OpenAI extends Adapter
 
         $formattedMessages = [];
         foreach ($messages as $message) {
-            if (empty($message->getRole()) || empty($message->getContent())) {
+            if (! $this->isMessageValid($message)) {
                 throw new \Exception('Invalid message format');
             }
             $formattedMessages[] = [
                 'role' => $message->getRole(),
-                'content' => $message->getContent(),
+                'content' => $this->formatMessageContent($message),
             ];
         }
 
@@ -339,6 +356,89 @@ class OpenAI extends Adapter
         return $usesDefaultTemperatureOnly;
     }
 
+    protected function isMessageValid(Message $message): bool
+    {
+        return ! empty($message->getRole()) && $this->hasTextOrImageContent($message);
+    }
+
+    protected function hasTextOrImageContent(Message $message): bool
+    {
+        if ($message instanceof Image && $message->getContent() !== '') {
+            return true;
+        }
+
+        if ($message->getContent() !== '') {
+            return true;
+        }
+
+        foreach ($message->getAttachments() as $attachment) {
+            if ($attachment instanceof Image && $attachment->getContent() !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return string|array<int, array<string, mixed>>
+     */
+    protected function formatMessageContent(Message $message): string|array
+    {
+        $parts = [];
+
+        if (! ($message instanceof Image) && $message->getContent() !== '') {
+            $parts[] = [
+                'type' => 'text',
+                'text' => $message->getContent(),
+            ];
+        }
+
+        if ($message instanceof Image && $message->getContent() !== '') {
+            $parts[] = $this->buildImagePart($message);
+        }
+
+        foreach ($message->getAttachments() as $attachment) {
+            if (! $attachment instanceof Image) {
+                continue;
+            }
+
+            if ($attachment->getContent() === '') {
+                continue;
+            }
+
+            $parts[] = $this->buildImagePart($attachment);
+        }
+
+        if (empty($parts)) {
+            return $message->getContent();
+        }
+
+        if (count($parts) === 1 && isset($parts[0]['type']) && $parts[0]['type'] === 'text') {
+            $text = $parts[0]['text'] ?? '';
+
+            return is_string($text) ? $text : '';
+        }
+
+        return $parts;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildImagePart(Image $image): array
+    {
+        $mimeType = $image->getMimeType() ?? 'application/octet-stream';
+        $base64 = base64_encode($image->getContent());
+
+        return [
+            'type' => 'image_url',
+            'image_url' => [
+                'url' => 'data:'.$mimeType.';base64,'.$base64,
+            ],
+        ];
+    }
+
     /**
      * Create a configured HTTP client for API requests.
      */
@@ -423,6 +523,39 @@ class OpenAI extends Adapter
     public function getName(): string
     {
         return 'openai';
+    }
+
+    public function supportsAttachments(): bool
+    {
+        return true;
+    }
+
+    public function supportsAttachment(Message $attachment): bool
+    {
+        return $attachment instanceof Image;
+    }
+
+    public function getMaxAttachmentsPerMessage(): ?int
+    {
+        return self::MAX_ATTACHMENTS_PER_MESSAGE;
+    }
+
+    public function getMaxAttachmentBytes(): ?int
+    {
+        return self::MAX_ATTACHMENT_BYTES;
+    }
+
+    public function getMaxTotalAttachmentBytes(): ?int
+    {
+        return self::MAX_TOTAL_ATTACHMENT_BYTES;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getAllowedAttachmentMimeTypes(): ?array
+    {
+        return self::ALLOWED_ATTACHMENT_MIME_TYPES;
     }
 
     /**

@@ -9,9 +9,9 @@ class Text extends Message
     /**
      * Create a new text message
      */
-    public function __construct(string $content, ?string $role = null)
+    public function __construct(string $content, ?string $role = null, array $attachments = [])
     {
-        parent::__construct($content, $role);
+        parent::__construct($content, $role, $attachments);
     }
 
     /**

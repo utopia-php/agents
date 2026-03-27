@@ -4,12 +4,29 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
+use Utopia\Agents\Messages\Image;
 use Utopia\Agents\Messages\Text;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
 class Anthropic extends Adapter
 {
+    protected const MAX_ATTACHMENTS_PER_MESSAGE = 10;
+
+    protected const MAX_ATTACHMENT_BYTES = 5000000;
+
+    protected const MAX_TOTAL_ATTACHMENT_BYTES = 20000000;
+
+    /**
+     * @var list<string>
+     */
+    protected const ALLOWED_ATTACHMENT_MIME_TYPES = [
+        'image/png',
+        'image/jpeg',
+        'image/webp',
+        'image/gif',
+    ];
+
     /**
      * Claude 4 Opus - Flagship model with exceptional reasoning for the most demanding tasks
      */
@@ -144,7 +161,7 @@ class Anthropic extends Adapter
         foreach ($messages as $message) {
             $formattedMessages[] = [
                 'role' => $message->getRole(),
-                'content' => $message->getContent(),
+                'content' => $this->formatMessageContent($message),
             ];
         }
 
@@ -242,6 +259,63 @@ class Anthropic extends Adapter
         }
 
         return new Text($text);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>|string
+     */
+    protected function formatMessageContent(Message $message): array|string
+    {
+        $parts = [];
+
+        if (! ($message instanceof Image) && $message->getContent() !== '') {
+            $parts[] = [
+                'type' => 'text',
+                'text' => $message->getContent(),
+            ];
+        }
+
+        if ($message instanceof Image && $message->getContent() !== '') {
+            $parts[] = $this->buildImagePart($message);
+        }
+
+        foreach ($message->getAttachments() as $attachment) {
+            if (! $attachment instanceof Image || $attachment->getContent() === '') {
+                continue;
+            }
+
+            $parts[] = $this->buildImagePart($attachment);
+        }
+
+        if (empty($parts)) {
+            return $message->getContent();
+        }
+
+        if (count($parts) === 1 && isset($parts[0]['type']) && $parts[0]['type'] === 'text') {
+            $text = $parts[0]['text'] ?? '';
+
+            return is_string($text) ? $text : '';
+        }
+
+        return $parts;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildImagePart(Image $image): array
+    {
+        $mimeType = $image->getMimeType() ?? 'application/octet-stream';
+        $mediaType = str_starts_with($mimeType, 'image/') ? $mimeType : 'application/octet-stream';
+
+        return [
+            'type' => 'image',
+            'source' => [
+                'type' => 'base64',
+                'media_type' => $mediaType,
+                'data' => base64_encode($image->getContent()),
+            ],
+        ];
     }
 
     /**
@@ -408,6 +482,39 @@ class Anthropic extends Adapter
     public function getName(): string
     {
         return 'anthropic';
+    }
+
+    public function supportsAttachments(): bool
+    {
+        return true;
+    }
+
+    public function supportsAttachment(Message $attachment): bool
+    {
+        return $attachment instanceof Image;
+    }
+
+    public function getMaxAttachmentsPerMessage(): ?int
+    {
+        return self::MAX_ATTACHMENTS_PER_MESSAGE;
+    }
+
+    public function getMaxAttachmentBytes(): ?int
+    {
+        return self::MAX_ATTACHMENT_BYTES;
+    }
+
+    public function getMaxTotalAttachmentBytes(): ?int
+    {
+        return self::MAX_TOTAL_ATTACHMENT_BYTES;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getAllowedAttachmentMimeTypes(): ?array
+    {
+        return self::ALLOWED_ATTACHMENT_MIME_TYPES;
     }
 
     /**

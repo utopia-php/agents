@@ -9,12 +9,19 @@ abstract class Message
     protected string $content;
 
     /**
+     * @var array<Message>
+     */
+    protected array $attachments;
+
+    /**
      * Create a new message
      */
-    public function __construct(string $content, ?string $role = null)
+    public function __construct(string $content, ?string $role = null, array $attachments = [])
     {
         $this->content = $content;
         $this->role = $role ?? Role::ROLE_USER;
+        $this->attachments = [];
+        $this->setAttachments($attachments);
     }
 
     /**
@@ -31,5 +38,55 @@ abstract class Message
     public function getContent(): string
     {
         return $this->content;
+    }
+
+    /**
+     * Clone the message with a different role.
+     */
+    public function withRole(string $role): static
+    {
+        $clone = clone $this;
+        $clone->role = $role;
+
+        return $clone;
+    }
+
+    /**
+     * Attach a message payload (for example an image) to this message.
+     */
+    public function addAttachment(Message $attachment): self
+    {
+        $this->attachments[] = $attachment;
+
+        return $this;
+    }
+
+    /**
+     * @param  array<Message>  $attachments
+     */
+    public function setAttachments(array $attachments): self
+    {
+        $this->attachments = [];
+        foreach ($attachments as $attachment) {
+            if (! $attachment instanceof self) {
+                throw new \InvalidArgumentException('Attachments must be Message instances');
+            }
+            $this->attachments[] = $attachment;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return array<Message>
+     */
+    public function getAttachments(): array
+    {
+        return $this->attachments;
+    }
+
+    public function hasAttachments(): bool
+    {
+        return ! empty($this->attachments);
     }
 }

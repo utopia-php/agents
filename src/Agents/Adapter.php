@@ -114,6 +114,57 @@ abstract class Adapter
     abstract protected function formatErrorMessage($json): string;
 
     /**
+     * Whether this adapter can accept message attachments.
+     */
+    public function supportsAttachments(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Whether a specific attachment message type is supported.
+     */
+    public function supportsAttachment(Message $attachment): bool
+    {
+        return $this->supportsAttachments();
+    }
+
+    /**
+     * Maximum attachments allowed per single conversation message.
+     * Null means adapter does not set this limit.
+     */
+    public function getMaxAttachmentsPerMessage(): ?int
+    {
+        return null;
+    }
+
+    /**
+     * Maximum bytes allowed for a single attachment.
+     * Null means adapter does not set this limit.
+     */
+    public function getMaxAttachmentBytes(): ?int
+    {
+        return null;
+    }
+
+    /**
+     * Maximum total attachment bytes allowed per message turn.
+     * Null means adapter does not set this limit.
+     */
+    public function getMaxTotalAttachmentBytes(): ?int
+    {
+        return null;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getAllowedAttachmentMimeTypes(): ?array
+    {
+        return null;
+    }
+
+    /**
      * Get the current agent
      */
     public function getAgent(): ?Agent
