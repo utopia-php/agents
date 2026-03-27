@@ -135,6 +135,7 @@ class Deepseek extends Adapter
                     $content .= $this->process($chunk, $listener);
                 }
             );
+            $content .= $this->flushBufferedStreamData($listener);
         } finally {
             $this->endStreamProcessing();
         }
@@ -157,13 +158,22 @@ class Deepseek extends Adapter
      */
     protected function process(Chunk $chunk, ?callable $listener): string
     {
-        $block = '';
         [$data, $lines] = $this->prepareStreamLines($chunk);
 
         $json = $this->decodeJsonObject(trim($chunk->getData())) ?? $this->decodeJsonObject($data);
         if (is_array($json) && isset($json['error'])) {
             return $this->formatErrorMessage($json);
         }
+
+        return $this->processStreamLines($lines, $listener);
+    }
+
+    /**
+     * @param  array<int, string>  $lines
+     */
+    protected function processStreamLines(array $lines, ?callable $listener): string
+    {
+        $block = '';
 
         foreach ($lines as $line) {
             $json = $this->decodeSseJsonLine($line);
@@ -190,6 +200,16 @@ class Deepseek extends Adapter
         }
 
         return $block;
+    }
+
+    protected function flushBufferedStreamData(?callable $listener): string
+    {
+        $line = $this->consumeStreamBufferLine();
+        if ($line === null) {
+            return '';
+        }
+
+        return $this->processStreamLines([$line], $listener);
     }
 
     /**

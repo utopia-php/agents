@@ -254,6 +254,21 @@ abstract class Adapter
     }
 
     /**
+     * Consume any remaining buffered stream fragment as a complete line.
+     */
+    protected function consumeStreamBufferLine(): ?string
+    {
+        if ($this->streamBuffer === '') {
+            return null;
+        }
+
+        $line = $this->streamBuffer;
+        $this->streamBuffer = '';
+
+        return $line;
+    }
+
+    /**
      * @return array{0: string, 1: array<int, string>}
      */
     protected function prepareStreamLines(Chunk $chunk): array

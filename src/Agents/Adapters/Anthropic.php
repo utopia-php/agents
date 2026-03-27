@@ -192,6 +192,7 @@ class Anthropic extends Adapter
                         $content .= $this->process($chunk, $listener);
                     }
                 );
+                $content .= $this->flushBufferedStreamData($listener);
             } finally {
                 $this->endStreamProcessing();
             }
@@ -251,8 +252,17 @@ class Anthropic extends Adapter
      */
     protected function process(Chunk $chunk, ?callable $listener): string
     {
-        $block = '';
         [, $lines] = $this->prepareStreamLines($chunk);
+
+        return $this->processStreamLines($lines, $listener);
+    }
+
+    /**
+     * @param  array<int, string>  $lines
+     */
+    protected function processStreamLines(array $lines, ?callable $listener): string
+    {
+        $block = '';
 
         foreach ($lines as $line) {
             $json = $this->decodeJsonOrSseLine($line);
@@ -324,6 +334,16 @@ class Anthropic extends Adapter
         }
 
         return $block;
+    }
+
+    protected function flushBufferedStreamData(?callable $listener): string
+    {
+        $line = $this->consumeStreamBufferLine();
+        if ($line === null) {
+            return '';
+        }
+
+        return $this->processStreamLines([$line], $listener);
     }
 
     /**
