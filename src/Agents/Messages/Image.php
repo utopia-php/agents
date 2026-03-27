@@ -10,6 +10,7 @@ class Image extends Message
      * Create a new image message
      *
      * @param  string  $content  Binary content of the image
+     * @param  array<int, mixed>  $attachments
      */
     public function __construct(string $content, ?string $role = null, array $attachments = [])
     {

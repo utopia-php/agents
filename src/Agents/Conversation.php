@@ -48,7 +48,7 @@ class Conversation
     /**
      * Add a message to the conversation
      *
-     * @param  array<Message>  $attachments
+     * @param  array<int, mixed>  $attachments
      */
     public function message(Role $from, Message $message, array $attachments = []): self
     {
@@ -201,7 +201,7 @@ class Conversation
     }
 
     /**
-     * @param  array<Message>  $attachments
+     * @param  array<int, mixed>  $attachments
      */
     protected function validateAttachments(Message $message, array $attachments): void
     {

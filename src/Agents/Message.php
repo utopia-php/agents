@@ -15,6 +15,8 @@ abstract class Message
 
     /**
      * Create a new message
+     *
+     * @param  array<int, mixed>  $attachments
      */
     public function __construct(string $content, ?string $role = null, array $attachments = [])
     {
@@ -62,13 +64,13 @@ abstract class Message
     }
 
     /**
-     * @param  array<Message>  $attachments
+     * @param  array<int, mixed>  $attachments
      */
     public function setAttachments(array $attachments): self
     {
         $this->attachments = [];
         foreach ($attachments as $attachment) {
-            if (! $attachment instanceof self) {
+            if (! $attachment instanceof Message) {
                 throw new \InvalidArgumentException('Attachments must be Message instances');
             }
             $this->attachments[] = $attachment;

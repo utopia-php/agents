@@ -8,6 +8,8 @@ class Text extends Message
 {
     /**
      * Create a new text message
+     *
+     * @param  array<int, mixed>  $attachments
      */
     public function __construct(string $content, ?string $role = null, array $attachments = [])
     {

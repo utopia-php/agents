@@ -48,7 +48,8 @@ class ConversationTest extends TestCase
             ->send();
 
         $this->assertNotNull($adapter->lastSentMessage);
-        $this->assertCount(1, $adapter->lastSentMessage?->getAttachments() ?? []);
+        $this->assertInstanceOf(Message::class, $adapter->lastSentMessage);
+        $this->assertCount(1, $adapter->lastSentMessage->getAttachments());
     }
 
     public function testRejectsTooManyAttachments(): void
@@ -153,8 +154,7 @@ class ConversationFakeAdapter extends Adapter
     public function __construct(
         private readonly string $response,
         private readonly bool $supportsImageAttachments = true
-    ) {
-    }
+    ) {}
 
     public function supportsAttachments(): bool
     {
