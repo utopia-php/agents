@@ -2,7 +2,7 @@
 
 namespace Utopia\Agents;
 
-abstract class Message
+class Message
 {
     protected string $role;
 
@@ -18,7 +18,11 @@ abstract class Message
      *
      * @param  array<int, mixed>  $attachments
      */
-    public function __construct(string $content, ?string $role = null, array $attachments = [])
+    public function __construct(
+        string $content,
+        ?string $role = null,
+        array $attachments = []
+    )
     {
         $this->content = $content;
         $this->role = $role ?? Role::ROLE_USER;
@@ -40,6 +44,21 @@ abstract class Message
     public function getContent(): string
     {
         return $this->content;
+    }
+
+    /**
+     * Detect MIME type of message content.
+     */
+    public function getMimeType(): ?string
+    {
+        if (empty($this->content)) {
+            return null;
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($this->content);
+
+        return $mimeType === false ? null : $mimeType;
     }
 
     /**

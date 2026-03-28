@@ -7,8 +7,6 @@ use Utopia\Agents\Adapter;
 use Utopia\Agents\Agent;
 use Utopia\Agents\Conversation;
 use Utopia\Agents\Message;
-use Utopia\Agents\Messages\Image;
-use Utopia\Agents\Messages\Text;
 use Utopia\Agents\Roles\User;
 
 class ConversationTest extends TestCase
@@ -24,8 +22,8 @@ class ConversationTest extends TestCase
         $conversation = new Conversation($agent);
         $user = new User('user-1');
 
-        $attachment = new Image(base64_decode(self::PNG_1X1));
-        $conversation->message($user, new Text('What is in this image?'), [$attachment]);
+        $attachment = new Message(base64_decode(self::PNG_1X1));
+        $conversation->message($user, new Message('What is in this image?'), [$attachment]);
 
         $messages = $conversation->getMessages();
         $this->assertCount(1, $messages);
@@ -42,9 +40,9 @@ class ConversationTest extends TestCase
         $conversation = new Conversation($agent);
         $user = new User('user-2');
 
-        $attachment = new Image(base64_decode(self::GIF_1X1));
+        $attachment = new Message(base64_decode(self::GIF_1X1));
         $conversation
-            ->message($user, new Text('Analyze this file'), [$attachment])
+            ->message($user, new Message('Analyze this file'), [$attachment])
             ->send();
 
         $this->assertNotNull($adapter->lastSentMessage);
@@ -60,9 +58,9 @@ class ConversationTest extends TestCase
         $user = new User('user-3');
 
         $this->expectException(\InvalidArgumentException::class);
-        $conversation->message($user, new Text('Analyze'), [
-            new Image(base64_decode(self::PNG_1X1)),
-            new Image(base64_decode(self::GIF_1X1)),
+        $conversation->message($user, new Message('Analyze'), [
+            new Message(base64_decode(self::PNG_1X1)),
+            new Message(base64_decode(self::GIF_1X1)),
         ]);
     }
 
@@ -74,8 +72,8 @@ class ConversationTest extends TestCase
         $user = new User('user-4');
 
         $this->expectException(\InvalidArgumentException::class);
-        $conversation->message($user, new Text('Analyze'), [
-            new Image(base64_decode(self::PNG_1X1)),
+        $conversation->message($user, new Message('Analyze'), [
+            new Message(base64_decode(self::PNG_1X1)),
         ]);
     }
 
@@ -87,8 +85,8 @@ class ConversationTest extends TestCase
         $user = new User('user-5');
 
         $this->expectException(\InvalidArgumentException::class);
-        $conversation->message($user, new Text('Analyze'), [
-            new Image(base64_decode(self::PNG_1X1)),
+        $conversation->message($user, new Message('Analyze'), [
+            new Message(base64_decode(self::PNG_1X1)),
         ]);
     }
 
@@ -99,8 +97,8 @@ class ConversationTest extends TestCase
         $user = new User('user-6');
 
         $this->expectException(\InvalidArgumentException::class);
-        $conversation->message($user, new Text('Analyze'), [
-            new Image(base64_decode(self::PNG_1X1)),
+        $conversation->message($user, new Message('Analyze'), [
+            new Message(base64_decode(self::PNG_1X1)),
         ]);
     }
 
@@ -114,8 +112,8 @@ class ConversationTest extends TestCase
         $conversation = new Conversation(new Agent($adapter));
         $user = new User('user-7');
 
-        $conversation->message($user, new Text('Analyze'), [
-            new Image(base64_decode(self::PNG_1X1)),
+        $conversation->message($user, new Message('Analyze'), [
+            new Message(base64_decode(self::PNG_1X1)),
         ]);
 
         $this->assertCount(1, $conversation->getMessages()[0]->getAttachments());
@@ -129,9 +127,9 @@ class ConversationTest extends TestCase
         $user = new User('user-8');
 
         $this->expectException(\InvalidArgumentException::class);
-        $conversation->message($user, new Text('Analyze'), [
-            new Image(base64_decode(self::PNG_1X1)),
-            new Image(base64_decode(self::PNG_1X1)),
+        $conversation->message($user, new Message('Analyze'), [
+            new Message(base64_decode(self::PNG_1X1)),
+            new Message(base64_decode(self::PNG_1X1)),
         ]);
     }
 }
@@ -163,7 +161,9 @@ class ConversationFakeAdapter extends Adapter
 
     public function supportsAttachment(Message $attachment): bool
     {
-        return $this->supportsImageAttachments && $attachment instanceof Image;
+        $mimeType = $attachment->getMimeType();
+
+        return $this->supportsImageAttachments && $mimeType !== null && str_starts_with($mimeType, 'image/');
     }
 
     public function getMaxAttachmentsPerMessage(): ?int
@@ -202,7 +202,7 @@ class ConversationFakeAdapter extends Adapter
         $last = end($messages);
         $this->lastSentMessage = $last instanceof Message ? $last : null;
 
-        return new Text($this->response);
+        return new Message($this->response);
     }
 
     public function getModels(): array

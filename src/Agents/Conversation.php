@@ -2,7 +2,6 @@
 
 namespace Utopia\Agents;
 
-use Utopia\Agents\Messages\Image;
 use Utopia\Agents\Roles\Assistant;
 
 class Conversation
@@ -208,10 +207,6 @@ class Conversation
         $adapter = $this->agent->getAdapter();
         $allAttachments = array_merge($message->getAttachments(), $attachments);
 
-        if ($message instanceof Image && ! $adapter->supportsAttachment($message)) {
-            throw new \InvalidArgumentException('Primary message type is not supported by this adapter');
-        }
-
         $maxAttachmentsPerMessage = $adapter->getMaxAttachmentsPerMessage();
         if ($maxAttachmentsPerMessage !== null && count($allAttachments) > $maxAttachmentsPerMessage) {
             throw new \InvalidArgumentException('Too many attachments in this message');
@@ -225,14 +220,6 @@ class Conversation
         foreach ($allAttachments as $attachment) {
             if (! $attachment instanceof Message) {
                 throw new \InvalidArgumentException('Attachments must be Message instances');
-            }
-
-            if (! $adapter->supportsAttachment($attachment)) {
-                throw new \InvalidArgumentException('Attachment type is not supported by this adapter');
-            }
-
-            if (! $attachment instanceof Image) {
-                continue;
             }
 
             $bytes = strlen($attachment->getContent());
@@ -254,6 +241,10 @@ class Conversation
                 ! in_array($mimeType, $allowedAttachmentMimeTypes, true)
             ) {
                 throw new \InvalidArgumentException('Attachment MIME type is not allowed');
+            }
+
+            if (! $adapter->supportsAttachment($attachment)) {
+                throw new \InvalidArgumentException('Attachment type is not supported by this adapter');
             }
 
             $totalBytes += $bytes;

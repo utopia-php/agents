@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Agent;
 use Utopia\Agents\Conversation;
-use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Message;
 use Utopia\Agents\Role;
 use Utopia\Agents\Roles\Assistant;
 use Utopia\Agents\Roles\User;
@@ -60,7 +60,7 @@ abstract class ConversationBase extends TestCase
     public function testMessage(): void
     {
         $user = new User('user-1', 'Test User');
-        $message = new Text('Hello, AI!');
+        $message = new Message('Hello, AI!');
 
         $result = $this->conversation->message($user, $message);
 
@@ -78,9 +78,9 @@ abstract class ConversationBase extends TestCase
         $assistant = new Assistant('assistant-1', 'Test Assistant');
 
         $this->conversation
-            ->message($user, new Text('Hello'))
-            ->message($assistant, new Text('Hi there!'))
-            ->message($user, new Text('How are you?'));
+            ->message($user, new Message('Hello'))
+            ->message($assistant, new Message('Hi there!'))
+            ->message($user, new Message('How are you?'));
 
         $messages = $this->conversation->getMessages();
         $this->assertCount(3, $messages);
@@ -98,10 +98,10 @@ abstract class ConversationBase extends TestCase
     public function testSend(): void
     {
         $messages = $this->conversation
-            ->message(new User('user-1', 'Test User'), new Text('Hello'))
+            ->message(new User('user-1', 'Test User'), new Message('Hello'))
             ->send();
 
-        $this->assertInstanceOf(Text::class, $messages);
+        $this->assertInstanceOf(Message::class, $messages);
 
         // Verify the response was added to conversation
         $conversationMessages = $this->conversation->getMessages();
@@ -141,7 +141,7 @@ abstract class ConversationBase extends TestCase
         $this->agent->setSchema($schema);
 
         $messages = $this->conversation
-            ->message(new User('user-2', 'Test User'), new Text('What is the weather in San Francisco in celsius?'))
+            ->message(new User('user-2', 'Test User'), new Message('What is the weather in San Francisco in celsius?'))
             ->send();
 
         $content = $messages->getContent();
@@ -190,7 +190,7 @@ abstract class ConversationBase extends TestCase
         $this->assertSame($testListener, $this->conversation->getListener());
 
         $response = $this->conversation
-            ->message(new User('user-listen-1', 'Test User'), new Text('Write a detailed explanation of how rain forms in the atmosphere, and make it long: at least 1200 characters.'))
+            ->message(new User('user-listen-1', 'Test User'), new Message('Write a detailed explanation of how rain forms in the atmosphere, and make it long: at least 1200 characters.'))
             ->send();
 
         $this->assertNotSame('', $streamed, 'Expected listener to receive streamed output');

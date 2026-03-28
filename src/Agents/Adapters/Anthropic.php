@@ -4,8 +4,6 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
-use Utopia\Agents\Messages\Image;
-use Utopia\Agents\Messages\Text;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
@@ -235,7 +233,7 @@ class Anthropic extends Adapter
         }
 
         if ($payload['stream']) {
-            return new Text($content);
+            return new Message($content);
         }
 
         $body = $response->getBody();
@@ -258,7 +256,7 @@ class Anthropic extends Adapter
             $text = is_string($body) ? $body : (is_array($json) ? (json_encode($json) ?: '') : '');
         }
 
-        return new Text($text);
+        return new Message($text);
     }
 
     /**
@@ -268,19 +266,15 @@ class Anthropic extends Adapter
     {
         $parts = [];
 
-        if (! ($message instanceof Image) && $message->getContent() !== '') {
+        if ($message->getContent() !== '') {
             $parts[] = [
                 'type' => 'text',
                 'text' => $message->getContent(),
             ];
         }
 
-        if ($message instanceof Image && $message->getContent() !== '') {
-            $parts[] = $this->buildImagePart($message);
-        }
-
         foreach ($message->getAttachments() as $attachment) {
-            if (! $attachment instanceof Image || $attachment->getContent() === '') {
+            if (! $this->isImageAttachment($attachment)) {
                 continue;
             }
 
@@ -303,7 +297,7 @@ class Anthropic extends Adapter
     /**
      * @return array<string, mixed>
      */
-    protected function buildImagePart(Image $image): array
+    protected function buildImagePart(Message $image): array
     {
         $mimeType = $image->getMimeType() ?? 'application/octet-stream';
         $mediaType = str_starts_with($mimeType, 'image/') ? $mimeType : 'application/octet-stream';
@@ -491,7 +485,7 @@ class Anthropic extends Adapter
 
     public function supportsAttachment(Message $attachment): bool
     {
-        return $attachment instanceof Image;
+        return $this->isImageAttachment($attachment);
     }
 
     public function getMaxAttachmentsPerMessage(): ?int

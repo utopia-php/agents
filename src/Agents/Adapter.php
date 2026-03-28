@@ -129,6 +129,17 @@ abstract class Adapter
         return $this->supportsAttachments();
     }
 
+    protected function isImageAttachment(Message $attachment): bool
+    {
+        if ($attachment->getContent() === '') {
+            return false;
+        }
+
+        $mimeType = $attachment->getMimeType();
+
+        return $mimeType !== null && str_starts_with($mimeType, 'image/');
+    }
+
     /**
      * Maximum attachments allowed per single conversation message.
      * Null means adapter does not set this limit.

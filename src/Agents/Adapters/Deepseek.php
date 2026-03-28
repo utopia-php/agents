@@ -4,8 +4,6 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
-use Utopia\Agents\Messages\Image;
-use Utopia\Agents\Messages\Text;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
@@ -164,21 +162,17 @@ class Deepseek extends Adapter
             );
         }
 
-        return new Text($content);
+        return new Message($content);
     }
 
     protected function hasTextOrImageContent(Message $message): bool
     {
-        if ($message instanceof Image && $message->getContent() !== '') {
-            return true;
-        }
-
         if ($message->getContent() !== '') {
             return true;
         }
 
         foreach ($message->getAttachments() as $attachment) {
-            if ($attachment instanceof Image && $attachment->getContent() !== '') {
+            if ($this->isImageAttachment($attachment)) {
                 return true;
             }
         }
@@ -193,19 +187,15 @@ class Deepseek extends Adapter
     {
         $parts = [];
 
-        if (! ($message instanceof Image) && $message->getContent() !== '') {
+        if ($message->getContent() !== '') {
             $parts[] = [
                 'type' => 'text',
                 'text' => $message->getContent(),
             ];
         }
 
-        if ($message instanceof Image && $message->getContent() !== '') {
-            $parts[] = $this->buildImagePart($message);
-        }
-
         foreach ($message->getAttachments() as $attachment) {
-            if (! $attachment instanceof Image || $attachment->getContent() === '') {
+            if (! $this->isImageAttachment($attachment)) {
                 continue;
             }
 
@@ -228,7 +218,7 @@ class Deepseek extends Adapter
     /**
      * @return array<string, mixed>
      */
-    protected function buildImagePart(Image $image): array
+    protected function buildImagePart(Message $image): array
     {
         $mimeType = $image->getMimeType() ?? 'application/octet-stream';
 
@@ -368,7 +358,7 @@ class Deepseek extends Adapter
 
     public function supportsAttachment(Message $attachment): bool
     {
-        return $attachment instanceof Image;
+        return $this->isImageAttachment($attachment);
     }
 
     public function getMaxAttachmentsPerMessage(): ?int

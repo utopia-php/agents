@@ -4,8 +4,6 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
-use Utopia\Agents\Messages\Image;
-use Utopia\Agents\Messages\Text;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
@@ -168,7 +166,7 @@ class Gemini extends Adapter
             );
         }
 
-        $message = new Text($content);
+        $message = new Message($content);
 
         return $message;
     }
@@ -180,18 +178,14 @@ class Gemini extends Adapter
     {
         $parts = [];
 
-        if (! ($message instanceof Image) && $message->getContent() !== '') {
+        if ($message->getContent() !== '') {
             $parts[] = [
                 'text' => $message->getContent(),
             ];
         }
 
-        if ($message instanceof Image && $message->getContent() !== '') {
-            $parts[] = $this->buildImagePart($message);
-        }
-
         foreach ($message->getAttachments() as $attachment) {
-            if (! $attachment instanceof Image || $attachment->getContent() === '') {
+            if (! $this->isImageAttachment($attachment)) {
                 continue;
             }
 
@@ -210,7 +204,7 @@ class Gemini extends Adapter
     /**
      * @return array<string, mixed>
      */
-    protected function buildImagePart(Image $image): array
+    protected function buildImagePart(Message $image): array
     {
         $mimeType = $image->getMimeType() ?? 'application/octet-stream';
 
@@ -364,7 +358,7 @@ class Gemini extends Adapter
 
     public function supportsAttachment(Message $attachment): bool
     {
-        return $attachment instanceof Image;
+        return $this->isImageAttachment($attachment);
     }
 
     public function getMaxAttachmentsPerMessage(): ?int

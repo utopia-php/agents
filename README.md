@@ -37,9 +37,8 @@ Utopia Framework requires PHP 8.0 or later. We recommend using the latest PHP ve
 <?php
 
 use Utopia\Agents\Agent;
+use Utopia\Agents\Message;
 use Utopia\Agents\Roles\User;
-use Utopia\Agents\Messages\Text;
-use Utopia\Agents\Messages\Image;
 use Utopia\Agents\Conversation;
 use Utopia\Agents\Adapters\OpenAI;
 
@@ -53,7 +52,7 @@ $user = new User('user-1', 'John');
 // Start a conversation
 $conversation = new Conversation($agent);
 $conversation
-    ->message($user, new Text('What is artificial intelligence?'))
+    ->message($user, new Message('What is artificial intelligence?'))
     ->send();
 ```
 
@@ -185,7 +184,7 @@ $openrouter = new OpenRouter(
 ```php
 use Utopia\Agents\Roles\User;
 use Utopia\Agents\Roles\Assistant;
-use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Message;
 
 // Create a conversation with system instructions
 $agent = new Agent($adapter);
@@ -200,15 +199,15 @@ $assistant = new Assistant('assistant-1');
 
 $conversation = new Conversation($agent);
 $conversation
-    ->message($user, new Text('Hello!'))
-    ->message($assistant, new Text('Hi! How can I help you today?'))
-    ->message($user, new Text('What is the capital of France?'));
+    ->message($user, new Message('Hello!'))
+    ->message($assistant, new Message('Hi! How can I help you today?'))
+    ->message($user, new Message('What is the capital of France?'));
 
 // Add a user message with attachments
 $conversation->message(
     $user,
-    new Text('Please summarize this screenshot'),
-    [new Image($imageBinaryContent)]
+    new Message('Please summarize this screenshot'),
+    [new Message($imageBinaryContent)]
 );
 
 // Send and get response
@@ -226,8 +225,8 @@ The callback receives each text delta as it arrives from the provider's SSE stre
 use Utopia\Agents\Agent;
 use Utopia\Agents\Conversation;
 use Utopia\Agents\Adapters\OpenAI;
+use Utopia\Agents\Message;
 use Utopia\Agents\Roles\User;
-use Utopia\Agents\Messages\Text;
 
 $agent = new Agent(new OpenAI('your-api-key', OpenAI::MODEL_GPT_4O));
 $conversation = new Conversation($agent);
@@ -237,7 +236,7 @@ $conversation
     ->listen(function (string $chunk): void {
         echo $chunk; // render partial output as soon as it is received
     })
-    ->message($user, new Text('Explain vector databases in one paragraph.'));
+    ->message($user, new Message('Explain vector databases in one paragraph.'));
 
 $final = $conversation->send(); // final, complete assistant message
 ```
@@ -248,8 +247,8 @@ $final = $conversation->send(); // final, complete assistant message
 use Utopia\Agents\Agent;
 use Utopia\Agents\Conversation;
 use Utopia\Agents\Adapters\OpenAI;
+use Utopia\Agents\Message;
 use Utopia\Agents\Roles\User;
-use Utopia\Agents\Messages\Text;
 
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
@@ -269,7 +268,7 @@ $conversation
         }
         flush();
     })
-    ->message($user, new Text('Write a short release note for today''s deployment.'));
+    ->message($user, new Message('Write a short release note for today''s deployment.'));
 
 $final = $conversation->send();
 
@@ -291,26 +290,24 @@ flush();
 ### Working with Messages
 
 ```php
-use Utopia\Agents\Messages\Text;
-use Utopia\Agents\Messages\Image;
+use Utopia\Agents\Message;
 
-// Text message
-$textMessage = new Text('Hello, how are you?');
+// Message content is always text
+$textMessage = new Message('Hello, how are you?');
 
-// Image message
-$imageMessage = new Image($imageBinaryContent);
+// Attachments are binary payloads (for example images)
+$imageMessage = new Message($imageBinaryContent);
 $mimeType = $imageMessage->getMimeType(); // Get the MIME type of the image
 
 // Attach image to a text prompt
-$message = (new Text('Describe this image'))->addAttachment($imageMessage);
+$message = (new Message('Describe this image'))->addAttachment($imageMessage);
 ```
 
 ### Attachment Examples
 
 ```php
 use Utopia\Agents\Conversation;
-use Utopia\Agents\Messages\Image;
-use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Message;
 use Utopia\Agents\Roles\User;
 
 $conversation = new Conversation($agent);
@@ -319,23 +316,23 @@ $user = new User('user-1', 'John');
 // 1) Attach a single image in the same turn
 $conversation->message(
     $user,
-    new Text('What is shown here?'),
-    [new Image(file_get_contents(__DIR__.'/images/screenshot.png'))]
+    new Message('What is shown here?'),
+    [new Message(file_get_contents(__DIR__.'/images/screenshot.png'))]
 );
 
 // 2) Attach multiple images in one turn
 $conversation->message(
     $user,
-    new Text('Compare these two images and list differences.'),
+    new Message('Compare these two images and list differences.'),
     [
-        new Image(file_get_contents(__DIR__.'/images/before.png')),
-        new Image(file_get_contents(__DIR__.'/images/after.png')),
+        new Message(file_get_contents(__DIR__.'/images/before.png')),
+        new Message(file_get_contents(__DIR__.'/images/after.png')),
     ]
 );
 
 // 3) Build and reuse a message object with attachments
-$prompt = (new Text('Extract visible text from this receipt'))
-    ->addAttachment(new Image(file_get_contents(__DIR__.'/images/receipt.jpg')));
+$prompt = (new Message('Extract visible text from this receipt'))
+    ->addAttachment(new Message(file_get_contents(__DIR__.'/images/receipt.jpg')));
 
 $conversation->message($user, $prompt);
 ```

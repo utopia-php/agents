@@ -6,3 +6,4 @@ tests/chunk.php
 .env
 example.php
 example.md
+/blueprints/
