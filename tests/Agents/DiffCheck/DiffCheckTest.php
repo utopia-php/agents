@@ -8,7 +8,6 @@ use Utopia\Agents\Agent;
 use Utopia\Agents\DiffCheck\DiffCheck;
 use Utopia\Agents\DiffCheck\Options;
 use Utopia\Agents\Message;
-use Utopia\Agents\Messages\Text;
 
 class DiffCheckTest extends TestCase
 {
@@ -247,7 +246,7 @@ class FakeAdapter extends Adapter
             $this->lastUserPrompt = $last->getContent();
         }
 
-        return new Text($this->response);
+        return new Message($this->response);
     }
 
     public function getModels(): array

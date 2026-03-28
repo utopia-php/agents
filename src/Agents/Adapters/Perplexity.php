@@ -109,38 +109,25 @@ class Perplexity extends OpenAI
     protected function process(Chunk $chunk, ?callable $listener): string
     {
         $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
+        [$data, $lines] = $this->prepareStreamLines($chunk);
 
-        $json = json_decode($data, true);
+        $rawData = $chunk->getData();
+        $json = $this->decodeJsonObject(trim($rawData)) ?? $this->decodeJsonObject($data);
         if (is_array($json) && isset($json['error'])) {
             return $this->formatErrorMessage($json);
         }
 
         // Specifically for Authorization and similar errors that return HTML
-        $trimmed = ltrim($data);
+        $trimmed = ltrim($rawData);
         if (
             stripos($trimmed, '<html') === 0 ||
             stripos($trimmed, '<!DOCTYPE html') === 0
         ) {
-            return $this->sanitizeHtmlError($data);
+            return $this->sanitizeHtmlError($rawData);
         }
 
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            if (! str_starts_with($line, 'data: ')) {
-                continue;
-            }
-
-            // Handle [DONE] message
-            if (trim($line) === 'data: [DONE]') {
-                continue;
-            }
-
-            $json = json_decode(substr($line, 6), true);
+            $json = $this->decodeSseJsonLine($line);
             if (! is_array($json)) {
                 continue;
             }
@@ -150,11 +137,7 @@ class Perplexity extends OpenAI
             $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
             $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
             if (isset($delta['content']) && is_string($delta['content'])) {
-                $block = $delta['content'];
-
-                if (! empty($block) && $listener !== null) {
-                    $listener($block);
-                }
+                $this->appendStreamToken($block, $delta['content'], $listener);
             }
         }
 

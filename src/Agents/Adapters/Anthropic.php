@@ -4,12 +4,27 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
-use Utopia\Agents\Messages\Text;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
 class Anthropic extends Adapter
 {
+    protected const MAX_ATTACHMENTS_PER_MESSAGE = 10;
+
+    protected const MAX_ATTACHMENT_BYTES = 5000000;
+
+    protected const MAX_TOTAL_ATTACHMENT_BYTES = 20000000;
+
+    /**
+     * @var list<string>
+     */
+    protected const ALLOWED_ATTACHMENT_MIME_TYPES = [
+        'image/png',
+        'image/jpeg',
+        'image/webp',
+        'image/gif',
+    ];
+
     /**
      * Claude 4 Opus - Flagship model with exceptional reasoning for the most demanding tasks
      */
@@ -144,7 +159,7 @@ class Anthropic extends Adapter
         foreach ($messages as $message) {
             $formattedMessages[] = [
                 'role' => $message->getRole(),
-                'content' => $message->getContent(),
+                'content' => $this->formatMessageContent($message),
             ];
         }
 
@@ -180,16 +195,22 @@ class Anthropic extends Adapter
 
         $content = '';
         if ($payload['stream']) {
-            $response = $client->fetch(
-                'https://api.anthropic.com/v1/messages',
-                Client::METHOD_POST,
-                $payload,
-                [],
-                function ($chunk) use (&$content, $listener) {
-                    /** @var Chunk $chunk */
-                    $content .= $this->process($chunk, $listener);
-                }
-            );
+            $this->beginStreamProcessing();
+            try {
+                $response = $client->fetch(
+                    'https://api.anthropic.com/v1/messages',
+                    Client::METHOD_POST,
+                    $payload,
+                    [],
+                    function ($chunk) use (&$content, $listener) {
+                        /** @var Chunk $chunk */
+                        $content .= $this->process($chunk, $listener);
+                    }
+                );
+                $content .= $this->flushBufferedStreamData($listener);
+            } finally {
+                $this->endStreamProcessing();
+            }
         } else {
             $response = $client->fetch(
                 'https://api.anthropic.com/v1/messages',
@@ -212,7 +233,7 @@ class Anthropic extends Adapter
         }
 
         if ($payload['stream']) {
-            return new Text($content);
+            return new Message($content);
         }
 
         $body = $response->getBody();
@@ -235,7 +256,60 @@ class Anthropic extends Adapter
             $text = is_string($body) ? $body : (is_array($json) ? (json_encode($json) ?: '') : '');
         }
 
-        return new Text($text);
+        return new Message($text);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>|string
+     */
+    protected function formatMessageContent(Message $message): array|string
+    {
+        $parts = [];
+
+        if ($message->getContent() !== '') {
+            $parts[] = [
+                'type' => 'text',
+                'text' => $message->getContent(),
+            ];
+        }
+
+        foreach ($message->getAttachments() as $attachment) {
+            if (! $this->isImageAttachment($attachment)) {
+                continue;
+            }
+
+            $parts[] = $this->buildImagePart($attachment);
+        }
+
+        if (empty($parts)) {
+            return $message->getContent();
+        }
+
+        if (count($parts) === 1 && isset($parts[0]['type']) && $parts[0]['type'] === 'text') {
+            $text = $parts[0]['text'] ?? '';
+
+            return is_string($text) ? $text : '';
+        }
+
+        return $parts;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildImagePart(Message $image): array
+    {
+        $mimeType = $image->getMimeType() ?? 'application/octet-stream';
+        $mediaType = str_starts_with($mimeType, 'image/') ? $mimeType : 'application/octet-stream';
+
+        return [
+            'type' => 'image',
+            'source' => [
+                'type' => 'base64',
+                'media_type' => $mediaType,
+                'data' => base64_encode($image->getContent()),
+            ],
+        ];
     }
 
     /**
@@ -246,19 +320,20 @@ class Anthropic extends Adapter
      */
     protected function process(Chunk $chunk, ?callable $listener): string
     {
+        [, $lines] = $this->prepareStreamLines($chunk);
+
+        return $this->processStreamLines($lines, $listener);
+    }
+
+    /**
+     * @param  array<int, string>  $lines
+     */
+    protected function processStreamLines(array $lines, ?callable $listener): string
+    {
         $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
 
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            // Check if line starts with "data: " prefix and remove it, otherwise use the line as-is
-            $jsonString = str_starts_with($line, 'data: ') ? substr($line, 6) : $line;
-            $json = json_decode($jsonString, true);
-
+            $json = $this->decodeJsonOrSseLine($line);
             if (! is_array($json)) {
                 continue;
             }
@@ -297,15 +372,8 @@ class Anthropic extends Adapter
                     }
 
                     $deltaType = $json['delta']['type'];
-
                     if ($deltaType === 'text_delta' && isset($json['delta']['text']) && is_string($json['delta']['text'])) {
-                        $block = $json['delta']['text'];
-                    }
-
-                    if (! empty($block)) {
-                        if ($listener !== null) {
-                            $listener($block);
-                        }
+                        $this->appendStreamToken($block, $json['delta']['text'], $listener);
                     }
                     break;
 
@@ -334,6 +402,16 @@ class Anthropic extends Adapter
         }
 
         return $block;
+    }
+
+    protected function flushBufferedStreamData(?callable $listener): string
+    {
+        $line = $this->consumeStreamBufferLine();
+        if ($line === null) {
+            return '';
+        }
+
+        return $this->processStreamLines([$line], $listener);
     }
 
     /**
@@ -398,6 +476,39 @@ class Anthropic extends Adapter
     public function getName(): string
     {
         return 'anthropic';
+    }
+
+    public function supportsAttachments(): bool
+    {
+        return true;
+    }
+
+    public function supportsAttachment(Message $attachment): bool
+    {
+        return $this->isImageAttachment($attachment);
+    }
+
+    public function getMaxAttachmentsPerMessage(): ?int
+    {
+        return self::MAX_ATTACHMENTS_PER_MESSAGE;
+    }
+
+    public function getMaxAttachmentBytes(): ?int
+    {
+        return self::MAX_ATTACHMENT_BYTES;
+    }
+
+    public function getMaxTotalAttachmentBytes(): ?int
+    {
+        return self::MAX_TOTAL_ATTACHMENT_BYTES;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getAllowedAttachmentMimeTypes(): ?array
+    {
+        return self::ALLOWED_ATTACHMENT_MIME_TYPES;
     }
 
     /**

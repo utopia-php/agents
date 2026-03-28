@@ -5,7 +5,7 @@ namespace Utopia\Agents\DiffCheck;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Agent;
 use Utopia\Agents\Conversation;
-use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Message;
 use Utopia\Agents\Roles\User;
 
 class DiffCheck
@@ -58,7 +58,7 @@ class DiffCheck
             $agent = $this->resolveAgent($runner, $options);
             $conversation = new Conversation($agent);
             $response = $conversation
-                ->message(new User($options->getUserId()), new Text($finalPrompt))
+                ->message(new User($options->getUserId()), new Message($finalPrompt))
                 ->send()
                 ->getContent();
 

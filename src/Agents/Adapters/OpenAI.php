@@ -4,13 +4,28 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
-use Utopia\Agents\Messages\Text;
 use Utopia\Agents\Schema;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
 class OpenAI extends Adapter
 {
+    protected const MAX_ATTACHMENTS_PER_MESSAGE = 10;
+
+    protected const MAX_ATTACHMENT_BYTES = 5000000;
+
+    protected const MAX_TOTAL_ATTACHMENT_BYTES = 20000000;
+
+    /**
+     * @var list<string>
+     */
+    protected const ALLOWED_ATTACHMENT_MIME_TYPES = [
+        'image/png',
+        'image/jpeg',
+        'image/webp',
+        'image/gif',
+    ];
+
     /**
      * GPT-5 Nano - Small GPT-5 variant optimized for low latency and cost-sensitive workloads
      */
@@ -113,12 +128,12 @@ class OpenAI extends Adapter
 
         $formattedMessages = [];
         foreach ($messages as $message) {
-            if (empty($message->getRole()) || empty($message->getContent())) {
+            if (! $this->isMessageValid($message)) {
                 throw new \Exception('Invalid message format');
             }
             $formattedMessages[] = [
                 'role' => $message->getRole(),
-                'content' => $message->getContent(),
+                'content' => $this->formatMessageContent($message),
             ];
         }
 
@@ -177,22 +192,28 @@ class OpenAI extends Adapter
         $content = '';
 
         if ($payload['stream']) {
-            $response = $client->fetch(
-                $this->endpoint,
-                Client::METHOD_POST,
-                $payload,
-                [],
-                function ($chunk) use (&$content, $listener) {
-                    /** @var Chunk $chunk */
-                    $content .= $this->process($chunk, $listener);
-                }
-            );
-
-            if ($response->getStatusCode() >= 400) {
-                throw new \Exception(
-                    ucfirst($this->getName()).' API error: '.$content,
-                    $response->getStatusCode()
+            $this->beginStreamProcessing();
+            try {
+                $response = $client->fetch(
+                    $this->endpoint,
+                    Client::METHOD_POST,
+                    $payload,
+                    [],
+                    function ($chunk) use (&$content, $listener) {
+                        /** @var Chunk $chunk */
+                        $content .= $this->process($chunk, $listener);
+                    }
                 );
+                $content .= $this->flushBufferedStreamData($listener);
+
+                if ($response->getStatusCode() >= 400) {
+                    throw new \Exception(
+                        ucfirst($this->getName()).' API error: '.$content,
+                        $response->getStatusCode()
+                    );
+                }
+            } finally {
+                $this->endStreamProcessing();
             }
         } else {
             $response = $client->fetch(
@@ -222,7 +243,7 @@ class OpenAI extends Adapter
             }
         }
 
-        return new Text($content);
+        return new Message($content);
     }
 
     /**
@@ -233,30 +254,25 @@ class OpenAI extends Adapter
      */
     protected function process(Chunk $chunk, ?callable $listener): string
     {
-        $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
+        [$data, $lines] = $this->prepareStreamLines($chunk);
 
-        $json = json_decode($data, true);
+        $json = $this->decodeJsonObject(trim($chunk->getData())) ?? $this->decodeJsonObject($data);
         if (is_array($json) && isset($json['error'])) {
             return $this->formatErrorMessage($json);
         }
 
+        return $this->processStreamLines($lines, $listener);
+    }
+
+    /**
+     * @param  array<int, string>  $lines
+     */
+    protected function processStreamLines(array $lines, ?callable $listener): string
+    {
+        $block = '';
+
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            if (! str_starts_with($line, 'data: ')) {
-                continue;
-            }
-
-            // Handle [DONE] message
-            if (trim($line) === 'data: [DONE]') {
-                continue;
-            }
-
-            $json = json_decode(substr($line, 6), true);
+            $json = $this->decodeSseJsonLine($line);
             if (! is_array($json)) {
                 continue;
             }
@@ -266,15 +282,21 @@ class OpenAI extends Adapter
             $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
             $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
             if (isset($delta['content']) && is_string($delta['content'])) {
-                $block = $delta['content'];
-
-                if (! empty($block) && $listener !== null) {
-                    $listener($block);
-                }
+                $this->appendStreamToken($block, $delta['content'], $listener);
             }
         }
 
         return $block;
+    }
+
+    protected function flushBufferedStreamData(?callable $listener): string
+    {
+        $line = $this->consumeStreamBufferLine();
+        if ($line === null) {
+            return '';
+        }
+
+        return $this->processStreamLines([$line], $listener);
     }
 
     /**
@@ -300,7 +322,9 @@ class OpenAI extends Adapter
      */
     protected function usesMaxCompletionTokens(): bool
     {
-        return in_array($this->getModel(), [
+        $model = $this->normalizeModelForCompatibilityChecks();
+
+        return in_array($model, [
             self::MODEL_GPT_5_NANO,
             self::MODEL_O4_MINI,
             self::MODEL_O3,
@@ -313,7 +337,8 @@ class OpenAI extends Adapter
      */
     protected function usesDefaultTemperatureOnly(): bool
     {
-        $usesDefaultTemperatureOnly = in_array($this->getModel(), [
+        $model = $this->normalizeModelForCompatibilityChecks();
+        $usesDefaultTemperatureOnly = in_array($model, [
             self::MODEL_GPT_5_NANO,
         ], true);
 
@@ -329,6 +354,77 @@ class OpenAI extends Adapter
         return $usesDefaultTemperatureOnly;
     }
 
+    protected function isMessageValid(Message $message): bool
+    {
+        return ! empty($message->getRole()) && $this->hasTextOrImageContent($message);
+    }
+
+    protected function hasTextOrImageContent(Message $message): bool
+    {
+        if ($message->getContent() !== '') {
+            return true;
+        }
+
+        foreach ($message->getAttachments() as $attachment) {
+            if ($this->isImageAttachment($attachment)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return string|array<int, array<string, mixed>>
+     */
+    protected function formatMessageContent(Message $message): string|array
+    {
+        $parts = [];
+
+        if ($message->getContent() !== '') {
+            $parts[] = [
+                'type' => 'text',
+                'text' => $message->getContent(),
+            ];
+        }
+
+        foreach ($message->getAttachments() as $attachment) {
+            if (! $this->isImageAttachment($attachment)) {
+                continue;
+            }
+
+            $parts[] = $this->buildImagePart($attachment);
+        }
+
+        if (empty($parts)) {
+            return $message->getContent();
+        }
+
+        if (count($parts) === 1 && isset($parts[0]['type']) && $parts[0]['type'] === 'text') {
+            $text = $parts[0]['text'] ?? '';
+
+            return is_string($text) ? $text : '';
+        }
+
+        return $parts;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildImagePart(Message $image): array
+    {
+        $mimeType = $image->getMimeType() ?? 'application/octet-stream';
+        $base64 = base64_encode($image->getContent());
+
+        return [
+            'type' => 'image_url',
+            'image_url' => [
+                'url' => 'data:'.$mimeType.';base64,'.$base64,
+            ],
+        ];
+    }
+
     /**
      * Create a configured HTTP client for API requests.
      */
@@ -341,6 +437,14 @@ class OpenAI extends Adapter
             ->addHeader('content-type', Client::CONTENT_TYPE_APPLICATION_JSON);
 
         return $client;
+    }
+
+    /**
+     * Allow subclasses to normalize routed model IDs.
+     */
+    protected function normalizeModelForCompatibilityChecks(): string
+    {
+        return $this->model;
     }
 
     /**
@@ -405,6 +509,39 @@ class OpenAI extends Adapter
     public function getName(): string
     {
         return 'openai';
+    }
+
+    public function supportsAttachments(): bool
+    {
+        return true;
+    }
+
+    public function supportsAttachment(Message $attachment): bool
+    {
+        return $this->isImageAttachment($attachment);
+    }
+
+    public function getMaxAttachmentsPerMessage(): ?int
+    {
+        return self::MAX_ATTACHMENTS_PER_MESSAGE;
+    }
+
+    public function getMaxAttachmentBytes(): ?int
+    {
+        return self::MAX_ATTACHMENT_BYTES;
+    }
+
+    public function getMaxTotalAttachmentBytes(): ?int
+    {
+        return self::MAX_TOTAL_ATTACHMENT_BYTES;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getAllowedAttachmentMimeTypes(): ?array
+    {
+        return self::ALLOWED_ATTACHMENT_MIME_TYPES;
     }
 
     /**

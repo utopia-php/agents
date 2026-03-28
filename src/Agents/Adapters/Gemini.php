@@ -4,12 +4,27 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
-use Utopia\Agents\Messages\Text;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
 class Gemini extends Adapter
 {
+    protected const MAX_ATTACHMENTS_PER_MESSAGE = 10;
+
+    protected const MAX_ATTACHMENT_BYTES = 5000000;
+
+    protected const MAX_TOTAL_ATTACHMENT_BYTES = 20000000;
+
+    /**
+     * @var list<string>
+     */
+    protected const ALLOWED_ATTACHMENT_MIME_TYPES = [
+        'image/png',
+        'image/jpeg',
+        'image/webp',
+        'image/gif',
+    ];
+
     /**
      * Gemini 2.5 Flash Preview - Our best model in terms of price-performance, offering well-rounded capabilities.
      */
@@ -111,11 +126,7 @@ class Gemini extends Adapter
         foreach ($messages as $message) {
             $formattedMessages[] = [
                 'role' => $message->getRole() === 'user' ? 'user' : 'model',
-                'parts' => [
-                    [
-                        'text' => $message->getContent(),
-                    ],
-                ],
+                'parts' => $this->formatMessageParts($message),
             ];
         }
 
@@ -131,16 +142,22 @@ class Gemini extends Adapter
         ];
 
         $content = '';
-        $response = $client->fetch(
-            $this->endpoint,
-            Client::METHOD_POST,
-            $payload,
-            [],
-            function ($chunk) use (&$content, $listener) {
-                /** @var Chunk $chunk */
-                $content .= $this->process($chunk, $listener);
-            }
-        );
+        $this->beginStreamProcessing();
+        try {
+            $response = $client->fetch(
+                $this->endpoint,
+                Client::METHOD_POST,
+                $payload,
+                [],
+                function ($chunk) use (&$content, $listener) {
+                    /** @var Chunk $chunk */
+                    $content .= $this->process($chunk, $listener);
+                }
+            );
+            $content .= $this->flushBufferedStreamData($listener);
+        } finally {
+            $this->endStreamProcessing();
+        }
 
         if ($response->getStatusCode() >= 400) {
             throw new \Exception(
@@ -149,9 +166,54 @@ class Gemini extends Adapter
             );
         }
 
-        $message = new Text($content);
+        $message = new Message($content);
 
         return $message;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    protected function formatMessageParts(Message $message): array
+    {
+        $parts = [];
+
+        if ($message->getContent() !== '') {
+            $parts[] = [
+                'text' => $message->getContent(),
+            ];
+        }
+
+        foreach ($message->getAttachments() as $attachment) {
+            if (! $this->isImageAttachment($attachment)) {
+                continue;
+            }
+
+            $parts[] = $this->buildImagePart($attachment);
+        }
+
+        if (empty($parts)) {
+            $parts[] = [
+                'text' => '',
+            ];
+        }
+
+        return $parts;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildImagePart(Message $image): array
+    {
+        $mimeType = $image->getMimeType() ?? 'application/octet-stream';
+
+        return [
+            'inline_data' => [
+                'mime_type' => $mimeType,
+                'data' => base64_encode($image->getContent()),
+            ],
+        ];
     }
 
     /**
@@ -162,30 +224,25 @@ class Gemini extends Adapter
      */
     protected function process(Chunk $chunk, ?callable $listener): string
     {
-        $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
+        [$data, $lines] = $this->prepareStreamLines($chunk);
 
-        $json = json_decode($data, true);
+        $json = $this->decodeJsonObject(trim($chunk->getData())) ?? $this->decodeJsonObject($data);
         if (is_array($json) && isset($json['error'])) {
             return $this->formatErrorMessage($json);
         }
 
+        return $this->processStreamLines($lines, $listener);
+    }
+
+    /**
+     * @param  array<int, string>  $lines
+     */
+    protected function processStreamLines(array $lines, ?callable $listener): string
+    {
+        $block = '';
+
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            if (! str_starts_with($line, 'data: ')) {
-                continue;
-            }
-
-            // Handle [DONE] message
-            if (trim($line) === 'data: [DONE]') {
-                continue;
-            }
-
-            $json = json_decode(substr($line, 6), true);
+            $json = $this->decodeSseJsonLine($line);
             if (! is_array($json)) {
                 continue;
             }
@@ -197,15 +254,21 @@ class Gemini extends Adapter
             $parts = isset($content['parts']) && is_array($content['parts']) ? $content['parts'] : [];
             $firstPart = isset($parts[0]) && is_array($parts[0]) ? $parts[0] : [];
             if (isset($firstPart['text']) && is_string($firstPart['text'])) {
-                $block = $firstPart['text'];
-
-                if (! empty($block) && $listener !== null) {
-                    $listener($block);
-                }
+                $this->appendStreamToken($block, $firstPart['text'], $listener);
             }
         }
 
         return $block;
+    }
+
+    protected function flushBufferedStreamData(?callable $listener): string
+    {
+        $line = $this->consumeStreamBufferLine();
+        if ($line === null) {
+            return '';
+        }
+
+        return $this->processStreamLines([$line], $listener);
     }
 
     /**
@@ -286,6 +349,39 @@ class Gemini extends Adapter
     public function getName(): string
     {
         return 'gemini';
+    }
+
+    public function supportsAttachments(): bool
+    {
+        return true;
+    }
+
+    public function supportsAttachment(Message $attachment): bool
+    {
+        return $this->isImageAttachment($attachment);
+    }
+
+    public function getMaxAttachmentsPerMessage(): ?int
+    {
+        return self::MAX_ATTACHMENTS_PER_MESSAGE;
+    }
+
+    public function getMaxAttachmentBytes(): ?int
+    {
+        return self::MAX_ATTACHMENT_BYTES;
+    }
+
+    public function getMaxTotalAttachmentBytes(): ?int
+    {
+        return self::MAX_TOTAL_ATTACHMENT_BYTES;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getAllowedAttachmentMimeTypes(): ?array
+    {
+        return self::ALLOWED_ATTACHMENT_MIME_TYPES;
     }
 
     /**

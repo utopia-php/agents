@@ -2,7 +2,6 @@
 
 namespace Utopia\Agents;
 
-use Utopia\Agents\Messages\Text;
 use Utopia\Agents\Roles\Assistant;
 
 class Conversation
@@ -47,10 +46,28 @@ class Conversation
 
     /**
      * Add a message to the conversation
+     *
+     * @param  array<int, mixed>  $attachments
      */
-    public function message(Role $from, Message $message): self
+    public function message(Role $from, Message $message, array $attachments = []): self
     {
-        $this->messages[] = new Text($message->getContent(), $from->getIdentifier());
+        $entry = $message->withRole($from->getIdentifier());
+        $normalizedExistingAttachments = [];
+        foreach ($entry->getAttachments() as $existingAttachment) {
+            $normalizedExistingAttachments[] = $existingAttachment->withRole($from->getIdentifier());
+        }
+        $entry->setAttachments($normalizedExistingAttachments);
+
+        $this->validateAttachments($entry, $attachments);
+
+        foreach ($attachments as $attachment) {
+            if (! $attachment instanceof Message) {
+                throw new \InvalidArgumentException('Attachments must be Message instances');
+            }
+
+            $entry->addAttachment($attachment->withRole($from->getIdentifier()));
+        }
+        $this->messages[] = $entry;
 
         return $this;
     }
@@ -180,5 +197,61 @@ class Conversation
     public function getTotalTokens(): int
     {
         return $this->inputTokens + $this->outputTokens + $this->cacheCreationInputTokens + $this->cacheReadInputTokens;
+    }
+
+    /**
+     * @param  array<int, mixed>  $attachments
+     */
+    protected function validateAttachments(Message $message, array $attachments): void
+    {
+        $adapter = $this->agent->getAdapter();
+        $allAttachments = array_merge($message->getAttachments(), $attachments);
+
+        $maxAttachmentsPerMessage = $adapter->getMaxAttachmentsPerMessage();
+        if ($maxAttachmentsPerMessage !== null && count($allAttachments) > $maxAttachmentsPerMessage) {
+            throw new \InvalidArgumentException('Too many attachments in this message');
+        }
+
+        $maxAttachmentBytes = $adapter->getMaxAttachmentBytes();
+        $maxTotalAttachmentBytes = $adapter->getMaxTotalAttachmentBytes();
+        $allowedAttachmentMimeTypes = $adapter->getAllowedAttachmentMimeTypes();
+
+        $totalBytes = 0;
+        foreach ($allAttachments as $attachment) {
+            if (! $attachment instanceof Message) {
+                throw new \InvalidArgumentException('Attachments must be Message instances');
+            }
+
+            $bytes = strlen($attachment->getContent());
+            if ($bytes === 0) {
+                throw new \InvalidArgumentException('Attachment payload cannot be empty');
+            }
+
+            if ($maxAttachmentBytes !== null && $bytes > $maxAttachmentBytes) {
+                throw new \InvalidArgumentException('Attachment exceeds per-file size limit');
+            }
+
+            $mimeType = $attachment->getMimeType();
+            if ($mimeType === null) {
+                throw new \InvalidArgumentException('Attachment MIME type cannot be detected');
+            }
+
+            if (
+                $allowedAttachmentMimeTypes !== null &&
+                ! in_array($mimeType, $allowedAttachmentMimeTypes, true)
+            ) {
+                throw new \InvalidArgumentException('Attachment MIME type is not allowed');
+            }
+
+            if (! $adapter->supportsAttachment($attachment)) {
+                throw new \InvalidArgumentException('Attachment type is not supported by this adapter');
+            }
+
+            $totalBytes += $bytes;
+        }
+
+        if ($maxTotalAttachmentBytes !== null && $totalBytes > $maxTotalAttachmentBytes) {
+            throw new \InvalidArgumentException('Attachments exceed total payload size limit');
+        }
     }
 }
