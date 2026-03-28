@@ -22,8 +22,7 @@ class Message
         string $content,
         ?string $role = null,
         array $attachments = []
-    )
-    {
+    ) {
         $this->content = $content;
         $this->role = $role ?? Role::ROLE_USER;
         $this->attachments = [];
