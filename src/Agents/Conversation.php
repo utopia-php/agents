@@ -13,6 +13,8 @@ class Conversation
 
     protected Agent $agent;
 
+    protected int $maxToolIterations = 8;
+
     protected int $inputTokens = 0;
 
     protected int $outputTokens = 0;
@@ -49,12 +51,13 @@ class Conversation
      *
      * @param  array<int, mixed>  $attachments
      */
-    public function message(Role $from, Message $message, array $attachments = []): self
+    public function message(Role|string $from, Message $message, array $attachments = []): self
     {
-        $entry = $message->withRole($from->getIdentifier());
+        $identifier = is_string($from) ? $from : $from->getIdentifier();
+        $entry = $message->withRole($identifier);
         $normalizedExistingAttachments = [];
         foreach ($entry->getAttachments() as $existingAttachment) {
-            $normalizedExistingAttachments[] = $existingAttachment->withRole($from->getIdentifier());
+            $normalizedExistingAttachments[] = $existingAttachment->withRole($identifier);
         }
         $entry->setAttachments($normalizedExistingAttachments);
 
@@ -65,9 +68,20 @@ class Conversation
                 throw new \InvalidArgumentException('Attachments must be Message instances');
             }
 
-            $entry->addAttachment($attachment->withRole($from->getIdentifier()));
+            $entry->addAttachment($attachment->withRole($identifier));
         }
         $this->messages[] = $entry;
+
+        return $this;
+    }
+
+    public function setMaxToolIterations(int $maxToolIterations): self
+    {
+        if ($maxToolIterations < 1) {
+            throw new \InvalidArgumentException('Max tool iterations must be at least 1');
+        }
+
+        $this->maxToolIterations = $maxToolIterations;
 
         return $this;
     }
@@ -80,17 +94,38 @@ class Conversation
      */
     public function send(): Message
     {
-        $message = $this->agent->getAdapter()->send($this->messages, $this->listener);
+        $adapter = $this->agent->getAdapter();
+        $previousInputTokens = $adapter->getInputTokens();
+        $previousOutputTokens = $adapter->getOutputTokens();
+        $previousCacheCreationInputTokens = $adapter->getCacheCreationInputTokens();
+        $previousCacheReadInputTokens = $adapter->getCacheReadInputTokens();
 
-        $this->countInputTokens($this->agent->getAdapter()->getInputTokens());
-        $this->countOutputTokens($this->agent->getAdapter()->getOutputTokens());
-        $this->countCacheCreationInputTokens($this->agent->getAdapter()->getCacheCreationInputTokens());
-        $this->countCacheReadInputTokens($this->agent->getAdapter()->getCacheReadInputTokens());
+        $iterations = 0;
+        do {
+            $message = $adapter->send($this->messages, $this->listener);
+            $this->countAdapterTokenDeltas(
+                $previousInputTokens,
+                $previousOutputTokens,
+                $previousCacheCreationInputTokens,
+                $previousCacheReadInputTokens
+            );
 
-        $from = new Assistant($this->agent->getAdapter()->getModel(), 'Assistant');
-        $this->message($from, $message);
+            $from = new Assistant($adapter->getModel(), 'Assistant');
+            $this->message($from, $message);
 
-        return $message;
+            if (! $message->hasToolCalls()) {
+                return $message;
+            }
+
+            if (! $adapter->supportsTools()) {
+                throw new \Exception('Tool calls are not supported for this adapter');
+            }
+
+            $this->executeToolCalls($message);
+            $iterations++;
+        } while ($iterations < $this->maxToolIterations);
+
+        throw new \RuntimeException('Tool-calling loop exceeded max iterations');
     }
 
     /**
@@ -253,5 +288,82 @@ class Conversation
         if ($maxTotalAttachmentBytes !== null && $totalBytes > $maxTotalAttachmentBytes) {
             throw new \InvalidArgumentException('Attachments exceed total payload size limit');
         }
+    }
+
+    protected function countAdapterTokenDeltas(
+        int &$previousInputTokens,
+        int &$previousOutputTokens,
+        int &$previousCacheCreationInputTokens,
+        int &$previousCacheReadInputTokens
+    ): void {
+        $adapter = $this->agent->getAdapter();
+
+        $currentInputTokens = $adapter->getInputTokens();
+        $currentOutputTokens = $adapter->getOutputTokens();
+        $currentCacheCreationInputTokens = $adapter->getCacheCreationInputTokens();
+        $currentCacheReadInputTokens = $adapter->getCacheReadInputTokens();
+
+        $this->countInputTokens(max(0, $currentInputTokens - $previousInputTokens));
+        $this->countOutputTokens(max(0, $currentOutputTokens - $previousOutputTokens));
+        $this->countCacheCreationInputTokens(max(0, $currentCacheCreationInputTokens - $previousCacheCreationInputTokens));
+        $this->countCacheReadInputTokens(max(0, $currentCacheReadInputTokens - $previousCacheReadInputTokens));
+
+        $previousInputTokens = $currentInputTokens;
+        $previousOutputTokens = $currentOutputTokens;
+        $previousCacheCreationInputTokens = $currentCacheCreationInputTokens;
+        $previousCacheReadInputTokens = $currentCacheReadInputTokens;
+    }
+
+    protected function executeToolCalls(Message $assistantMessage): void
+    {
+        foreach ($assistantMessage->getToolCalls() as $toolCall) {
+            try {
+                $arguments = $this->decodeToolArguments($toolCall->getArguments());
+                $result = $this->agent->callTool($toolCall->getName(), $arguments);
+                $toolCall->markSuccess();
+            } catch (\Throwable $error) {
+                $toolCall->markError($error->getMessage());
+                throw $error;
+            }
+
+            $toolMessage = (new Message($this->normalizeToolResult($result)))
+                ->setToolCallId($toolCall->getId())
+                ->setToolName($toolCall->getName());
+
+            $this->message('tool', $toolMessage);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>|string  $arguments
+     * @return array<string, mixed>
+     */
+    protected function decodeToolArguments(array|string $arguments): array
+    {
+        if (is_array($arguments)) {
+            return $arguments;
+        }
+
+        $decoded = json_decode($arguments, true);
+        if (! is_array($decoded) || array_is_list($decoded)) {
+            throw new \InvalidArgumentException('Tool call arguments must decode into an object');
+        }
+
+        /** @var array<string, mixed> $decoded */
+        return $decoded;
+    }
+
+    protected function normalizeToolResult(mixed $result): string
+    {
+        if (is_string($result)) {
+            return $result;
+        }
+
+        $encoded = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($encoded === false) {
+            throw new \RuntimeException('Failed to encode tool result');
+        }
+
+        return $encoded;
     }
 }

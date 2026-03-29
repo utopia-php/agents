@@ -13,6 +13,11 @@ class Agent
 
     protected ?Schema $schema = null;
 
+    /**
+     * @var array<string, Tool>
+     */
+    protected array $tools = [];
+
     protected Adapter $adapter;
 
     /**
@@ -95,6 +100,95 @@ class Agent
     public function getSchema(): ?Schema
     {
         return $this->schema;
+    }
+
+    public function addTool(
+        string $name,
+        callable $handler,
+        string $description = '',
+        ?array $schema = null
+    ): self {
+        $this->tools[$name] = new Tool($name, $handler, $description, $schema);
+
+        return $this;
+    }
+
+    public function setTool(Tool $tool): self
+    {
+        $this->tools[$tool->getName()] = $tool;
+
+        return $this;
+    }
+
+    public function removeTool(string $name): self
+    {
+        unset($this->tools[$name]);
+
+        return $this;
+    }
+
+    /**
+     * @return list<Tool>
+     */
+    public function getTools(): array
+    {
+        return array_values($this->tools);
+    }
+
+    public function getTool(string $name): ?Tool
+    {
+        return $this->tools[$name] ?? null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    public function callTool(string $name, array $arguments = []): mixed
+    {
+        $tool = $this->getTool($name);
+        if ($tool === null) {
+            throw new \InvalidArgumentException('Tool not found: '.$name);
+        }
+
+        return $tool->run($arguments);
+    }
+
+    /**
+     * Short alias for addTool().
+     */
+    public function tool(
+        string $name,
+        callable $handler,
+        string $description = '',
+        ?array $schema = null
+    ): self {
+        return $this->addTool($name, $handler, $description, $schema);
+    }
+
+    public function drop(string $name): self
+    {
+        return $this->removeTool($name);
+    }
+
+    /**
+     * @return list<Tool>
+     */
+    public function tools(): array
+    {
+        return $this->getTools();
+    }
+
+    public function find(string $name): ?Tool
+    {
+        return $this->getTool($name);
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    public function call(string $name, array $arguments = []): mixed
+    {
+        return $this->callTool($name, $arguments);
     }
 
     /**

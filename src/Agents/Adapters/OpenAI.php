@@ -5,6 +5,7 @@ namespace Utopia\Agents\Adapters;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
 use Utopia\Agents\Schema;
+use Utopia\Agents\ToolCall;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
@@ -131,10 +132,39 @@ class OpenAI extends Adapter
             if (! $this->isMessageValid($message)) {
                 throw new \Exception('Invalid message format');
             }
-            $formattedMessages[] = [
+            $formattedMessage = [
                 'role' => $message->getRole(),
                 'content' => $this->formatMessageContent($message),
             ];
+
+            if ($message->getRole() === 'tool') {
+                $formattedMessage['tool_call_id'] = $message->getToolCallId();
+            }
+
+            if ($message->hasToolCalls()) {
+                $formattedMessage['tool_calls'] = [];
+                foreach ($message->getToolCalls() as $toolCall) {
+                    $arguments = $toolCall->getArguments();
+                    if (is_array($arguments)) {
+                        $encoded = json_encode($arguments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                        if ($encoded === false) {
+                            throw new \Exception('Failed to encode tool call arguments');
+                        }
+                        $arguments = $encoded;
+                    }
+
+                    $formattedMessage['tool_calls'][] = [
+                        'id' => $toolCall->getId(),
+                        'type' => 'function',
+                        'function' => [
+                            'name' => $toolCall->getName(),
+                            'arguments' => $arguments,
+                        ],
+                    ];
+                }
+            }
+
+            $formattedMessages[] = $formattedMessage;
         }
 
         $instructions = [];
@@ -164,6 +194,21 @@ class OpenAI extends Adapter
         $payload['temperature'] = $temperature;
 
         $schema = $agent->getSchema();
+        $tools = $agent->getTools();
+        if (! empty($tools)) {
+            $payload['tools'] = [];
+            foreach ($tools as $tool) {
+                $payload['tools'][] = [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => $tool->getName(),
+                        'description' => $tool->getDescription(),
+                        'parameters' => $tool->getParameters(),
+                    ],
+                ];
+            }
+        }
+
         if ($schema !== null) {
             $payload['response_format'] = [
                 'type' => 'json_schema',
@@ -178,6 +223,8 @@ class OpenAI extends Adapter
                     ],
                 ],
             ];
+            $payload['stream'] = false;
+        } elseif (! empty($tools)) {
             $payload['stream'] = false;
         } else {
             $payload['stream'] = true;
@@ -236,11 +283,15 @@ class OpenAI extends Adapter
             $choices = is_array($json) && isset($json['choices']) && is_array($json['choices']) ? $json['choices'] : [];
             $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
             $message = isset($firstChoice['message']) && is_array($firstChoice['message']) ? $firstChoice['message'] : [];
-            if (isset($message['content']) && is_string($message['content'])) {
-                $content = $message['content'];
-            } else {
-                throw new \Exception('Invalid response format received from the API');
+            $content = $this->extractMessageContent($message);
+
+            $responseMessage = new Message($content);
+            $toolCalls = $this->extractToolCalls($message);
+            if (! empty($toolCalls)) {
+                $responseMessage->setToolCalls($toolCalls);
             }
+
+            return $responseMessage;
         }
 
         return new Message($content);
@@ -356,7 +407,19 @@ class OpenAI extends Adapter
 
     protected function isMessageValid(Message $message): bool
     {
-        return ! empty($message->getRole()) && $this->hasTextOrImageContent($message);
+        if (empty($message->getRole())) {
+            return false;
+        }
+
+        if ($message->getRole() === 'tool') {
+            return $message->getToolCallId() !== null && $message->getContent() !== '';
+        }
+
+        if ($message->hasToolCalls()) {
+            return true;
+        }
+
+        return $this->hasTextOrImageContent($message);
     }
 
     protected function hasTextOrImageContent(Message $message): bool
@@ -379,6 +442,10 @@ class OpenAI extends Adapter
      */
     protected function formatMessageContent(Message $message): string|array
     {
+        if ($message->getRole() === 'tool') {
+            return $message->getContent();
+        }
+
         $parts = [];
 
         if ($message->getContent() !== '') {
@@ -407,6 +474,90 @@ class OpenAI extends Adapter
         }
 
         return $parts;
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     *
+     * @throws \Exception
+     */
+    protected function extractMessageContent(array $message): string
+    {
+        if (! array_key_exists('content', $message)) {
+            throw new \Exception('Invalid response format received from the API');
+        }
+
+        $content = $message['content'];
+        if (is_string($content)) {
+            return $content;
+        }
+
+        if ($content === null) {
+            return '';
+        }
+
+        if (! is_array($content)) {
+            throw new \Exception('Invalid response format received from the API');
+        }
+
+        $text = '';
+        foreach ($content as $part) {
+            if (is_string($part)) {
+                $text .= $part;
+
+                continue;
+            }
+
+            if (! is_array($part)) {
+                continue;
+            }
+
+            if (isset($part['text']) && is_string($part['text'])) {
+                $text .= $part['text'];
+
+                continue;
+            }
+
+            if (
+                isset($part['text']) &&
+                is_array($part['text']) &&
+                isset($part['text']['value']) &&
+                is_string($part['text']['value'])
+            ) {
+                $text .= $part['text']['value'];
+            }
+        }
+
+        return $text;
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     * @return array<ToolCall>
+     */
+    protected function extractToolCalls(array $message): array
+    {
+        $toolCalls = isset($message['tool_calls']) && is_array($message['tool_calls']) ? $message['tool_calls'] : [];
+        $results = [];
+
+        foreach ($toolCalls as $toolCall) {
+            if (! is_array($toolCall)) {
+                continue;
+            }
+
+            $id = isset($toolCall['id']) && is_string($toolCall['id']) ? $toolCall['id'] : null;
+            $function = isset($toolCall['function']) && is_array($toolCall['function']) ? $toolCall['function'] : [];
+            $name = isset($function['name']) && is_string($function['name']) ? $function['name'] : null;
+            $arguments = isset($function['arguments']) && is_string($function['arguments']) ? $function['arguments'] : '{}';
+
+            if ($id === null || $name === null) {
+                continue;
+            }
+
+            $results[] = new ToolCall($id, $name, $arguments);
+        }
+
+        return $results;
     }
 
     /**
@@ -509,6 +660,11 @@ class OpenAI extends Adapter
     public function getName(): string
     {
         return 'openai';
+    }
+
+    public function supportsTools(): bool
+    {
+        return true;
     }
 
     public function supportsAttachments(): bool

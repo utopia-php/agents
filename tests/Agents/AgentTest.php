@@ -111,6 +111,25 @@ class AgentTest extends TestCase
         $this->assertGreaterThan(0, $result['tokensProcessed']);
     }
 
+    public function testToolRegistryAndExecution(): void
+    {
+        $this->agent->addTool(
+            'sum',
+            fn (int $a, int $b): int => $a + $b,
+            'Add two integers'
+        );
+
+        $tool = $this->agent->getTool('sum');
+        $this->assertNotNull($tool);
+        $this->assertCount(1, $this->agent->getTools());
+        $this->assertSame(5, $this->agent->callTool('sum', ['a' => 2, 'b' => 3]));
+
+        $schema = $tool->schema();
+        $this->assertSame('object', $schema['type'] ?? null);
+        $this->assertSame('integer', $schema['properties']['a']['type'] ?? null);
+        $this->assertSame('integer', $schema['properties']['b']['type'] ?? null);
+    }
+
     public function testEmbeddingDimensions(): void
     {
         $ollama = new Ollama();
