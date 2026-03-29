@@ -5,7 +5,6 @@ namespace Utopia\Agents\Adapters;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
 use Utopia\Agents\Schema;
-use Utopia\Agents\ToolCall;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
@@ -137,33 +136,6 @@ class OpenAI extends Adapter
                 'content' => $this->formatMessageContent($message),
             ];
 
-            if ($message->getRole() === 'tool') {
-                $formattedMessage['tool_call_id'] = $message->getToolCallId();
-            }
-
-            if ($message->hasToolCalls()) {
-                $formattedMessage['tool_calls'] = [];
-                foreach ($message->getToolCalls() as $toolCall) {
-                    $arguments = $toolCall->getArguments();
-                    if (is_array($arguments)) {
-                        $encoded = json_encode($arguments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                        if ($encoded === false) {
-                            throw new \Exception('Failed to encode tool call arguments');
-                        }
-                        $arguments = $encoded;
-                    }
-
-                    $formattedMessage['tool_calls'][] = [
-                        'id' => $toolCall->getId(),
-                        'type' => 'function',
-                        'function' => [
-                            'name' => $toolCall->getName(),
-                            'arguments' => $arguments,
-                        ],
-                    ];
-                }
-            }
-
             $formattedMessages[] = $formattedMessage;
         }
 
@@ -194,20 +166,6 @@ class OpenAI extends Adapter
         $payload['temperature'] = $temperature;
 
         $schema = $agent->getSchema();
-        $tools = $agent->getTools();
-        if (! empty($tools)) {
-            $payload['tools'] = [];
-            foreach ($tools as $tool) {
-                $payload['tools'][] = [
-                    'type' => 'function',
-                    'function' => [
-                        'name' => $tool->getName(),
-                        'description' => $tool->getDescription(),
-                        'parameters' => $tool->getParameters(),
-                    ],
-                ];
-            }
-        }
 
         if ($schema !== null) {
             $payload['response_format'] = [
@@ -223,8 +181,6 @@ class OpenAI extends Adapter
                     ],
                 ],
             ];
-            $payload['stream'] = false;
-        } elseif (! empty($tools)) {
             $payload['stream'] = false;
         } else {
             $payload['stream'] = true;
@@ -285,13 +241,7 @@ class OpenAI extends Adapter
             $message = isset($firstChoice['message']) && is_array($firstChoice['message']) ? $firstChoice['message'] : [];
             $content = $this->extractMessageContent($message);
 
-            $responseMessage = new Message($content);
-            $toolCalls = $this->extractToolCalls($message);
-            if (! empty($toolCalls)) {
-                $responseMessage->setToolCalls($toolCalls);
-            }
-
-            return $responseMessage;
+            return new Message($content);
         }
 
         return new Message($content);
@@ -411,14 +361,6 @@ class OpenAI extends Adapter
             return false;
         }
 
-        if ($message->getRole() === 'tool') {
-            return $message->getToolCallId() !== null && $message->getContent() !== '';
-        }
-
-        if ($message->hasToolCalls()) {
-            return true;
-        }
-
         return $this->hasTextOrImageContent($message);
     }
 
@@ -532,35 +474,6 @@ class OpenAI extends Adapter
     }
 
     /**
-     * @param  array<string, mixed>  $message
-     * @return array<ToolCall>
-     */
-    protected function extractToolCalls(array $message): array
-    {
-        $toolCalls = isset($message['tool_calls']) && is_array($message['tool_calls']) ? $message['tool_calls'] : [];
-        $results = [];
-
-        foreach ($toolCalls as $toolCall) {
-            if (! is_array($toolCall)) {
-                continue;
-            }
-
-            $id = isset($toolCall['id']) && is_string($toolCall['id']) ? $toolCall['id'] : null;
-            $function = isset($toolCall['function']) && is_array($toolCall['function']) ? $toolCall['function'] : [];
-            $name = isset($function['name']) && is_string($function['name']) ? $function['name'] : null;
-            $arguments = isset($function['arguments']) && is_string($function['arguments']) ? $function['arguments'] : '{}';
-
-            if ($id === null || $name === null) {
-                continue;
-            }
-
-            $results[] = new ToolCall($id, $name, $arguments);
-        }
-
-        return $results;
-    }
-
-    /**
      * @return array<string, mixed>
      */
     protected function buildImagePart(Message $image): array
@@ -660,11 +573,6 @@ class OpenAI extends Adapter
     public function getName(): string
     {
         return 'openai';
-    }
-
-    public function supportsTools(): bool
-    {
-        return true;
     }
 
     public function supportsAttachments(): bool

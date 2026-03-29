@@ -20,19 +20,15 @@ class Tool
      */
     protected $handler;
 
-    /**
-     * @param  array<string, mixed>|null  $schema
-     */
     public function __construct(
         string $name,
         callable $handler,
-        string $description = '',
-        ?array $schema = null
+        string $description = ''
     ) {
         $this->name = $name;
         $this->description = $description;
         $this->handler = $handler;
-        $this->schema = $schema ?? $this->inferSchema($handler);
+        $this->schema = $this->inferSchema($handler);
     }
 
     public function name(): string

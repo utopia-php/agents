@@ -129,14 +129,6 @@ abstract class Adapter
         return $this->supportsAttachments();
     }
 
-    /**
-     * Whether this adapter supports model-initiated tool calls.
-     */
-    public function supportsTools(): bool
-    {
-        return false;
-    }
-
     protected function isImageAttachment(Message $attachment): bool
     {
         if ($attachment->getContent() === '') {

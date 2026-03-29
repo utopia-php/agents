@@ -29,15 +29,14 @@ class ConversationToolsTest extends TestCase
         $expected = hash('sha256', 'tool::'.$nonce);
 
         $this->assertSame('STAMP: '.$expected, $final->getContent());
-        $this->assertCount(4, $conversation->getMessages());
-        $this->assertSame('assistant', $conversation->getMessages()[1]->getRole());
-        $this->assertTrue($conversation->getMessages()[1]->hasToolCalls());
-        $this->assertTrue($conversation->getMessages()[1]->getToolCalls()[0]->isSuccess());
-        $this->assertNull($conversation->getMessages()[1]->getToolCalls()[0]->getError());
-        $this->assertSame('tool', $conversation->getMessages()[2]->getRole());
-        $this->assertSame($expected, $conversation->getMessages()[2]->getContent());
-        $this->assertSame('call_1', $conversation->getMessages()[2]->getToolCallId());
-        $this->assertSame('assistant', $conversation->getMessages()[3]->getRole());
+        $this->assertCount(5, $conversation->getMessages());
+        $this->assertSame('assistant', $conversation->getMessages()[2]->getRole());
+        $this->assertTrue($conversation->getMessages()[2]->hasToolCalls());
+        $this->assertTrue($conversation->getMessages()[2]->getToolCalls()[0]->isSuccess());
+        $this->assertNull($conversation->getMessages()[2]->getToolCalls()[0]->getError());
+        $this->assertSame('user', $conversation->getMessages()[3]->getRole());
+        $this->assertStringContainsString($expected, $conversation->getMessages()[3]->getContent());
+        $this->assertSame('assistant', $conversation->getMessages()[4]->getRole());
     }
 
     public function testToolCallStatusIsErrorWhenToolFails(): void
@@ -62,10 +61,43 @@ class ConversationToolsTest extends TestCase
         }
 
         $messages = $conversation->getMessages();
-        $this->assertCount(2, $messages);
-        $this->assertTrue($messages[1]->hasToolCalls());
-        $this->assertTrue($messages[1]->getToolCalls()[0]->isError());
-        $this->assertSame('Tool exploded', $messages[1]->getToolCalls()[0]->getError());
+        $this->assertCount(3, $messages);
+        $this->assertTrue($messages[2]->hasToolCalls());
+        $this->assertTrue($messages[2]->getToolCalls()[0]->isError());
+        $this->assertSame('Tool exploded', $messages[2]->getToolCalls()[0]->getError());
+    }
+
+    public function testToolProtocolWorksForAnyAdapter(): void
+    {
+        $nonce = bin2hex(random_bytes(8));
+        $adapter = new ToolProtocolFakeAdapter($nonce);
+        $agent = new Agent($adapter);
+        $agent->addTool(
+            'stamp',
+            fn (string $nonce): string => hash('sha256', 'tool::'.$nonce)
+        );
+
+        $conversation = new Conversation($agent);
+        $conversation->message(new User('user-1'), new Message('Use stamp tool for my token.'));
+
+        $final = $conversation->send();
+        $expected = hash('sha256', 'tool::'.$nonce);
+
+        $this->assertSame('STAMP: '.$expected, $final->getContent());
+
+        $messages = $conversation->getMessages();
+        $this->assertGreaterThanOrEqual(5, count($messages));
+
+        $assistantWithToolCall = null;
+        foreach ($messages as $message) {
+            if ($message->getRole() === 'assistant' && $message->hasToolCalls()) {
+                $assistantWithToolCall = $message;
+                break;
+            }
+        }
+
+        $this->assertInstanceOf(Message::class, $assistantWithToolCall);
+        $this->assertTrue($assistantWithToolCall->getToolCalls()[0]->isSuccess());
     }
 }
 
@@ -100,16 +132,15 @@ class ToolLoopFakeAdapter extends Adapter
         }
 
         $last = end($messages);
-        if (! $last instanceof Message || $last->getRole() !== 'tool') {
-            throw new \RuntimeException('Expected a tool result message before final answer');
+        if (! $last instanceof Message || $last->getRole() !== 'user') {
+            throw new \RuntimeException('Expected a generic tool result user message before final answer');
         }
 
-        return new Message('STAMP: '.$last->getContent());
-    }
+        if (! str_contains($last->getContent(), '"type":"tool_result"')) {
+            throw new \RuntimeException('Expected generic tool_result payload');
+        }
 
-    public function supportsTools(): bool
-    {
-        return true;
+        return new Message('{"type":"final","content":"STAMP: '.hash('sha256', 'tool::'.$this->nonce).'"}');
     }
 
     public function getModels(): array
@@ -174,9 +205,76 @@ class ToolErrorFakeAdapter extends Adapter
         ]);
     }
 
-    public function supportsTools(): bool
+    public function getModels(): array
     {
-        return true;
+        return ['fake-model'];
+    }
+
+    public function getModel(): string
+    {
+        return 'fake-model';
+    }
+
+    public function setModel(string $model): self
+    {
+        return $this;
+    }
+
+    public function isSchemaSupported(): bool
+    {
+        return false;
+    }
+
+    public function getSupportForEmbeddings(): bool
+    {
+        return false;
+    }
+
+    public function embed(string $text): array
+    {
+        throw new \Exception('Embeddings not supported');
+    }
+
+    public function getEmbeddingDimension(): int
+    {
+        throw new \Exception('Embeddings not supported');
+    }
+
+    protected function formatErrorMessage($json): string
+    {
+        return 'fake error';
+    }
+}
+
+class ToolProtocolFakeAdapter extends Adapter
+{
+    private int $sendCount = 0;
+
+    public function __construct(
+        private readonly string $nonce
+    ) {}
+
+    public function getName(): string
+    {
+        return 'generic-tool-protocol-fake';
+    }
+
+    /**
+     * @param  array<Message>  $messages
+     */
+    public function send(array $messages, ?callable $listener = null): Message
+    {
+        $this->sendCount++;
+
+        if ($this->sendCount === 1) {
+            return new Message(
+                '{"type":"tool_call","id":"call_1","name":"stamp","arguments":{"nonce":"'.$this->nonce.'"}}'
+            );
+        }
+
+        $expected = hash('sha256', 'tool::'.$this->nonce);
+
+        return new Message('{"type":"final","content":"STAMP: '.$expected.'"}');
     }
 
     public function getModels(): array

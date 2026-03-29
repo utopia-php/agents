@@ -105,10 +105,9 @@ class Agent
     public function addTool(
         string $name,
         callable $handler,
-        string $description = '',
-        ?array $schema = null
+        string $description = ''
     ): self {
-        $this->tools[$name] = new Tool($name, $handler, $description, $schema);
+        $this->tools[$name] = new Tool($name, $handler, $description);
 
         return $this;
     }
@@ -159,10 +158,9 @@ class Agent
     public function tool(
         string $name,
         callable $handler,
-        string $description = '',
-        ?array $schema = null
+        string $description = ''
     ): self {
-        return $this->addTool($name, $handler, $description, $schema);
+        return $this->addTool($name, $handler, $description);
     }
 
     public function drop(string $name): self
