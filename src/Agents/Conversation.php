@@ -623,7 +623,8 @@ class Conversation
     {
         return match ($type) {
             SchemaObject::TYPE_STRING => is_string($value),
-            SchemaObject::TYPE_OBJECT => is_array($value) && ! array_is_list($value),
+            // json_decode('{}', true) becomes [], which is still an object payload in this protocol.
+            SchemaObject::TYPE_OBJECT => is_array($value),
             SchemaObject::TYPE_ARRAY => is_array($value) && array_is_list($value),
             SchemaObject::TYPE_BOOLEAN => is_bool($value),
             SchemaObject::TYPE_INTEGER => is_int($value),
