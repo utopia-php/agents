@@ -130,6 +130,16 @@ class AgentTest extends TestCase
         $this->assertSame('integer', $schema['properties']['b']['type'] ?? null);
     }
 
+    public function testToolNameAliasResolution(): void
+    {
+        $this->agent->addTool(
+            'get_service_status',
+            fn (): string => 'ok'
+        );
+
+        $this->assertSame('ok', $this->agent->callTool('service_status'));
+    }
+
     public function testEmbeddingDimensions(): void
     {
         $ollama = new Ollama();

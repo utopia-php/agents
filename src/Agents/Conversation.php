@@ -110,7 +110,19 @@ class Conversation
 
         $iterations = 0;
         do {
-            $message = $adapter->send($this->messages, $this->listener);
+            $toolStreamState = null;
+            $iterationListener = $this->listener;
+            if ($toolProtocolEnabled) {
+                $toolStreamState = $this->newToolStreamState();
+                $iterationListener = function (string $chunk) use (&$toolStreamState): void {
+                    $delta = $this->consumeToolProtocolStreamChunk($toolStreamState, $chunk);
+                    if ($delta !== '') {
+                        ($this->listener)($delta);
+                    }
+                };
+            }
+
+            $message = $adapter->send($this->messages, $iterationListener);
             $this->countAdapterTokenDeltas(
                 $previousInputTokens,
                 $previousOutputTokens,
@@ -130,6 +142,13 @@ class Conversation
 
             if ($toolProtocolEnabled) {
                 if ($parsedToolProtocolResponse instanceof Message) {
+                    if (is_array($toolStreamState)) {
+                        $remaining = $this->flushToolProtocolStreamState($toolStreamState, $message->getContent());
+                        if ($remaining !== '') {
+                            ($this->listener)($remaining);
+                        }
+                    }
+
                     return $message;
                 }
             }
@@ -370,6 +389,164 @@ class Conversation
         return $decoded;
     }
 
+    /**
+     * @return array{
+     *     buffer: string,
+     *     started: bool,
+     *     cursor: int,
+     *     escape: bool,
+     *     done: bool,
+     *     emitted: string
+     * }
+     */
+    protected function newToolStreamState(): array
+    {
+        return [
+            'buffer' => '',
+            'started' => false,
+            'cursor' => 0,
+            'escape' => false,
+            'done' => false,
+            'emitted' => '',
+        ];
+    }
+
+    /**
+     * @param  array{
+     *     buffer: string,
+     *     started: bool,
+     *     cursor: int,
+     *     escape: bool,
+     *     done: bool,
+     *     emitted: string
+     * }  $state
+     */
+    protected function consumeToolProtocolStreamChunk(array &$state, string $chunk): string
+    {
+        if ($chunk === '' || $state['done']) {
+            return '';
+        }
+
+        $state['buffer'] .= $chunk;
+        if (! $state['started']) {
+            $start = $this->locateFinalContentStart($state['buffer']);
+            if ($start === null) {
+                return '';
+            }
+            $state['started'] = true;
+            $state['cursor'] = $start;
+        }
+
+        $emitted = '';
+        $length = strlen($state['buffer']);
+        while ($state['cursor'] < $length) {
+            $char = $state['buffer'][$state['cursor']];
+
+            if ($state['escape']) {
+                $decoded = $this->decodeEscapedStreamCharacter($state, $length);
+                if ($decoded === null) {
+                    break;
+                }
+
+                $emitted .= $decoded;
+
+                $state['escape'] = false;
+                $state['cursor']++;
+
+                continue;
+            }
+
+            if ($char === '\\') {
+                $state['escape'] = true;
+                $state['cursor']++;
+
+                continue;
+            }
+
+            if ($char === '"') {
+                $state['done'] = true;
+                $state['cursor']++;
+                break;
+            }
+
+            $emitted .= $char;
+            $state['cursor']++;
+        }
+
+        $state['emitted'] .= $emitted;
+
+        return $emitted;
+    }
+
+    protected function locateFinalContentStart(string $buffer): ?int
+    {
+        $typePosition = strpos($buffer, '"type"');
+        if ($typePosition === false) {
+            return null;
+        }
+
+        $typeValue = $this->extractJsonStringFieldValue($buffer, 'type', $typePosition);
+        if ($typeValue !== 'final') {
+            return null;
+        }
+
+        return $this->findJsonStringFieldStart($buffer, 'content', $typePosition);
+    }
+
+    /**
+     * @param  array{buffer: string, cursor: int}  $state
+     */
+    protected function decodeEscapedStreamCharacter(array &$state, int $length): ?string
+    {
+        $char = $state['buffer'][$state['cursor']];
+
+        if ($char === 'u') {
+            if ($length <= $state['cursor'] + 4) {
+                return null;
+            }
+
+            $hex = substr($state['buffer'], $state['cursor'] + 1, 4);
+            if (! $this->isHex4($hex)) {
+                $state['cursor'] += 4;
+
+                return 'u'.$hex;
+            }
+
+            $unicode = json_decode('"\u'.$hex.'"');
+            $state['cursor'] += 4;
+
+            return is_string($unicode) ? $unicode : '';
+        }
+
+        return match ($char) {
+            '"', '\\', '/' => $char,
+            'b' => "\x08",
+            'f' => "\x0C",
+            'n' => "\n",
+            'r' => "\r",
+            't' => "\t",
+            default => '',
+        };
+    }
+
+    /**
+     * @param  array{
+     *     emitted: string
+     * }  $state
+     */
+    protected function flushToolProtocolStreamState(array $state, string $finalText): string
+    {
+        if ($state['emitted'] === '') {
+            return $finalText;
+        }
+
+        if (! str_starts_with($finalText, $state['emitted'])) {
+            return '';
+        }
+
+        return substr($finalText, strlen($state['emitted']));
+    }
+
     protected function normalizeToolResult(mixed $result): string
     {
         if (is_string($result)) {
@@ -513,19 +690,147 @@ class Conversation
             return null;
         }
 
-        if (str_starts_with($trimmed, '```')) {
-            if (preg_match('/```(?:json)?\s*(\{.*\})\s*```/s', $trimmed, $matches) === 1) {
-                $trimmed = trim($matches[1]);
-            }
-        }
+        $trimmed = $this->unwrapFencedJson($trimmed);
 
         $decoded = json_decode($trimmed, true);
         if (! is_array($decoded) || array_is_list($decoded)) {
-            return null;
+            return $this->decodeLooseFinalPayload($trimmed);
         }
 
         /** @var array<string, mixed> $decoded */
         return $decoded;
+    }
+
+    /**
+     * Best-effort fallback for malformed final envelopes.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function decodeLooseFinalPayload(string $payload): ?array
+    {
+        $type = $this->extractJsonStringFieldValue($payload, 'type');
+        if ($type !== 'final') {
+            return null;
+        }
+
+        $contentValue = $this->extractJsonStringFieldValue($payload, 'content');
+        if ($contentValue === null) {
+            return null;
+        }
+
+        return [
+            'type' => 'final',
+            'content' => $contentValue,
+        ];
+    }
+
+    protected function unwrapFencedJson(string $value): string
+    {
+        if (! str_starts_with($value, '```')) {
+            return $value;
+        }
+
+        $firstNewline = strpos($value, "\n");
+        if ($firstNewline === false) {
+            return $value;
+        }
+
+        $lastFence = strrpos($value, '```');
+        if ($lastFence === false || $lastFence <= $firstNewline) {
+            return $value;
+        }
+
+        return trim(substr($value, $firstNewline + 1, $lastFence - $firstNewline - 1));
+    }
+
+    protected function findJsonStringFieldStart(string $json, string $field, int $offset = 0): ?int
+    {
+        $key = '"'.$field.'"';
+        $position = strpos($json, $key, $offset);
+        if ($position === false) {
+            return null;
+        }
+
+        $cursor = $position + strlen($key);
+        $length = strlen($json);
+
+        while ($cursor < $length && $this->isJsonWhitespace($json[$cursor])) {
+            $cursor++;
+        }
+
+        if ($cursor >= $length || $json[$cursor] !== ':') {
+            return null;
+        }
+        $cursor++;
+
+        while ($cursor < $length && $this->isJsonWhitespace($json[$cursor])) {
+            $cursor++;
+        }
+
+        if ($cursor >= $length || $json[$cursor] !== '"') {
+            return null;
+        }
+
+        return $cursor + 1;
+    }
+
+    protected function extractJsonStringFieldValue(string $json, string $field, int $offset = 0): ?string
+    {
+        $start = $this->findJsonStringFieldStart($json, $field, $offset);
+        if ($start === null) {
+            return null;
+        }
+
+        $length = strlen($json);
+        $cursor = $start;
+        $escape = false;
+        $value = '';
+
+        while ($cursor < $length) {
+            $char = $json[$cursor];
+
+            if ($escape) {
+                $value .= match ($char) {
+                    '"', '\\', '/' => $char,
+                    'b' => "\x08",
+                    'f' => "\x0C",
+                    'n' => "\n",
+                    'r' => "\r",
+                    't' => "\t",
+                    default => $char,
+                };
+                $escape = false;
+                $cursor++;
+
+                continue;
+            }
+
+            if ($char === '\\') {
+                $escape = true;
+                $cursor++;
+
+                continue;
+            }
+
+            if ($char === '"') {
+                return $value;
+            }
+
+            $value .= $char;
+            $cursor++;
+        }
+
+        return null;
+    }
+
+    protected function isHex4(string $value): bool
+    {
+        return strlen($value) === 4 && ctype_xdigit($value);
+    }
+
+    protected function isJsonWhitespace(string $char): bool
+    {
+        return $char === ' ' || $char === "\n" || $char === "\r" || $char === "\t";
     }
 
     protected function getToolCallSchema(): Schema
@@ -547,6 +852,7 @@ class Conversation
     protected function getFinalResponseSchema(): Schema
     {
         $object = (new SchemaObject())
+            ->addProperty('name', ['type' => SchemaObject::TYPE_STRING])
             ->addProperty('type', ['type' => SchemaObject::TYPE_STRING, 'description' => 'Must be "final"'])
             ->addProperty('content', ['type' => SchemaObject::TYPE_STRING]);
 

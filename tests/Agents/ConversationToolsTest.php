@@ -78,12 +78,23 @@ class ConversationToolsTest extends TestCase
         );
 
         $conversation = new Conversation($agent);
+        $streamed = '';
+        $streamChunks = 0;
+        $conversation->listen(function (string $chunk) use (&$streamed, &$streamChunks): void {
+            if ($chunk !== '') {
+                $streamChunks++;
+            }
+            $streamed .= $chunk;
+        });
         $conversation->message(new User('user-1'), new Message('Use stamp tool for my token.'));
 
         $final = $conversation->send();
         $expected = hash('sha256', 'tool::'.$nonce);
 
         $this->assertSame('STAMP: '.$expected, $final->getContent());
+        $this->assertSame('STAMP: '.$expected, $streamed);
+        $this->assertGreaterThan(1, $streamChunks);
+        $this->assertStringNotContainsString('"type"', $streamed);
 
         $messages = $conversation->getMessages();
         $this->assertGreaterThanOrEqual(5, count($messages));
@@ -140,7 +151,7 @@ class ToolLoopFakeAdapter extends Adapter
             throw new \RuntimeException('Expected generic tool_result payload');
         }
 
-        return new Message('{"type":"final","content":"STAMP: '.hash('sha256', 'tool::'.$this->nonce).'"}');
+        return new Message('{"name":"final_response","type":"final","content":"STAMP: '.hash('sha256', 'tool::'.$this->nonce).'"}');
     }
 
     public function getModels(): array
@@ -267,12 +278,21 @@ class ToolProtocolFakeAdapter extends Adapter
         $this->sendCount++;
 
         if ($this->sendCount === 1) {
+            if ($listener !== null) {
+                $listener('{"type":"tool_call","id":"call_1","name":"stamp","arguments":{"nonce":"');
+                $listener($this->nonce.'"}}');
+            }
+
             return new Message(
                 '{"type":"tool_call","id":"call_1","name":"stamp","arguments":{"nonce":"'.$this->nonce.'"}}'
             );
         }
 
         $expected = hash('sha256', 'tool::'.$this->nonce);
+        if ($listener !== null) {
+            $listener('{"type":"final","content":"ST');
+            $listener('AMP: '.$expected.'"}');
+        }
 
         return new Message('{"type":"final","content":"STAMP: '.$expected.'"}');
     }

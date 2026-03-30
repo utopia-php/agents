@@ -146,6 +146,13 @@ class Agent
     {
         $tool = $this->getTool($name);
         if ($tool === null) {
+            $resolvedName = $this->resolveToolName($name);
+            if ($resolvedName !== null) {
+                $tool = $this->getTool($resolvedName);
+            }
+        }
+
+        if ($tool === null) {
             throw new \InvalidArgumentException('Tool not found: '.$name);
         }
 
@@ -187,6 +194,49 @@ class Agent
     public function call(string $name, array $arguments = []): mixed
     {
         return $this->callTool($name, $arguments);
+    }
+
+    protected function resolveToolName(string $name): ?string
+    {
+        if (empty($this->tools)) {
+            return null;
+        }
+
+        $target = $this->canonicalToolName($name);
+        $matches = [];
+        foreach (array_keys($this->tools) as $candidate) {
+            if ($this->canonicalToolName($candidate) === $target) {
+                $matches[] = $candidate;
+            }
+        }
+
+        if (count($matches) === 1) {
+            return $matches[0];
+        }
+
+        return null;
+    }
+
+    protected function canonicalToolName(string $name): string
+    {
+        $canonical = strtolower(trim($name));
+        foreach (['get_', 'fetch_', 'tool_'] as $prefix) {
+            if (str_starts_with($canonical, $prefix)) {
+                $canonical = substr($canonical, strlen($prefix));
+                break;
+            }
+        }
+
+        $normalized = '';
+        $length = strlen($canonical);
+        for ($i = 0; $i < $length; $i++) {
+            $char = $canonical[$i];
+            if (($char >= 'a' && $char <= 'z') || ($char >= '0' && $char <= '9')) {
+                $normalized .= $char;
+            }
+        }
+
+        return $normalized;
     }
 
     /**
