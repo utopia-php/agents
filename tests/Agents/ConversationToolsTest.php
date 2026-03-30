@@ -110,6 +110,23 @@ class ConversationToolsTest extends TestCase
         $this->assertInstanceOf(Message::class, $assistantWithToolCall);
         $this->assertTrue($assistantWithToolCall->getToolCalls()[0]->isSuccess());
     }
+
+    public function testStrictProtocolRejectsMixedTypeAndNameEnvelope(): void
+    {
+        $adapter = new StrictProtocolViolationFakeAdapter();
+        $agent = new Agent($adapter);
+        $agent->addTool(
+            'stamp',
+            fn (string $nonce): string => hash('sha256', 'tool::'.$nonce)
+        );
+
+        $conversation = new Conversation($agent);
+        $conversation->message(new User('user-1'), new Message('Use stamp tool.'));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid tool protocol response');
+        $conversation->send();
+    }
 }
 
 class ToolLoopFakeAdapter extends Adapter
@@ -151,7 +168,7 @@ class ToolLoopFakeAdapter extends Adapter
             throw new \RuntimeException('Expected generic tool_result payload');
         }
 
-        return new Message('{"name":"final_response","type":"final","content":"STAMP: '.hash('sha256', 'tool::'.$this->nonce).'"}');
+        return new Message('{"type":"final","content":"STAMP: '.hash('sha256', 'tool::'.$this->nonce).'"}');
     }
 
     public function getModels(): array
@@ -295,6 +312,64 @@ class ToolProtocolFakeAdapter extends Adapter
         }
 
         return new Message('{"type":"final","content":"STAMP: '.$expected.'"}');
+    }
+
+    public function getModels(): array
+    {
+        return ['fake-model'];
+    }
+
+    public function getModel(): string
+    {
+        return 'fake-model';
+    }
+
+    public function setModel(string $model): self
+    {
+        return $this;
+    }
+
+    public function isSchemaSupported(): bool
+    {
+        return false;
+    }
+
+    public function getSupportForEmbeddings(): bool
+    {
+        return false;
+    }
+
+    public function embed(string $text): array
+    {
+        throw new \Exception('Embeddings not supported');
+    }
+
+    public function getEmbeddingDimension(): int
+    {
+        throw new \Exception('Embeddings not supported');
+    }
+
+    protected function formatErrorMessage($json): string
+    {
+        return 'fake error';
+    }
+}
+
+class StrictProtocolViolationFakeAdapter extends Adapter
+{
+    public function getName(): string
+    {
+        return 'strict-protocol-violation-fake';
+    }
+
+    /**
+     * @param  array<Message>  $messages
+     */
+    public function send(array $messages, ?callable $listener = null): Message
+    {
+        return new Message(
+            '{"type":"final_response","name":"final","content":"This should be rejected"}'
+        );
     }
 
     public function getModels(): array

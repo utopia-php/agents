@@ -134,6 +134,10 @@ class Conversation
                 $parsedToolProtocolResponse = $this->parseToolProtocolResponse($message);
                 if ($parsedToolProtocolResponse instanceof Message) {
                     $message = $parsedToolProtocolResponse;
+                } elseif (! $message->hasToolCalls()) {
+                    throw new \RuntimeException(
+                        'Invalid tool protocol response. Expected JSON envelope with type "tool_call" or "final".'
+                    );
                 }
             }
 
@@ -690,57 +694,13 @@ class Conversation
             return null;
         }
 
-        $trimmed = $this->unwrapFencedJson($trimmed);
-
         $decoded = json_decode($trimmed, true);
         if (! is_array($decoded) || array_is_list($decoded)) {
-            return $this->decodeLooseFinalPayload($trimmed);
+            return null;
         }
 
         /** @var array<string, mixed> $decoded */
         return $decoded;
-    }
-
-    /**
-     * Best-effort fallback for malformed final envelopes.
-     *
-     * @return array<string, mixed>|null
-     */
-    protected function decodeLooseFinalPayload(string $payload): ?array
-    {
-        $type = $this->extractJsonStringFieldValue($payload, 'type');
-        if ($type !== 'final') {
-            return null;
-        }
-
-        $contentValue = $this->extractJsonStringFieldValue($payload, 'content');
-        if ($contentValue === null) {
-            return null;
-        }
-
-        return [
-            'type' => 'final',
-            'content' => $contentValue,
-        ];
-    }
-
-    protected function unwrapFencedJson(string $value): string
-    {
-        if (! str_starts_with($value, '```')) {
-            return $value;
-        }
-
-        $firstNewline = strpos($value, "\n");
-        if ($firstNewline === false) {
-            return $value;
-        }
-
-        $lastFence = strrpos($value, '```');
-        if ($lastFence === false || $lastFence <= $firstNewline) {
-            return $value;
-        }
-
-        return trim(substr($value, $firstNewline + 1, $lastFence - $firstNewline - 1));
     }
 
     protected function findJsonStringFieldStart(string $json, string $field, int $offset = 0): ?int
@@ -836,10 +796,22 @@ class Conversation
     protected function getToolCallSchema(): Schema
     {
         $object = (new SchemaObject())
-            ->addProperty('type', ['type' => SchemaObject::TYPE_STRING, 'description' => 'Must be "tool_call"'])
-            ->addProperty('id', ['type' => SchemaObject::TYPE_STRING])
-            ->addProperty('name', ['type' => SchemaObject::TYPE_STRING])
-            ->addProperty('arguments', ['type' => SchemaObject::TYPE_OBJECT]);
+            ->addProperty('type', [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'Protocol discriminator. Must be exactly "tool_call".',
+            ])
+            ->addProperty('id', [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'Optional client-generated call identifier used to correlate with tool_result.id.',
+            ])
+            ->addProperty('name', [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'Registered tool name to execute (exactly one of the advertised tools).',
+            ])
+            ->addProperty('arguments', [
+                'type' => SchemaObject::TYPE_OBJECT,
+                'description' => 'JSON object of tool arguments matching the selected tool parameter schema.',
+            ]);
 
         return new Schema(
             'tool_call',
@@ -852,9 +824,14 @@ class Conversation
     protected function getFinalResponseSchema(): Schema
     {
         $object = (new SchemaObject())
-            ->addProperty('name', ['type' => SchemaObject::TYPE_STRING])
-            ->addProperty('type', ['type' => SchemaObject::TYPE_STRING, 'description' => 'Must be "final"'])
-            ->addProperty('content', ['type' => SchemaObject::TYPE_STRING]);
+            ->addProperty('type', [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'Protocol discriminator. Must be exactly "final".',
+            ])
+            ->addProperty('content', [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'Final user-facing assistant response text.',
+            ]);
 
         return new Schema(
             'final_response',
@@ -867,10 +844,22 @@ class Conversation
     protected function getToolResultSchema(): Schema
     {
         $object = (new SchemaObject())
-            ->addProperty('type', ['type' => SchemaObject::TYPE_STRING, 'description' => 'Must be "tool_result"'])
-            ->addProperty('id', ['type' => SchemaObject::TYPE_STRING])
-            ->addProperty('name', ['type' => SchemaObject::TYPE_STRING])
-            ->addProperty('content', ['type' => SchemaObject::TYPE_STRING]);
+            ->addProperty('type', [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'Protocol discriminator. Must be exactly "tool_result".',
+            ])
+            ->addProperty('id', [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'Tool call identifier that matches the original tool_call.id.',
+            ])
+            ->addProperty('name', [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'Name of the executed tool.',
+            ])
+            ->addProperty('content', [
+                'type' => SchemaObject::TYPE_STRING,
+                'description' => 'Serialized tool execution output provided back to the model.',
+            ]);
 
         return new Schema(
             'tool_result',
@@ -886,8 +875,6 @@ class Conversation
     protected function schemaToJsonSchema(Schema $schema): array
     {
         return [
-            'name' => $schema->getName(),
-            'description' => $schema->getDescription(),
             'type' => SchemaObject::TYPE_OBJECT,
             'properties' => $schema->getProperties(),
             'required' => $schema->getRequired(),
