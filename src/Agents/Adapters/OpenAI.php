@@ -131,10 +131,12 @@ class OpenAI extends Adapter
             if (! $this->isMessageValid($message)) {
                 throw new \Exception('Invalid message format');
             }
-            $formattedMessages[] = [
+            $formattedMessage = [
                 'role' => $message->getRole(),
                 'content' => $this->formatMessageContent($message),
             ];
+
+            $formattedMessages[] = $formattedMessage;
         }
 
         $instructions = [];
@@ -164,6 +166,7 @@ class OpenAI extends Adapter
         $payload['temperature'] = $temperature;
 
         $schema = $agent->getSchema();
+
         if ($schema !== null) {
             $payload['response_format'] = [
                 'type' => 'json_schema',
@@ -236,11 +239,9 @@ class OpenAI extends Adapter
             $choices = is_array($json) && isset($json['choices']) && is_array($json['choices']) ? $json['choices'] : [];
             $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
             $message = isset($firstChoice['message']) && is_array($firstChoice['message']) ? $firstChoice['message'] : [];
-            if (isset($message['content']) && is_string($message['content'])) {
-                $content = $message['content'];
-            } else {
-                throw new \Exception('Invalid response format received from the API');
-            }
+            $content = $this->extractMessageContent($message);
+
+            return new Message($content);
         }
 
         return new Message($content);
@@ -356,7 +357,11 @@ class OpenAI extends Adapter
 
     protected function isMessageValid(Message $message): bool
     {
-        return ! empty($message->getRole()) && $this->hasTextOrImageContent($message);
+        if (empty($message->getRole())) {
+            return false;
+        }
+
+        return $this->hasTextOrImageContent($message);
     }
 
     protected function hasTextOrImageContent(Message $message): bool
@@ -379,6 +384,10 @@ class OpenAI extends Adapter
      */
     protected function formatMessageContent(Message $message): string|array
     {
+        if ($message->getRole() === 'tool') {
+            return $message->getContent();
+        }
+
         $parts = [];
 
         if ($message->getContent() !== '') {
@@ -407,6 +416,61 @@ class OpenAI extends Adapter
         }
 
         return $parts;
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     *
+     * @throws \Exception
+     */
+    protected function extractMessageContent(array $message): string
+    {
+        if (! array_key_exists('content', $message)) {
+            throw new \Exception('Invalid response format received from the API');
+        }
+
+        $content = $message['content'];
+        if (is_string($content)) {
+            return $content;
+        }
+
+        if ($content === null) {
+            return '';
+        }
+
+        if (! is_array($content)) {
+            throw new \Exception('Invalid response format received from the API');
+        }
+
+        $text = '';
+        foreach ($content as $part) {
+            if (is_string($part)) {
+                $text .= $part;
+
+                continue;
+            }
+
+            if (! is_array($part)) {
+                continue;
+            }
+
+            if (isset($part['text']) && is_string($part['text'])) {
+                $text .= $part['text'];
+
+                continue;
+            }
+
+            if (
+                isset($part['text']) &&
+                is_array($part['text']) &&
+                isset($part['text']['value']) &&
+                is_string($part['text']['value'])
+            ) {
+                $text .= $part['text']['value'];
+            }
+        }
+
+        return $text;
     }
 
     /**

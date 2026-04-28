@@ -214,6 +214,39 @@ $conversation->message(
 $response = $conversation->send();
 ```
 
+### Tool Calling
+
+Tool calling is integrated into the existing conversation flow:
+
+1. Register tools on the `Agent`
+2. Send user message(s)
+3. `Conversation::send()` automatically runs the model -> tool -> model loop
+4. Receive the final assistant answer
+
+Tool argument schema is inferred from callback signature (parameter names and scalar types).
+
+```php
+use Utopia\Agents\Agent;
+use Utopia\Agents\Conversation;
+use Utopia\Agents\Message;
+use Utopia\Agents\Roles\User;
+use Utopia\Agents\Adapters\OpenAI;
+
+$agent = new Agent(new OpenAI('your-api-key', OpenAI::MODEL_O4_MINI));
+
+$agent->addTool(
+    'sum',
+    fn (int $a, int $b): int => $a + $b,
+    'Add two integers'
+);
+
+$conversation = new Conversation($agent);
+$conversation->message(new User('user-1'), new Message('What is 2 + 3?'));
+
+$final = $conversation->send();
+echo $final->getContent();
+```
+
 ### Streaming Responses (SSE)
 
 The conversation layer supports incremental output streaming through `Conversation::listen(callable $listener)`.  
