@@ -17,7 +17,7 @@ class ConversationXAITest extends ConversationBase
 
         return new XAI(
             $apiKey,
-            XAI::MODEL_GROK_2_LATEST,
+            XAI::MODEL_GROK_3_MINI,
             1024,
             1.0
         );

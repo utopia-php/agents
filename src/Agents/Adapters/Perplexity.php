@@ -39,12 +39,6 @@ class Perplexity extends OpenAI
     /**
      * Create a new Perplexity adapter
      *
-     * @param  string  $apiKey
-     * @param  string  $model
-     * @param  int  $maxTokens
-     * @param  float  $temperature
-     * @param  string|null  $endpoint
-     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -54,7 +48,7 @@ class Perplexity extends OpenAI
         int $maxTokens = 1024,
         float $temperature = 1.0,
         ?string $endpoint = null,
-        int $timeout = 90
+        int $timeout = 90000
     ) {
         parent::__construct(
             $apiKey,
@@ -68,8 +62,6 @@ class Perplexity extends OpenAI
 
     /**
      * Check if the model supports JSON schema
-     *
-     * @return bool
      */
     public function isSchemaSupported(): bool
     {
@@ -94,8 +86,6 @@ class Perplexity extends OpenAI
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -104,8 +94,6 @@ class Perplexity extends OpenAI
 
     /**
      * Get support for embeddings
-     *
-     * @return bool
      */
     public function getSupportForEmbeddings(): bool
     {
@@ -115,58 +103,41 @@ class Perplexity extends OpenAI
     /**
      * Process a stream chunk from the Perplexity API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
-     * @param  callable|null  $listener
-     * @return string
      *
      * @throws \Exception
      */
     protected function process(Chunk $chunk, ?callable $listener): string
     {
         $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
+        [$data, $lines] = $this->prepareStreamLines($chunk);
 
-        $json = json_decode($data, true);
+        $rawData = $chunk->getData();
+        $json = $this->decodeJsonObject(trim($rawData)) ?? $this->decodeJsonObject($data);
         if (is_array($json) && isset($json['error'])) {
             return $this->formatErrorMessage($json);
         }
 
         // Specifically for Authorization and similar errors that return HTML
-        $trimmed = ltrim($data);
+        $trimmed = ltrim($rawData);
         if (
             stripos($trimmed, '<html') === 0 ||
             stripos($trimmed, '<!DOCTYPE html') === 0
         ) {
-            return $this->sanitizeHtmlError($data);
+            return $this->sanitizeHtmlError($rawData);
         }
 
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            if (! str_starts_with($line, 'data: ')) {
-                continue;
-            }
-
-            // Handle [DONE] message
-            if (trim($line) === 'data: [DONE]') {
-                continue;
-            }
-
-            $json = json_decode(substr($line, 6), true);
+            $json = $this->decodeSseJsonLine($line);
             if (! is_array($json)) {
                 continue;
             }
 
             // Extract content from the choices array
-            if (isset($json['choices'][0]['delta']['content'])) {
-                $block = $json['choices'][0]['delta']['content'];
-
-                if (! empty($block) && $listener !== null) {
-                    $listener($block);
-                }
+            $choices = isset($json['choices']) && is_array($json['choices']) ? $json['choices'] : [];
+            $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
+            $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
+            if (isset($delta['content']) && is_string($delta['content'])) {
+                $this->appendStreamToken($block, $delta['content'], $listener);
             }
         }
 
@@ -175,9 +146,6 @@ class Perplexity extends OpenAI
 
     /**
      * Sanitize HTML error responses into readable error messages
-     *
-     * @param  string  $html
-     * @return string
      */
     protected function sanitizeHtmlError(string $html): string
     {
@@ -215,7 +183,6 @@ class Perplexity extends OpenAI
     }
 
     /**
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,

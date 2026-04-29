@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Agent;
 use Utopia\Agents\Conversation;
-use Utopia\Agents\Messages\Text;
+use Utopia\Agents\Message;
 use Utopia\Agents\Role;
 use Utopia\Agents\Roles\Assistant;
 use Utopia\Agents\Roles\User;
@@ -24,15 +24,11 @@ abstract class ConversationBase extends TestCase
     /**
      * Abstract method to be implemented by child classes
      * to specify the specific Adapter
-     *
-     * @return Adapter
      */
     abstract protected function createAdapter(): Adapter;
 
     /**
      * Optional method to customize agent description
-     *
-     * @return string
      */
     protected function getAgentDescription(): string
     {
@@ -59,13 +55,12 @@ abstract class ConversationBase extends TestCase
         $this->assertSame(0, $this->conversation->getInputTokens());
         $this->assertSame(0, $this->conversation->getOutputTokens());
         $this->assertSame(0, $this->conversation->getTotalTokens());
-        $this->assertIsCallable($this->conversation->getListener());
     }
 
     public function testMessage(): void
     {
         $user = new User('user-1', 'Test User');
-        $message = new Text('Hello, AI!');
+        $message = new Message('Hello, AI!');
 
         $result = $this->conversation->message($user, $message);
 
@@ -83,9 +78,9 @@ abstract class ConversationBase extends TestCase
         $assistant = new Assistant('assistant-1', 'Test Assistant');
 
         $this->conversation
-            ->message($user, new Text('Hello'))
-            ->message($assistant, new Text('Hi there!'))
-            ->message($user, new Text('How are you?'));
+            ->message($user, new Message('Hello'))
+            ->message($assistant, new Message('Hi there!'))
+            ->message($user, new Message('How are you?'));
 
         $messages = $this->conversation->getMessages();
         $this->assertCount(3, $messages);
@@ -103,11 +98,10 @@ abstract class ConversationBase extends TestCase
     public function testSend(): void
     {
         $messages = $this->conversation
-            ->message(new User('user-1', 'Test User'), new Text('Hello'))
+            ->message(new User('user-1', 'Test User'), new Message('Hello'))
             ->send();
 
-        $this->assertNotEmpty($messages);
-        $this->assertInstanceOf(Text::class, $messages);
+        $this->assertInstanceOf(Message::class, $messages);
 
         // Verify the response was added to conversation
         $conversationMessages = $this->conversation->getMessages();
@@ -147,11 +141,10 @@ abstract class ConversationBase extends TestCase
         $this->agent->setSchema($schema);
 
         $messages = $this->conversation
-            ->message(new User('user-2', 'Test User'), new Text('What is the weather in San Francisco in celsius?'))
+            ->message(new User('user-2', 'Test User'), new Message('What is the weather in San Francisco in celsius?'))
             ->send();
 
         $content = $messages->getContent();
-        $this->assertIsString($content, 'Message content must be a string');
 
         $json = json_decode($content, true);
         $this->assertNotNull($json, 'JSON decoding failed');
@@ -186,9 +179,9 @@ abstract class ConversationBase extends TestCase
 
     public function testListener(): void
     {
-        $called = false;
-        $testListener = function () use (&$called) {
-            $called = true;
+        $streamed = '';
+        $testListener = function (string $token) use (&$streamed): void {
+            $streamed .= $token;
         };
 
         $result = $this->conversation->listen($testListener);
@@ -196,9 +189,12 @@ abstract class ConversationBase extends TestCase
         $this->assertSame($this->conversation, $result);
         $this->assertSame($testListener, $this->conversation->getListener());
 
-        // Call the listener to verify it works
-        $listener = $this->conversation->getListener();
-        $listener();
-        $this->assertTrue($called);
+        $response = $this->conversation
+            ->message(new User('user-listen-1', 'Test User'), new Message('Write a detailed explanation of how rain forms in the atmosphere, and make it long: at least 1200 characters.'))
+            ->send();
+
+        $this->assertNotSame('', $streamed, 'Expected listener to receive streamed output');
+        $this->assertSame($response->getContent(), $streamed, 'Listener stream must match full response content');
+        $this->assertGreaterThan(500, strlen($streamed), 'Expected a large streamed payload to validate chunked listener behavior');
     }
 }

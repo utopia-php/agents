@@ -12,34 +12,33 @@ class XAI extends OpenAI
     protected const ENDPOINT = 'https://api.x.ai/v1/chat/completions';
 
     /**
-     * Grok 2 Latest - Latest Grok model
+     * Grok 3 - Latest Grok model
      */
-    public const MODEL_GROK_2_LATEST = 'grok-2-latest';
+    public const MODEL_GROK_3 = 'grok-3';
+
+    /**
+     * Grok 3 Mini - Mini version of grok 3
+     */
+    public const MODEL_GROK_3_MINI = 'grok-3-mini';
 
     /**
      * Grok 2 Image - Latest Grok model with image support
      */
-    public const MODEL_GROK_2_IMAGE = 'grok-2-image';
+    public const MODEL_GROK_2_IMAGE = 'grok-2-image-1212';
 
     /**
      * Create a new XAI adapter
      *
-     * @param  string  $apiKey
-     * @param  string  $model
-     * @param  int  $maxTokens
-     * @param  float  $temperature
-     * @param  string|null  $endpoint
-     * @param  int  $timeout
      *
      * @throws \Exception
      */
     public function __construct(
         string $apiKey,
-        string $model = self::MODEL_GROK_2_LATEST,
+        string $model = self::MODEL_GROK_3_MINI,
         int $maxTokens = 1024,
         float $temperature = 1.0,
         ?string $endpoint = null,
-        int $timeout = 90
+        int $timeout = 90000
     ) {
         parent::__construct(
             $apiKey,
@@ -53,8 +52,6 @@ class XAI extends OpenAI
 
     /**
      * Check if the model supports JSON schema
-     *
-     * @return bool
      */
     public function isSchemaSupported(): bool
     {
@@ -69,15 +66,14 @@ class XAI extends OpenAI
     public function getModels(): array
     {
         return [
-            self::MODEL_GROK_2_LATEST,
+            self::MODEL_GROK_3,
+            self::MODEL_GROK_3_MINI,
             self::MODEL_GROK_2_IMAGE,
         ];
     }
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -86,8 +82,6 @@ class XAI extends OpenAI
 
     /**
      * Get support for embeddings
-     *
-     * @return bool
      */
     public function getSupportForEmbeddings(): bool
     {
@@ -97,49 +91,31 @@ class XAI extends OpenAI
     /**
      * Process a stream chunk from the OpenAI API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
-     * @param  callable|null  $listener
-     * @return string
      *
      * @throws \Exception
      */
     protected function process(Chunk $chunk, ?callable $listener): string
     {
         $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
+        [$data, $lines] = $this->prepareStreamLines($chunk);
 
-        $json = json_decode($data, true);
+        $json = $this->decodeJsonObject(trim($chunk->getData())) ?? $this->decodeJsonObject($data);
         if (is_array($json) && isset($json['error'])) {
             return $this->formatErrorMessage($json);
         }
 
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            if (! str_starts_with($line, 'data: ')) {
-                continue;
-            }
-
-            // Handle [DONE] message
-            if (trim($line) === 'data: [DONE]') {
-                continue;
-            }
-
-            $json = json_decode(substr($line, 6), true);
+            $json = $this->decodeSseJsonLine($line);
             if (! is_array($json)) {
                 continue;
             }
 
             // Extract content from the choices array
-            if (isset($json['choices'][0]['delta']['content'])) {
-                $block = $json['choices'][0]['delta']['content'];
-
-                if (! empty($block) && $listener !== null) {
-                    $listener($block);
-                }
+            $choices = isset($json['choices']) && is_array($json['choices']) ? $json['choices'] : [];
+            $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
+            $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
+            if (isset($delta['content']) && is_string($delta['content'])) {
+                $this->appendStreamToken($block, $delta['content'], $listener);
             }
         }
 
@@ -150,7 +126,6 @@ class XAI extends OpenAI
      * Extract and format error information from API response
      *
      * @param  mixed  $json
-     * @return string
      */
     protected function formatErrorMessage($json): string
     {
@@ -158,14 +133,14 @@ class XAI extends OpenAI
             return '(unknown_error) Unknown error';
         }
 
-        $errorType = isset($json['code']) ? (string) $json['code'] : 'unknown_error';
-        $errorMessage = isset($json['error']) ? (string) $json['error'] : 'Unknown error';
+        /** @var array<string, mixed> $json */
+        $errorType = isset($json['code']) && is_scalar($json['code']) ? (string) $json['code'] : 'unknown_error';
+        $errorMessage = isset($json['error']) && is_string($json['error']) ? $json['error'] : 'Unknown error';
 
         return '('.$errorType.') '.$errorMessage;
     }
 
     /**
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,

@@ -8,9 +8,6 @@ class User extends Role
 {
     /**
      * Create a new user
-     *
-     * @param  string  $id
-     * @param  string  $name
      */
     public function __construct(string $id, string $name = '')
     {
@@ -19,8 +16,6 @@ class User extends Role
 
     /**
      * Get the role identifier
-     *
-     * @return string
      */
     public function getIdentifier(): string
     {

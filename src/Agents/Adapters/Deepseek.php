@@ -4,12 +4,27 @@ namespace Utopia\Agents\Adapters;
 
 use Utopia\Agents\Adapter;
 use Utopia\Agents\Message;
-use Utopia\Agents\Messages\Text;
 use Utopia\Fetch\Chunk;
 use Utopia\Fetch\Client;
 
 class Deepseek extends Adapter
 {
+    protected const MAX_ATTACHMENTS_PER_MESSAGE = 10;
+
+    protected const MAX_ATTACHMENT_BYTES = 5000000;
+
+    protected const MAX_TOTAL_ATTACHMENT_BYTES = 20000000;
+
+    /**
+     * @var list<string>
+     */
+    protected const ALLOWED_ATTACHMENT_MIME_TYPES = [
+        'image/png',
+        'image/jpeg',
+        'image/webp',
+        'image/gif',
+    ];
+
     /**
      * Deepseek-Chat - Most powerful model
      */
@@ -20,39 +35,19 @@ class Deepseek extends Adapter
      */
     public const MODEL_DEEPSEEK_CODER = 'deepseek-coder';
 
-    /**
-     * @var string
-     */
     protected string $apiKey;
 
-    /**
-     * @var string
-     */
     protected string $model;
 
-    /**
-     * @var int
-     */
     protected int $maxTokens;
 
-    /**
-     * @var float
-     */
     protected float $temperature;
 
-    /**
-     * @var int
-     */
     protected int $timeout;
 
     /**
      * Create a new Deepseek adapter
      *
-     * @param  string  $apiKey
-     * @param  string  $model
-     * @param  int  $maxTokens
-     * @param  float  $temperature
-     * @param  int  $timeout
      *
      * @throws \Exception
      */
@@ -61,7 +56,7 @@ class Deepseek extends Adapter
         string $model = self::MODEL_DEEPSEEK_CHAT,
         int $maxTokens = 1024,
         float $temperature = 1.0,
-        int $timeout = 90
+        int $timeout = 90000
     ) {
         $this->apiKey = $apiKey;
         $this->maxTokens = $maxTokens;
@@ -72,8 +67,6 @@ class Deepseek extends Adapter
 
     /**
      * Check if the model supports JSON schema
-     *
-     * @return bool
      */
     public function isSchemaSupported(): bool
     {
@@ -84,8 +77,6 @@ class Deepseek extends Adapter
      * Send a message to the Deepseek API
      *
      * @param  array<Message>  $messages
-     * @param  callable|null  $listener
-     * @return Message
      *
      * @throws \Exception
      */
@@ -103,17 +94,18 @@ class Deepseek extends Adapter
 
         $formattedMessages = [];
         foreach ($messages as $message) {
-            if (! empty($message->getRole()) && ! empty($message->getContent())) {
+            if (! empty($message->getRole()) && $this->hasTextOrImageContent($message)) {
                 $formattedMessages[] = [
                     'role' => $message->getRole(),
-                    'content' => $message->getContent(),
+                    'content' => $this->formatMessageContent($message),
                 ];
             }
         }
 
         $instructions = [];
         foreach ($this->getAgent()->getInstructions() as $name => $content) {
-            $instructions[] = '# '.$name."\n\n".$content;
+            $text = is_array($content) ? implode("\n", $content) : $content;
+            $instructions[] = '# '.$name."\n\n".$text;
         }
 
         $systemMessage = $this->getAgent()->getDescription().
@@ -146,15 +138,22 @@ class Deepseek extends Adapter
         }
 
         $content = '';
-        $response = $client->fetch(
-            'https://api.deepseek.com/chat/completions',
-            Client::METHOD_POST,
-            $payload,
-            [],
-            function ($chunk) use (&$content, $listener) {
-                $content .= $this->process($chunk, $listener);
-            }
-        );
+        $this->beginStreamProcessing();
+        try {
+            $response = $client->fetch(
+                'https://api.deepseek.com/chat/completions',
+                Client::METHOD_POST,
+                $payload,
+                [],
+                function ($chunk) use (&$content, $listener) {
+                    /** @var Chunk $chunk */
+                    $content .= $this->process($chunk, $listener);
+                }
+            );
+            $content .= $this->flushBufferedStreamData($listener);
+        } finally {
+            $this->endStreamProcessing();
+        }
 
         if ($response->getStatusCode() >= 400) {
             throw new \Exception(
@@ -163,69 +162,134 @@ class Deepseek extends Adapter
             );
         }
 
-        return new Text($content);
+        return new Message($content);
+    }
+
+    protected function hasTextOrImageContent(Message $message): bool
+    {
+        if ($message->getContent() !== '') {
+            return true;
+        }
+
+        foreach ($message->getAttachments() as $attachment) {
+            if ($this->isImageAttachment($attachment)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return string|array<int, array<string, mixed>>
+     */
+    protected function formatMessageContent(Message $message): string|array
+    {
+        $parts = [];
+
+        if ($message->getContent() !== '') {
+            $parts[] = [
+                'type' => 'text',
+                'text' => $message->getContent(),
+            ];
+        }
+
+        foreach ($message->getAttachments() as $attachment) {
+            if (! $this->isImageAttachment($attachment)) {
+                continue;
+            }
+
+            $parts[] = $this->buildImagePart($attachment);
+        }
+
+        if (empty($parts)) {
+            return $message->getContent();
+        }
+
+        if (count($parts) === 1 && isset($parts[0]['type']) && $parts[0]['type'] === 'text') {
+            $text = $parts[0]['text'] ?? '';
+
+            return is_string($text) ? $text : '';
+        }
+
+        return $parts;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildImagePart(Message $image): array
+    {
+        $mimeType = $image->getMimeType() ?? 'application/octet-stream';
+
+        return [
+            'type' => 'image_url',
+            'image_url' => [
+                'url' => 'data:'.$mimeType.';base64,'.base64_encode($image->getContent()),
+            ],
+        ];
     }
 
     /**
      * Process a stream chunk from the Deepseek API
      *
-     * @param  \Utopia\Fetch\Chunk  $chunk
-     * @param  callable|null  $listener
-     * @return string
      *
      * @throws \Exception
      */
     protected function process(Chunk $chunk, ?callable $listener): string
     {
-        $block = '';
-        $data = $chunk->getData();
-        $lines = explode("\n", $data);
+        [$data, $lines] = $this->prepareStreamLines($chunk);
 
-        $json = json_decode($data, true);
+        $json = $this->decodeJsonObject(trim($chunk->getData())) ?? $this->decodeJsonObject($data);
         if (is_array($json) && isset($json['error'])) {
             return $this->formatErrorMessage($json);
         }
 
+        return $this->processStreamLines($lines, $listener);
+    }
+
+    /**
+     * @param  array<int, string>  $lines
+     */
+    protected function processStreamLines(array $lines, ?callable $listener): string
+    {
+        $block = '';
+
         foreach ($lines as $line) {
-            if (empty(trim($line))) {
-                continue;
-            }
-
-            if (! str_starts_with($line, 'data: ')) {
-                continue;
-            }
-
-            $line = substr($line, 6);
-            if ($line === '[DONE]') {
-                continue;
-            }
-
-            $json = json_decode($line, true);
+            $json = $this->decodeSseJsonLine($line);
             if (! is_array($json)) {
                 continue;
             }
 
-            if (isset($json['choices'][0]['delta']['content'])) {
-                $delta = $json['choices'][0]['delta']['content'];
-                if (! empty($delta)) {
-                    $block .= $delta;
-                    if ($listener !== null) {
-                        $listener($delta);
-                    }
-                }
+            $choices = isset($json['choices']) && is_array($json['choices']) ? $json['choices'] : [];
+            $firstChoice = isset($choices[0]) && is_array($choices[0]) ? $choices[0] : [];
+            $delta = isset($firstChoice['delta']) && is_array($firstChoice['delta']) ? $firstChoice['delta'] : [];
+            if (isset($delta['content']) && is_string($delta['content'])) {
+                $this->appendStreamToken($block, $delta['content'], $listener);
             }
 
-            if (isset($json['usage'])) {
-                if (isset($json['usage']['prompt_tokens'])) {
-                    $this->countInputTokens($json['usage']['prompt_tokens']);
+            if (isset($json['usage']) && is_array($json['usage'])) {
+                $usage = $json['usage'];
+                if (isset($usage['prompt_tokens']) && is_int($usage['prompt_tokens'])) {
+                    $this->countInputTokens($usage['prompt_tokens']);
                 }
-                if (isset($json['usage']['completion_tokens'])) {
-                    $this->countOutputTokens($json['usage']['completion_tokens']);
+                if (isset($usage['completion_tokens']) && is_int($usage['completion_tokens'])) {
+                    $this->countOutputTokens($usage['completion_tokens']);
                 }
             }
         }
 
         return $block;
+    }
+
+    protected function flushBufferedStreamData(?callable $listener): string
+    {
+        $line = $this->consumeStreamBufferLine();
+        if ($line === null) {
+            return '';
+        }
+
+        return $this->processStreamLines([$line], $listener);
     }
 
     /**
@@ -243,8 +307,6 @@ class Deepseek extends Adapter
 
     /**
      * Get current model
-     *
-     * @return string
      */
     public function getModel(): string
     {
@@ -253,9 +315,6 @@ class Deepseek extends Adapter
 
     /**
      * Set model to use
-     *
-     * @param  string  $model
-     * @return self
      */
     public function setModel(string $model): self
     {
@@ -266,9 +325,6 @@ class Deepseek extends Adapter
 
     /**
      * Set max tokens
-     *
-     * @param  int  $maxTokens
-     * @return self
      */
     public function setMaxTokens(int $maxTokens): self
     {
@@ -279,9 +335,6 @@ class Deepseek extends Adapter
 
     /**
      * Set temperature
-     *
-     * @param  float  $temperature
-     * @return self
      */
     public function setTemperature(float $temperature): self
     {
@@ -292,19 +345,49 @@ class Deepseek extends Adapter
 
     /**
      * Get the adapter name
-     *
-     * @return string
      */
     public function getName(): string
     {
         return 'deepseek';
     }
 
+    public function supportsAttachments(): bool
+    {
+        return true;
+    }
+
+    public function supportsAttachment(Message $attachment): bool
+    {
+        return $this->isImageAttachment($attachment);
+    }
+
+    public function getMaxAttachmentsPerMessage(): ?int
+    {
+        return self::MAX_ATTACHMENTS_PER_MESSAGE;
+    }
+
+    public function getMaxAttachmentBytes(): ?int
+    {
+        return self::MAX_ATTACHMENT_BYTES;
+    }
+
+    public function getMaxTotalAttachmentBytes(): ?int
+    {
+        return self::MAX_TOTAL_ATTACHMENT_BYTES;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getAllowedAttachmentMimeTypes(): ?array
+    {
+        return self::ALLOWED_ATTACHMENT_MIME_TYPES;
+    }
+
     /**
      * Extract and format error information from API response
      *
      * @param  mixed  $json
-     * @return string
      */
     protected function formatErrorMessage($json): string
     {
@@ -312,8 +395,9 @@ class Deepseek extends Adapter
             return '(unknown_error) Unknown error';
         }
 
-        $errorType = isset($json['error']['type']) ? (string) $json['error']['type'] : 'unknown_error';
-        $errorMessage = isset($json['error']['message']) ? (string) $json['error']['message'] : 'Unknown error';
+        $error = isset($json['error']) && is_array($json['error']) ? $json['error'] : [];
+        $errorType = isset($error['type']) && is_string($error['type']) ? $error['type'] : 'unknown_error';
+        $errorMessage = isset($error['message']) && is_string($error['message']) ? $error['message'] : 'Unknown error';
 
         return '('.$errorType.') '.$errorMessage;
     }
@@ -324,7 +408,6 @@ class Deepseek extends Adapter
     }
 
     /**
-     * @param  string  $text
      * @return array{
      *     embedding: array<int, float>,
      *     tokensProcessed: int|null,

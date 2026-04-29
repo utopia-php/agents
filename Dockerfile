@@ -1,13 +1,10 @@
-FROM composer:2.0 AS composer
-
-ARG TESTING=false
-ENV TESTING=$TESTING
+FROM composer:2 AS composer
 
 WORKDIR /usr/local/src/
 COPY composer.lock /usr/local/src/
 COPY composer.json /usr/local/src/
 
-RUN composer update \
+RUN composer install \
     --ignore-platform-reqs \
     --optimize-autoloader \
     --no-plugins \
@@ -23,6 +20,9 @@ WORKDIR /usr/src/code
 # Configure PHP
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && echo "memory_limit=256M" >> $PHP_INI_DIR/php.ini
+
+# Install required tooling
+RUN apk add --no-cache git
 
 # Copy composer dependencies
 COPY --from=composer /usr/local/src/vendor /usr/src/code/vendor
