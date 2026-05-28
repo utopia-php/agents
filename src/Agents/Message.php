@@ -14,6 +14,15 @@ class Message
     protected array $attachments;
 
     /**
+     * @var array<ToolCall>
+     */
+    protected array $toolCalls = [];
+
+    protected ?string $toolCallId = null;
+
+    protected ?string $toolName = null;
+
+    /**
      * Create a new message
      *
      * @param  array<int, mixed>  $attachments
@@ -108,5 +117,57 @@ class Message
     public function hasAttachments(): bool
     {
         return ! empty($this->attachments);
+    }
+
+    public function setToolCalls(array $toolCalls): self
+    {
+        $this->toolCalls = [];
+
+        foreach ($toolCalls as $toolCall) {
+            if (! $toolCall instanceof ToolCall) {
+                throw new \InvalidArgumentException('Tool calls must be ToolCall instances');
+            }
+
+            $this->toolCalls[] = $toolCall;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return array<ToolCall>
+     */
+    public function getToolCalls(): array
+    {
+        return $this->toolCalls;
+    }
+
+    public function hasToolCalls(): bool
+    {
+        return ! empty($this->toolCalls);
+    }
+
+    public function setToolCallId(?string $toolCallId): self
+    {
+        $this->toolCallId = $toolCallId;
+
+        return $this;
+    }
+
+    public function getToolCallId(): ?string
+    {
+        return $this->toolCallId;
+    }
+
+    public function setToolName(?string $toolName): self
+    {
+        $this->toolName = $toolName;
+
+        return $this;
+    }
+
+    public function getToolName(): ?string
+    {
+        return $this->toolName;
     }
 }

@@ -13,6 +13,11 @@ class Agent
 
     protected ?Schema $schema = null;
 
+    /**
+     * @var array<string, Tool>
+     */
+    protected array $tools = [];
+
     protected Adapter $adapter;
 
     /**
@@ -95,6 +100,143 @@ class Agent
     public function getSchema(): ?Schema
     {
         return $this->schema;
+    }
+
+    public function addTool(
+        string $name,
+        callable $handler,
+        string $description = ''
+    ): self {
+        $this->tools[$name] = new Tool($name, $handler, $description);
+
+        return $this;
+    }
+
+    public function setTool(Tool $tool): self
+    {
+        $this->tools[$tool->getName()] = $tool;
+
+        return $this;
+    }
+
+    public function removeTool(string $name): self
+    {
+        unset($this->tools[$name]);
+
+        return $this;
+    }
+
+    /**
+     * @return list<Tool>
+     */
+    public function getTools(): array
+    {
+        return array_values($this->tools);
+    }
+
+    public function getTool(string $name): ?Tool
+    {
+        return $this->tools[$name] ?? null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    public function callTool(string $name, array $arguments = []): mixed
+    {
+        $tool = $this->getTool($name);
+        if ($tool === null) {
+            $resolvedName = $this->resolveToolName($name);
+            if ($resolvedName !== null) {
+                $tool = $this->getTool($resolvedName);
+            }
+        }
+
+        if ($tool === null) {
+            throw new \InvalidArgumentException('Tool not found: '.$name);
+        }
+
+        return $tool->run($arguments);
+    }
+
+    /**
+     * Short alias for addTool().
+     */
+    public function tool(
+        string $name,
+        callable $handler,
+        string $description = ''
+    ): self {
+        return $this->addTool($name, $handler, $description);
+    }
+
+    public function drop(string $name): self
+    {
+        return $this->removeTool($name);
+    }
+
+    /**
+     * @return list<Tool>
+     */
+    public function tools(): array
+    {
+        return $this->getTools();
+    }
+
+    public function find(string $name): ?Tool
+    {
+        return $this->getTool($name);
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    public function call(string $name, array $arguments = []): mixed
+    {
+        return $this->callTool($name, $arguments);
+    }
+
+    protected function resolveToolName(string $name): ?string
+    {
+        if (empty($this->tools)) {
+            return null;
+        }
+
+        $target = $this->canonicalToolName($name);
+        $matches = [];
+        foreach (array_keys($this->tools) as $candidate) {
+            if ($this->canonicalToolName($candidate) === $target) {
+                $matches[] = $candidate;
+            }
+        }
+
+        if (count($matches) === 1) {
+            return $matches[0];
+        }
+
+        return null;
+    }
+
+    protected function canonicalToolName(string $name): string
+    {
+        $canonical = strtolower(trim($name));
+        foreach (['get_', 'fetch_', 'tool_'] as $prefix) {
+            if (str_starts_with($canonical, $prefix)) {
+                $canonical = substr($canonical, strlen($prefix));
+                break;
+            }
+        }
+
+        $normalized = '';
+        $length = strlen($canonical);
+        for ($i = 0; $i < $length; $i++) {
+            $char = $canonical[$i];
+            if (($char >= 'a' && $char <= 'z') || ($char >= '0' && $char <= '9')) {
+                $normalized .= $char;
+            }
+        }
+
+        return $normalized;
     }
 
     /**

@@ -4,6 +4,5 @@
 tests/chunk.php
 .idea/
 .env
-example.php
-example.md
+/examples/
 /blueprints/
